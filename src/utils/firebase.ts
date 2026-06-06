@@ -1,20 +1,14 @@
 import { initializeApp, getApps } from "firebase/app";
 import {
-  getFirestore,
+  initializeFirestore, // Forcing alternative connection protocols
   collection,
   addDoc,
   getDocs,
   query,
   orderBy,
   where,
-  doc,
-  updateDoc,
-  deleteDoc,
-  DocumentSnapshot,
   serverTimestamp,
   writeBatch,
-  getDoc,
-  setDoc,
 } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -27,8 +21,13 @@ const firebaseConfig = {
   measurementId: "G-DQX7FCE5F6",
 };
 
+// Initialize Firebase App
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-export const db = getFirestore(app);
+
+// Initialize Firestore with long-polling disabled to stop client-side blocks
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: false,
+});
 
 export type LeaderboardCategory = "time" | "kills";
 export const PAGE_SIZE = 20;
@@ -37,34 +36,30 @@ export interface LeaderboardEntry {
   id?: string;
   name: string;
   color: string;
-  score: number; // seconds for time, count for kills
+  score: number; 
   category: LeaderboardCategory;
   difficulty: string;
   bigMode: boolean;
   deviceId: string;
-  deleted?: boolean;
   timestamp?: any;
+  deleted?: boolean;
 }
 
-// Get or create a stable device ID for this browser
+/**
+ * Generates or retrieves a persistent unique client ID stored in localStorage
+ */
 export function getDeviceId(): string {
-  let id = localStorage.getItem("dot_device_id");
+  let id = localStorage.getItem("dot_game_device_id");
   if (!id) {
-    id = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    localStorage.setItem("dot_device_id", id);
+    id = "dev_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    localStorage.setItem("dot_game_device_id", id);
   }
   return id;
 }
 
-export async function submitScore(entry: Omit<LeaderboardEntry, "id" | "timestamp">): Promise<string> {
-  const ref = await addDoc(collection(db, "leaderboard"), {
-    ...entry,
-    timestamp: serverTimestamp(),
-    deleted: false,
-  });
-  return ref.id;
-}
-
+/**
+ * Fetches a paginated slice of active leaderboard entries
+ */
 export async function getLeaderboardPage(
   category: LeaderboardCategory,
   difficulty: string,
@@ -72,10 +67,8 @@ export async function getLeaderboardPage(
   pageIndex: number
 ): Promise<{ entries: LeaderboardEntry[]; total: number }> {
   const col = collection(db, "leaderboard");
-  const orderDir = "desc";
+  const orderDir = category === "time" ? "desc" : "desc"; // Match your current sorting configuration
 
-  // Query without `deleted` field to avoid needing a 5-field composite index.
-  // Deleted entries are filtered out client-side after fetch.
   const baseQuery = query(
     col,
     where("category", "==", category),
@@ -85,7 +78,8 @@ export async function getLeaderboardPage(
   );
 
   const allSnap = await getDocs(baseQuery);
-  // Filter deleted entries client-side
+  
+  // Filter out any entries marked as soft-deleted
   const activeDocs = allSnap.docs.filter((d) => d.data().deleted !== true);
 
   const total = activeDocs.length;
@@ -100,6 +94,9 @@ export async function getLeaderboardPage(
   return { entries, total };
 }
 
+/**
+ * Hard-deletes previous submissions matching the current configuration settings
+ */
 export async function deleteExistingScore(
   deviceId: string,
   category: LeaderboardCategory,
@@ -114,19 +111,57 @@ export async function deleteExistingScore(
     where("difficulty", "==", difficulty),
     where("bigMode", "==", bigMode)
   );
+  
   const snap = await getDocs(q);
   const batch = writeBatch(db);
   snap.docs.forEach((d) => batch.delete(d.ref));
-  if (snap.docs.length > 0) await batch.commit();
+  if (snap.docs.length > 0) {
+    await batch.commit();
+  }
 }
 
+/**
+ * Soft-deletes user submissions globally across all history fields
+ */
 export async function markEntriesDeleted(deviceId: string): Promise<void> {
   const col = collection(db, "leaderboard");
   const q = query(col, where("deviceId", "==", deviceId));
   const snap = await getDocs(q);
   const batch = writeBatch(db);
   snap.docs.forEach((d) => {
-    batch.update(d.ref, { deleted: true, name: "[deleted_account]" });
+    batch.update(d.ref, { deleted: true });
   });
-  await batch.commit();
+  if (snap.docs.length > 0) {
+    await batch.commit();
+  }
+}
+
+/**
+ * Submits a fresh personal best score to the leaderboard collection
+ */
+export async function submitScore(
+  name: string,
+  color: string,
+  score: number,
+  category: LeaderboardCategory,
+  difficulty: string,
+  bigMode: boolean
+): Promise<void> {
+  const deviceId = getDeviceId();
+
+  // Clear previous matching configurations out first
+  await deleteExistingScore(deviceId, category, difficulty, bigMode);
+
+  const col = collection(db, "leaderboard");
+  await addDoc(col, {
+    name,
+    color,
+    score,
+    category,
+    difficulty,
+    bigMode,
+    deviceId,
+    timestamp: serverTimestamp(),
+    deleted: false,
+  });
 }
