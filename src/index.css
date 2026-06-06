@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@500;700;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "Courier New", Courier, monospace;
+  --font-space: "Space Grotesk", sans-serif;
+  --color-neon-green: #00FF00;
+  --color-neon-magenta: #FF00FF;
+  --color-neon-cyan: #00FFFF;
+  --color-neon-red: #FF3131;
+  --color-neon-yellow: #FFFF00;
+  --color-bg-brutal: #050505;
+  --color-panel-brutal: #0a0a0a;
+  --color-card-brutal: #0f0f0f;
+  --color-ink: #FFFFFF;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  margin: 0;
+  background-color: #050505;
+  color: #FFFFFF;
+  font-family: var(--font-mono);
+  overflow-x: hidden;
+}
+
+/* Hide all scrollbars globally */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Hide number input spin buttons */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Custom scrollbars for cyber lists */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Background brutalist dots grid */
+.bg-brutal-grid {
+  background-color: #050505;
+  background-image: radial-gradient(circle, #222 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+/* Glow effects */
+.glow-cyan {
+  box-shadow: 0 0 10px #00FFFF;
+}
+.glow-magenta {
+  box-shadow: 0 0 10px #FF00FF;
+}
+.glow-red {
+  box-shadow: 0 0 10px #FF3131;
+}
+.glow-green {
+  box-shadow: 0 0 10px #00FF00;
+}
+.glow-yellow {
+  box-shadow: 0 0 10px #FFFF00;
+}
+.glow-white {
+  box-shadow: 0 0 10px #FFFFFF;
+}
+
+/* Retro CRT monitor noise/scanline screen overlay simulation */
+#game-viewport-container::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.015), rgba(0, 0, 255, 0.05));
+  z-index: 5;
+  background-size: 100% 4px, 6px 100%;
+  pointer-events: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1.0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes neoGlow {
+  from { box-shadow: 0 0 8px #c084fc; }
+  to { box-shadow: 0 0 28px #c084fc, 0 0 50px #c084fc; }
+}
+
+/* Color picker triangle swatch */
+.color-picker-swatch {
+  cursor: pointer;
+  border: 1px solid #333;
+  transition: border-color 0.15s;
+}
+.color-picker-swatch:hover {
+  border-color: #00FFFF;
+}

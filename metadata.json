@@ -1,0 +1,6 @@
+{
+  "name": "DOT",
+  "description": "A futuristic, retro-digital bullet hell game of quick-reflex teleports and line-clearing action.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
