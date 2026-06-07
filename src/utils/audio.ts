@@ -307,6 +307,24 @@ class AudioEngine {
     osc.stop(this.ctx.currentTime + 0.13);
   }
 
+  // SFX: Yawn — plays dedeniz_yawn_edited.mp3 at a configurable probability
+  private yawnProbabilityValue = 0.01;
+  private yawnAudio: HTMLAudioElement | null = null;
+
+  public get yawnProbability() { return this.yawnProbabilityValue; }
+  public setYawnProbability(v: number) { this.yawnProbabilityValue = Math.max(0, v); }
+
+  public maybePlayYawn(baseUrl: string) {
+    if (this.isMutedState) return;
+    if (Math.random() >= this.yawnProbabilityValue) return;
+    // Stop any currently playing yawn first
+    if (this.yawnAudio) { this.yawnAudio.pause(); this.yawnAudio.currentTime = 0; }
+    const a = new Audio(`${baseUrl}dedeniz_yawn_edited.mp3`);
+    a.volume = Math.min(1, this.sfxVolumeLevel * 1.0);
+    a.play().catch(() => {});
+    this.yawnAudio = a;
+  }
+
   // SFX: Dark and falling sound for game over
   public playGameOver() {
     this.initCtx();

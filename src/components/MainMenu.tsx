@@ -120,8 +120,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         const next = NAV_ORDER[nextIdx];
         if (next === current) return;
         audio.playClick();
+        audio.maybePlayYawn(import.meta.env.BASE_URL);
         if (next === "shop") {
-          onOpenShop();
         } else {
           setActiveTab(next as "menu" | "leaderboard" | "settings");
         }
@@ -287,7 +287,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => { onToggleMute(); audio.playClick(); }}
+            onClick={() => { onToggleMute(); audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); }}
             className="p-2.5 border border-[#333] hover:border-neon-cyan hover:bg-[#111] bg-[#050505] text-zinc-400 hover:text-white transition-all cursor-pointer"
             title="Toggle Audio"
           >
@@ -303,25 +303,25 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       {/* Nav Tabs */}
       <div className="flex border border-[#222] bg-[#050505] p-1 gap-1 my-4">
         <button
-          onClick={() => { audio.playClick(); setActiveTab("menu"); }}
+          onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); setActiveTab("menu"); }}
           className={`px-6 py-2.5 text-xs uppercase font-black tracking-widest border transition-all cursor-pointer ${activeTab === "menu" ? "border-neon-cyan/40 bg-zinc-950 text-neon-cyan" : "border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333]"}`}
         >
           MAIN MENU
         </button>
         <button
-          onClick={() => { audio.playClick(); onOpenShop(); }}
+          onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); onOpenShop(); }}
           className="px-6 py-2.5 text-xs uppercase font-black tracking-widest border border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333] transition-all cursor-pointer"
         >
           DOT SHOP
         </button>
         <button
-          onClick={() => { audio.playClick(); setActiveTab("leaderboard"); }}
+          onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); setActiveTab("leaderboard"); }}
           className={`px-6 py-2.5 text-xs uppercase font-black tracking-widest border transition-all cursor-pointer ${activeTab === "leaderboard" ? "border-neon-cyan/40 bg-zinc-950 text-neon-cyan" : "border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333]"}`}
         >
           LEADERBOARD
         </button>
         <button
-          onClick={() => { audio.playClick(); setActiveTab("settings"); }}
+          onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); setActiveTab("settings"); }}
           className={`px-6 py-2.5 text-xs uppercase font-black tracking-widest border transition-all cursor-pointer ${activeTab === "settings" ? "border-neon-cyan/40 bg-zinc-950 text-neon-cyan" : "border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333]"}`}
         >
           SETTINGS
@@ -455,7 +455,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 return (
                   <button
                     key={diff}
-                    onClick={() => { audio.playClick(); onStartGame(diff); }}
+                    onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); onStartGame(diff); }}
                     className={`w-full p-3 border text-left flex justify-between items-center transition-all cursor-pointer bg-[#070707] hover:bg-[#111] ${style.border} group relative pl-10`}
                   >
                     <div className="absolute left-0 inset-y-0 w-1.5 transition-all group-hover:w-2" style={{ backgroundColor: style.color }} />
@@ -508,7 +508,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               {customDifficulties.map((cd, i) => (
                 <button
                   key={`custom-${i}`}
-                  onClick={() => { audio.playClick(); onStartGame(Difficulty.Medium, cd); }}
+                  onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); onStartGame(Difficulty.Medium, cd); }}
                   className="w-full p-3 border border-neon-cyan/30 hover:border-neon-cyan text-left flex justify-between items-center transition-all cursor-pointer bg-[#070707] hover:bg-[#0a0a0a] group relative pl-10"
                 >
                   <div className="absolute left-0 inset-y-0 w-1.5 bg-neon-cyan/50 group-hover:w-2 group-hover:bg-neon-cyan transition-all" />
@@ -536,7 +536,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </p>
         </div>
         <button
-          onClick={() => { audio.playClick(); setShowContributors((p) => !p); }}
+          onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); setShowContributors((p) => !p); }}
           className="text-[9px] text-zinc-600 hover:text-zinc-400 uppercase tracking-widest font-black transition-all cursor-pointer border border-transparent hover:border-[#222] px-3 py-1.5"
         >
           CONTRIBUTORS

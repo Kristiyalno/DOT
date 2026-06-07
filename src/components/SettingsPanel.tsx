@@ -355,6 +355,24 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             {/* Spamton range */}
             <SpamtonRangeField range={spamtonRange} onChange={onSetSpamtonRange} />
 
+            {/* Yawn probability */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44 font-black">Yawn Probability</span>
+                <input
+                  type="number"
+                  step={0.001}
+                  defaultValue={audio.yawnProbability}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    if (!isNaN(v)) audio.setYawnProbability(v);
+                  }}
+                  className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
+                />
+              </div>
+              <p className="text-[9px] text-zinc-600">Chance of a yawn sound on each main menu button click. Default: 0.01 (1%).</p>
+            </div>
+
             {/* Leaderboard identity */}
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">Leaderboard Color</span>
