@@ -50,7 +50,12 @@ export default function App() {
   });
 
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
-    try { return localStorage.getItem("dot_fullscreen") === "1"; } catch { return false; }
+    // Default to off — user must explicitly enable in settings
+    try {
+      const stored = localStorage.getItem("dot_fullscreen");
+      if (stored === null) return false; // no preference stored yet → default off
+      return stored === "1";
+    } catch { return false; }
   });
 
   const handleToggleFullscreen = () => {

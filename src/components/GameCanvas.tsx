@@ -57,7 +57,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const isFullscreen = isFullscreenProp;
   const [isHyperSlo, setIsHyperSlo] = useState<boolean>(false);
   const [hudFreezeReady, setHudFreezeReady] = useState<boolean>(false);
-  const [hudFreezeCooldown, setHudFreezeCooldown] = useState<number>(0);
 
   // Gameplay state references for the requestAnimationFrame loop to prevent stale React closures
   // Big mode scale factor — applied to all radii and sizes
@@ -111,7 +110,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     hasMoved: false,
     teleportLine: null as null | { x1: number; y1: number; x2: number; y2: number; alpha: number; color: string },
     microDrops: [] as Array<{ id: string; x: number; y: number; vx: number; vy: number; radius: number; alpha: number; life: number }>,
-    neoFreezeCooldownRemaining: 0,
     neoFreezeFlashAlpha: 0,
   });
 
@@ -166,11 +164,25 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       observer.observe(containerRef.current);
     }
 
-    // Key event listeners (ESC to trigger end game)
+    // Key event listeners
+    // ESC = quit game only (does NOT exit fullscreen)
+    // Hold ESC for 2s = exit fullscreen
+    let escHoldTimer: ReturnType<typeof setTimeout> | null = null;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
+        // Quit immediately
         triggerGameOver();
+        // Start hold timer — exit fullscreen after 2s of holding
+        if (escHoldTimer === null) {
+          escHoldTimer = setTimeout(() => {
+            if (document.fullscreenElement) {
+              document.exitFullscreen?.().catch(() => {});
+            }
+            escHoldTimer = null;
+          }, 2000);
+        }
       }
       if (e.key === " ") {
         e.preventDefault();
@@ -178,10 +190,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         if (!s.hasMoved || s.gameOverTriggered) return;
         const isNeoDot = selectedDot.id === "neo_drop" || selectedDot.id === NEO_DROP_ID;
         if (!isNeoDot) return;
-        if (s.neoFreezeCooldownRemaining > 0) return;
-        if (s.player.slo < 200) return;
-        s.player.slo = Math.max(0, s.player.slo - 200);
-        s.neoFreezeCooldownRemaining = 20000;
+        if (s.player.slo < 100) return;
+        s.player.slo = Math.max(0, s.player.slo - 100);
         s.neoFreezeFlashAlpha = 0.7;
         const freezeUntil = Date.now() + 2000;
         s.enemies.forEach((enemy: any) => {
@@ -193,7 +203,15 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     };
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && escHoldTimer !== null) {
+        clearTimeout(escHoldTimer);
+        escHoldTimer = null;
+      }
+    };
+
     window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
 
     // Initial game speed configuration based on difficulty
     let baseSpeed = 1.0;
@@ -218,6 +236,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         cancelAnimationFrame(animRef.current);
       }
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      if (escHoldTimer !== null) clearTimeout(escHoldTimer);
       observer.disconnect();
       audio.stopMusic();
     };
@@ -278,15 +298,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       s.glintFlashAlpha = Math.max(0, s.glintFlashAlpha - 0.02 * (deltaReal / 16.67));
     }
 
-    // Neo Drop freeze cooldown tick and flash decay
-    if (s.neoFreezeCooldownRemaining > 0) {
-      s.neoFreezeCooldownRemaining = Math.max(0, s.neoFreezeCooldownRemaining - deltaReal);
-    }
+    // Neo Drop freeze flash decay
     if (s.neoFreezeFlashAlpha > 0) {
       s.neoFreezeFlashAlpha = Math.max(0, s.neoFreezeFlashAlpha - 0.015 * (deltaReal / 16.67));
     }
-    setHudFreezeReady(s.neoFreezeCooldownRemaining === 0 && s.player.slo >= 200);
-    setHudFreezeCooldown(Math.ceil(s.neoFreezeCooldownRemaining / 1000));
+    setHudFreezeReady(s.player.slo >= 100);
 
     // Proximity Slo-mo calculation
     // Two tiers: dot-near (full hyper slo) and cursor-near (soft slo)
@@ -2053,10 +2069,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const freezePanel = isNeoDrop && (
     <div className={`border p-3 flex flex-col select-none ${hudFreezeReady ? "border-neon-purple bg-[#1a0a2a]" : "border-[#333] bg-[#0a0a0a]"}`}>
       <div className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mb-1">FREEZE [SPACE]</div>
-      {hudFreezeCooldown > 0 ? (
-        <div className="text-[10px] font-black text-zinc-500">COOLDOWN {hudFreezeCooldown}s</div>
-      ) : hudSlo < 200 ? (
-        <div className="text-[10px] font-black text-zinc-600">NEED 200 SLO</div>
+      {hudSlo < 100 ? (
+        <div className="text-[10px] font-black text-zinc-600">NEED 100 SLO</div>
       ) : (
         <div className="text-[10px] font-black text-neon-purple animate-pulse">READY</div>
       )}

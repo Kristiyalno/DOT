@@ -109,6 +109,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
   const [editingCustomDiff, setEditingCustomDiff] = useState<CustomDifficulty>({ ...defaultCustomDiff });
   const [editingCustomIndex, setEditingCustomIndex] = useState<number | null>(null);
   const [showResetPopup, setShowResetPopup] = useState(false);
+  const [wipeStage, setWipeStage] = useState<0 | 1 | 2>(0);
 
   // High score editing
   const [bestTimeEdits, setBestTimeEdits] = useState<Record<string, string>>({});
@@ -300,6 +301,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                   type="number"
                   value={setPlointsVal}
                   onChange={(e) => setSetPlointsVal(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSetPloints(); }}
                   placeholder={String(stats.totalPloints)}
                   className="flex-1 bg-[#0a0a0a] border border-[#333] text-white text-xs px-3 py-2 font-mono focus:border-neon-cyan outline-none"
                 />
@@ -397,7 +399,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
               </button>
             </div>
 
-            {/* Reset everything */}
+            {/* Reset everything — 3-click confirmation */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex flex-col gap-0.5">
                 <span className="text-[10px] text-neon-red uppercase tracking-widest font-black">Reset Everything</span>
@@ -405,13 +407,19 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
               </div>
               <button
                 onClick={() => {
-                  if (window.confirm("This will permanently delete all your data, progress, and leaderboard entries. Are you sure?")) {
-                    handleResetAll();
-                  }
+                  audio.playClick();
+                  if (wipeStage === 0) { setWipeStage(1); }
+                  else if (wipeStage === 1) { setWipeStage(2); }
+                  else { handleResetAll(); }
                 }}
-                className="px-4 py-1.5 text-xs font-black uppercase border border-neon-red text-neon-red hover:bg-neon-red/10 cursor-pointer transition-all shrink-0"
+                onBlur={() => setWipeStage(0)}
+                className={`px-4 py-1.5 text-xs font-black uppercase border cursor-pointer transition-all shrink-0 ${
+                  wipeStage === 0 ? "border-neon-red text-neon-red hover:bg-neon-red/10"
+                  : wipeStage === 1 ? "border-orange-400 text-orange-400 hover:bg-orange-400/10"
+                  : "border-white text-white hover:bg-white/10 animate-pulse"
+                }`}
               >
-                WIPE
+                {wipeStage === 0 ? "WIPE" : wipeStage === 1 ? "WIPE?" : "CONFIRM"}
               </button>
             </div>
 
@@ -629,9 +637,15 @@ const Section: React.FC<{ title: string; accent?: string; children: React.ReactN
 
 const Popup: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => {
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") { audio.playClick(); onClose(); } };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation();
+        audio.playClick();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handler, true); // capture so popup always wins
+    return () => window.removeEventListener("keydown", handler, true);
   }, [onClose]);
 
   return (
