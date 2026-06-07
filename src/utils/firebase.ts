@@ -28,7 +28,7 @@ export const db = initializeFirestore(app, {
 });
 
 export type LeaderboardCategory = "time" | "kills";
-export const PAGE_SIZE = 20;
+export const PAGE_SIZE = 5;
 
 export interface LeaderboardEntry {
   id?: string;

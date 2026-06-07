@@ -271,7 +271,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                   </span>
                   <span className="text-white font-black text-base pr-10">{formatScore(entry)}</span>
                   <span className={`text-xs font-bold uppercase tracking-wider ${entry.bigMode ? "text-neon-cyan" : "text-zinc-600"}`}>
-                    {entry.bigMode ? "BIG" : "STD"}
+                    {entry.bigMode ? "BIG" : "STANDARD"}
                   </span>
                 </div>
               );

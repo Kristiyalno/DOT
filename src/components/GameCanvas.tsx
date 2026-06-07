@@ -130,7 +130,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     }
   };
 
-  const plointInterval = getPlointIntervalSeconds(difficulty) * 1000; // in ms
+  const plointInterval = (customDifficulty != null
+    ? (customDifficulty.secondsPerPloint ?? getPlointIntervalSeconds(difficulty))
+    : getPlointIntervalSeconds(difficulty)) * 1000; // in ms
 
   useEffect(() => {
     // Laser and audio initialization
@@ -215,16 +217,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // Initial game speed configuration based on difficulty
     let baseSpeed = 1.0;
-    switch (difficulty) {
-      case Difficulty.Blissful: baseSpeed = 0.9; break;
-      case Difficulty.Pissful: baseSpeed = 1.1; break;
-      case Difficulty.Ez: baseSpeed = 1.3; break;
-      case Difficulty.Medium: baseSpeed = 1.5; break;
-      case Difficulty.Hard: baseSpeed = 1.8; break;
-      case Difficulty.HardR: baseSpeed = 2.1; break;
-      case Difficulty.Impossible: baseSpeed = 2.5; break;
-      case Difficulty.Hell: baseSpeed = 3.0; break;
-      case Difficulty.Dot0: baseSpeed = 4.0; break;
+    if (customDifficulty != null) {
+      baseSpeed = customDifficulty.enemySpeedMult ?? 1.0;
+    } else {
+      switch (difficulty) {
+        case Difficulty.Blissful: baseSpeed = 0.9; break;
+        case Difficulty.Pissful: baseSpeed = 1.1; break;
+        case Difficulty.Ez: baseSpeed = 1.3; break;
+        case Difficulty.Medium: baseSpeed = 1.5; break;
+        case Difficulty.Hard: baseSpeed = 1.8; break;
+        case Difficulty.HardR: baseSpeed = 2.1; break;
+        case Difficulty.Impossible: baseSpeed = 2.5; break;
+        case Difficulty.Hell: baseSpeed = 3.0; break;
+        case Difficulty.Dot0: baseSpeed = 4.0; break;
+      }
     }
     stateRef.current.gameSpeedFactor = baseSpeed;
 
@@ -890,7 +896,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const isRealKill = source !== "Vertical Disruption Beam";
     if (isRealKill) {
       killCountRef.current += 1;
-      s.player.slo = Math.max(0, s.player.slo + enemy.scoreValue / 10);
+      s.player.slo = Math.max(0, s.player.slo + enemy.scoreValue / 10 * (customDifficulty != null ? (customDifficulty.sloPerKill ?? 1.0) : 1.0));
     }
 
     // Apply kill-based matrix slow motion only for real kills
@@ -1317,53 +1323,70 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     let spawnRateMultiplier = 1.0;
     let maxEnemiesAllowed = 15;
     
-    switch (difficulty) {
-      case Difficulty.Blissful:
-        spawnRateMultiplier = 2.0;
-        maxEnemiesAllowed = 25;
-        break;
-      case Difficulty.Pissful:
-        spawnRateMultiplier = 3.5;
-        maxEnemiesAllowed = 40;
-        break;
-      case Difficulty.Ez:
-        spawnRateMultiplier = 5.0;
-        maxEnemiesAllowed = 60;
-        break;
-      case Difficulty.Medium:
-        spawnRateMultiplier = 7.5;
-        maxEnemiesAllowed = 90;
-        break;
-      case Difficulty.Hard:
-        spawnRateMultiplier = 11.0;
-        maxEnemiesAllowed = 120;
-        break;
-      case Difficulty.HardR:
-        spawnRateMultiplier = 16.0;
-        maxEnemiesAllowed = 150;
-        break;
-      case Difficulty.Impossible:
-        spawnRateMultiplier = 22.0;
-        maxEnemiesAllowed = 180;
-        break;
-      case Difficulty.Hell:
-        spawnRateMultiplier = 35.0;
-        maxEnemiesAllowed = 250;
-        break;
-      case Difficulty.Dot0:
-        spawnRateMultiplier = 55.0;
-        maxEnemiesAllowed = 300;
-        break;
+    if (customDifficulty != null) {
+      // Custom difficulty: use spawnRateBase/spawnRateMin directly as ms thresholds
+      // spawnRateBase = starting interval ms, spawnRateMin = floor ms
+      const base = customDifficulty.spawnRateBase ?? 3000;
+      const min = customDifficulty.spawnRateMin ?? 800;
+      const rawThreshold = Math.max(min, base / timeRatio);
+      maxEnemiesAllowed = customDifficulty.maxEnemies ?? 20;
+
+      // A. ENEMY SPAWNER (custom path — uses raw ms threshold directly)
+      s.enemySpawnProgress += deltaReal;
+      if (s.enemySpawnProgress >= rawThreshold && s.enemies.length < maxEnemiesAllowed) {
+        s.enemySpawnProgress = 0;
+        spawnRandomEnemy(activeSpeedFactor);
+      }
+    } else {
+      switch (difficulty) {
+        case Difficulty.Blissful:
+          spawnRateMultiplier = 2.0;
+          maxEnemiesAllowed = 25;
+          break;
+        case Difficulty.Pissful:
+          spawnRateMultiplier = 3.5;
+          maxEnemiesAllowed = 40;
+          break;
+        case Difficulty.Ez:
+          spawnRateMultiplier = 5.0;
+          maxEnemiesAllowed = 60;
+          break;
+        case Difficulty.Medium:
+          spawnRateMultiplier = 7.5;
+          maxEnemiesAllowed = 90;
+          break;
+        case Difficulty.Hard:
+          spawnRateMultiplier = 11.0;
+          maxEnemiesAllowed = 120;
+          break;
+        case Difficulty.HardR:
+          spawnRateMultiplier = 16.0;
+          maxEnemiesAllowed = 150;
+          break;
+        case Difficulty.Impossible:
+          spawnRateMultiplier = 22.0;
+          maxEnemiesAllowed = 180;
+          break;
+        case Difficulty.Hell:
+          spawnRateMultiplier = 35.0;
+          maxEnemiesAllowed = 250;
+          break;
+        case Difficulty.Dot0:
+          spawnRateMultiplier = 55.0;
+          maxEnemiesAllowed = 300;
+          break;
+      }
+
+      // Cut base from 1800 to 450 to make spawnings extremely active
+      const enemySpawnThreshold = (450 / (spawnRateMultiplier * timeRatio));
+
+      // A. ENEMY SPAWNER
+      s.enemySpawnProgress += deltaReal;
+      if (s.enemySpawnProgress >= enemySpawnThreshold && s.enemies.length < maxEnemiesAllowed) {
+        s.enemySpawnProgress = 0;
+        spawnRandomEnemy(activeSpeedFactor);
+      }
     }
-
-    // Cut base from 1800 to 450 to make spawnings extremely active
-    const enemySpawnThreshold = (450 / (spawnRateMultiplier * timeRatio));
-
-    // A. ENEMY SPAWNER
-    s.enemySpawnProgress += deltaReal;
-    if (s.enemySpawnProgress >= enemySpawnThreshold && s.enemies.length < maxEnemiesAllowed) {
-      s.enemySpawnProgress = 0;
-      spawnRandomEnemy(activeSpeedFactor);
     }
 
     // B. LASER SPAWNER
@@ -1376,7 +1399,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const effectiveLaserFreqMult = customDifficulty
       ? Math.max(lineLaserFreqMult, waveLaserFreqMult)
       : 1.0;
-    const laserSpawnThreshold = (2500 / (spawnRateMultiplier * 0.45 * effectiveLaserFreqMult));
+    // For custom difficulty, derive an equivalent spawnRateMultiplier from spawnRateBase
+    // so laser frequency roughly matches the enemy density.
+    const laserSpeedMult = customDifficulty != null
+      ? Math.max(0.5, 3000 / Math.max(200, customDifficulty.spawnRateBase ?? 3000))
+      : spawnRateMultiplier;
+    const laserSpawnThreshold = (2500 / (laserSpeedMult * 0.45 * effectiveLaserFreqMult));
     s.laserSpawnProgress += deltaReal * s.currentTimeScale;
     const MAX_CONCURRENT_LASERS = 3;
     if (s.laserSpawnProgress >= laserSpawnThreshold && s.lasers.length < MAX_CONCURRENT_LASERS) {

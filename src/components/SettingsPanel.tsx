@@ -105,7 +105,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
   const [showKillsPopup, setShowKillsPopup] = useState(false);
   const [killEdits, setKillEdits] = useState<Record<string, string>>({});
   const [showCustomDiffEditor, setShowCustomDiffEditor] = useState(false);
-  const [showCustomDiffSavePrompt, setShowCustomDiffSavePrompt] = useState(false);
+  const [customDiffNameError, setCustomDiffNameError] = useState(false);
   const [editingCustomDiff, setEditingCustomDiff] = useState<CustomDifficulty>({ ...defaultCustomDiff });
   const [editingCustomIndex, setEditingCustomIndex] = useState<number | null>(null);
   const [showResetPopup, setShowResetPopup] = useState(false);
@@ -197,7 +197,11 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
   };
 
   const handleSaveCustomDiff = () => {
-    if (!editingCustomDiff.name.trim()) return;
+    if (!editingCustomDiff.name.trim()) {
+      setCustomDiffNameError(true);
+      return;
+    }
+    setCustomDiffNameError(false);
     const next = [...customDifficulties];
     if (editingCustomIndex !== null) {
       next[editingCustomIndex] = editingCustomDiff;
@@ -508,13 +512,18 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
       {showCustomDiffEditor && (
         <CustomDiffPopup
           title={editingCustomIndex !== null ? "Edit Custom Difficulty" : "New Custom Difficulty"}
-          onClose={() => { setShowCustomDiffSavePrompt(false); setShowCustomDiffEditor(false); setEditingCustomIndex(null); setEditingCustomDiff({ ...defaultCustomDiff }); }}
+          onClose={() => { setShowCustomDiffSavePrompt(false); setShowCustomDiffEditor(false); setEditingCustomIndex(null); setEditingCustomDiff({ ...defaultCustomDiff }); setCustomDiffNameError(false); }}
           onSave={handleSaveCustomDiff}
           showSavePrompt={showCustomDiffSavePrompt}
           setShowSavePrompt={setShowCustomDiffSavePrompt}
         >
           <div className="flex flex-col gap-2.5 max-h-96 overflow-y-auto pr-1">
-            <DiffField label="Name" value={editingCustomDiff.name} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, name: v.toUpperCase().slice(0, 20) }))} type="text" />
+            <DiffField label="Name" value={editingCustomDiff.name} onChange={(v) => { setEditingCustomDiff((p) => ({ ...p, name: v.toUpperCase().slice(0, 20) })); setCustomDiffNameError(false); }} type="text" />
+            {customDiffNameError && (
+              <p className="text-[10px] text-neon-red font-bold uppercase tracking-widest -mt-1">
+                Name cannot be blank.
+              </p>
+            )}
             <DiffField label="Shields" value={editingCustomDiff.shields} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, shields: +v }))} min={0} max={10} step={1} />
             <DiffField label="Enemy Speed Multiplier" value={editingCustomDiff.enemySpeedMult} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, enemySpeedMult: +v }))} min={0.1} max={10} step={0.1} />
             <DiffField label="Initial Spawn Interval (ms)" value={editingCustomDiff.spawnRateBase} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, spawnRateBase: +v }))} min={200} max={10000} step={100} />
@@ -740,20 +749,67 @@ const DiffField: React.FC<{
   min?: number;
   max?: number;
   step?: number;
-}> = ({ label, value, onChange, type = "number", min, max, step }) => (
-  <div className="flex items-center gap-2">
-    <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44">{label}</span>
-    <input
-      type={type}
-      value={value}
-      min={min}
-      max={max}
-      step={step}
-      onChange={(e) => onChange(e.target.value)}
-      className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
-    />
-  </div>
-);
+}> = ({ label, value, onChange, type = "number", min, max, step }) => {
+  // Text fields pass through directly with no draft logic
+  if (type === "text") {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44">{label}</span>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
+        />
+      </div>
+    );
+  }
+
+  // Number fields: draft state, commit on blur or Enter
+  // Defaults: min >= 0 means empty resolves to 0; step < 1 means float, else int
+  const [draft, setDraft] = React.useState(String(value));
+
+  // Keep draft in sync if parent value changes externally (e.g. resetting the editor)
+  React.useEffect(() => { setDraft(String(value)); }, [value]);
+
+  const commit = () => {
+    if (draft === "") {
+      const fallback = min != null && min > 0 ? min : 0;
+      setDraft(String(fallback));
+      onChange(String(fallback));
+      return;
+    }
+    const parsed = step != null && step < 1 ? parseFloat(draft) : parseInt(draft, 10);
+    if (isNaN(parsed)) {
+      const fallback = min != null ? min : 0;
+      setDraft(String(fallback));
+      onChange(String(fallback));
+      return;
+    }
+    const clamped = min != null && parsed < min ? min : max != null && parsed > max ? max : parsed;
+    const rounded = step != null && step < 1 ? Math.round(clamped / step) * step : clamped;
+    const str = step != null && step < 1 ? String(parseFloat(rounded.toFixed(10))) : String(Math.round(rounded));
+    setDraft(str);
+    onChange(str);
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44">{label}</span>
+      <input
+        type="number"
+        value={draft}
+        min={min}
+        max={max}
+        step={step}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === "Enter") { commit(); (e.target as HTMLInputElement).blur(); } }}
+        className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
+      />
+    </div>
+  );
+};
 
 // Triangle HSV color picker field with hex display
 const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void }> = ({ color, onChange }) => {

@@ -272,14 +272,16 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       {/* Top Banner */}
       <div className="flex justify-between items-center pb-6 border-b border-[#333]">
         <div className="flex items-center gap-2.5">
-          <div className="w-3 h-3 bg-neon-red animate-pulse" style={{ boxShadow: "0 0 10px #FF3131" }} />
-          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
-            System Online: DEV-MODE V.1.0.4-TECH
-          </span>
-          {/* Leaderboard name display */}
-          {leaderboardName && (
-            <span className="text-[10px] font-black ml-3" style={{ color: leaderboardColor }}>
+          {leaderboardName ? (
+            <span
+              className="text-lg font-black tracking-widest uppercase"
+              style={{ color: leaderboardColor, textShadow: `0 0 12px ${leaderboardColor}66` }}
+            >
               {leaderboardName}
+            </span>
+          ) : (
+            <span className="text-xs text-zinc-600 uppercase tracking-widest font-bold">
+              No name set
             </span>
           )}
         </div>
@@ -429,17 +431,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 <p className="text-[11px] text-zinc-400 leading-relaxed mt-1.5">{currentSelectedDot.specialAbility}</p>
               </div>
 
-              {/* Leaderboard name display */}
-              {leaderboardName && (
-                <div className="border-t border-[#222] pt-3">
-                  <span
-                    className="text-sm font-black tracking-wider"
-                    style={{ color: leaderboardColor, textShadow: `0 0 10px ${leaderboardColor}66` }}
-                  >
-                    {leaderboardName}
-                  </span>
-                </div>
-              )}
             </div>
           </div>
 
@@ -475,13 +466,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
                           <span className={`text-sm font-black tracking-widest uppercase ${style.text} group-hover:text-white`}>{diff}</span>
-                          {(diff === Difficulty.Hell || diff === Difficulty.Dot0 || diff === Difficulty.Impossible) && (
-                            <span className="text-[7px] text-neon-red bg-rose-950/20 border border-neon-red/30 px-1 py-0.5 font-bold uppercase tracking-widest">HAZARD</span>
-                          )}
                         </div>
                         <span className="text-[9px] text-zinc-400 uppercase font-mono tracking-wider">{diffDescriptions[diff]}</span>
                       </div>
                     </div>
+                  <div className="flex items-center gap-2">
                     <div className="flex items-center gap-3 bg-[#0a0a0a] border border-[#222] px-3.5 py-1.5 group-hover:border-zinc-500 transition-colors">
                       <Trophy className="w-4 h-4 text-zinc-500 group-hover:text-neon-yellow" />
                       <div>
@@ -489,6 +478,28 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                         <div className="text-xs font-black text-white mt-0.5">{score.toFixed(1)}s</div>
                       </div>
                     </div>
+                    {(() => {
+                      const normalKey = diff;
+                      const bigKey = `${diff}_big`;
+                      const normalKills = totalKills[normalKey] || 0;
+                      const bigKills = totalKills[bigKey] || 0;
+                      const bestKills = Math.max(normalKills, bigKills);
+                      const killsBig = bigKills > normalKills;
+                      return bestKills > 0 ? (
+                        <div className="flex items-center gap-3 bg-[#0a0a0a] border border-[#222] px-3.5 py-1.5 group-hover:border-zinc-500 transition-colors">
+                          <div>
+                            <div className="text-[8px] text-zinc-500 uppercase font-black tracking-wider">BEST KILLS</div>
+                            <div className="flex items-baseline gap-1 mt-0.5">
+                              <span className="text-xs font-black text-white">{bestKills}</span>
+                              <span className={`text-[8px] font-bold uppercase tracking-wider ${killsBig ? "text-neon-cyan" : "text-zinc-600"}`}>
+                                {killsBig ? "BIG" : "STD"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
                   </button>
                 );
               })}
