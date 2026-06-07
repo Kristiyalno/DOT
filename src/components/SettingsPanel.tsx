@@ -750,7 +750,10 @@ const DiffField: React.FC<{
   max?: number;
   step?: number;
 }> = ({ label, value, onChange, type = "number", min, max, step }) => {
-  // Text fields pass through directly with no draft logic
+  // Hooks must always be called unconditionally — no early returns before this block
+  const [draft, setDraft] = React.useState(String(value));
+  React.useEffect(() => { setDraft(String(value)); }, [value]);
+
   if (type === "text") {
     return (
       <div className="flex items-center gap-2">
@@ -766,11 +769,6 @@ const DiffField: React.FC<{
   }
 
   // Number fields: draft state, commit on blur or Enter
-  // Defaults: min >= 0 means empty resolves to 0; step < 1 means float, else int
-  const [draft, setDraft] = React.useState(String(value));
-
-  // Keep draft in sync if parent value changes externally (e.g. resetting the editor)
-  React.useEffect(() => { setDraft(String(value)); }, [value]);
 
   const commit = () => {
     if (draft === "") {
