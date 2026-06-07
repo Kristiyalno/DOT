@@ -749,65 +749,20 @@ const DiffField: React.FC<{
   min?: number;
   max?: number;
   step?: number;
-}> = ({ label, value, onChange, type = "number", min, max, step }) => {
-  // Hooks must always be called unconditionally — no early returns before this block
-  const [draft, setDraft] = React.useState(String(value));
-  React.useEffect(() => { setDraft(String(value)); }, [value]);
-
-  if (type === "text") {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44">{label}</span>
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
-        />
-      </div>
-    );
-  }
-
-  // Number fields: draft state, commit on blur or Enter
-
-  const commit = () => {
-    if (draft === "") {
-      const fallback = min != null && min > 0 ? min : 0;
-      setDraft(String(fallback));
-      onChange(String(fallback));
-      return;
-    }
-    const parsed = step != null && step < 1 ? parseFloat(draft) : parseInt(draft, 10);
-    if (isNaN(parsed)) {
-      const fallback = min != null ? min : 0;
-      setDraft(String(fallback));
-      onChange(String(fallback));
-      return;
-    }
-    const clamped = min != null && parsed < min ? min : max != null && parsed > max ? max : parsed;
-    const rounded = step != null && step < 1 ? Math.round(clamped / step) * step : clamped;
-    const str = step != null && step < 1 ? String(parseFloat(rounded.toFixed(10))) : String(Math.round(rounded));
-    setDraft(str);
-    onChange(str);
-  };
-
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44">{label}</span>
-      <input
-        type="number"
-        value={draft}
-        min={min}
-        max={max}
-        step={step}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => { if (e.key === "Enter") { commit(); (e.target as HTMLInputElement).blur(); } }}
-        className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
-      />
-    </div>
-  );
-};
+}> = ({ label, value, onChange, type = "number", min, max, step }) => (
+  <div className="flex items-center gap-2">
+    <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44">{label}</span>
+    <input
+      type={type}
+      value={value}
+      min={min}
+      max={max}
+      step={step}
+      onChange={(e) => onChange(e.target.value)}
+      className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
+    />
+  </div>
+);
 
 // Triangle HSV color picker field with hex display
 const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void }> = ({ color, onChange }) => {
