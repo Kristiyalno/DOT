@@ -274,7 +274,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         <div className="flex items-center gap-2.5">
           {leaderboardName ? (
             <span
-              className="text-lg font-black tracking-widest uppercase"
+              className="text-lg font-black tracking-widest"
               style={{ color: leaderboardColor, textShadow: `0 0 12px ${leaderboardColor}66` }}
             >
               {leaderboardName}
