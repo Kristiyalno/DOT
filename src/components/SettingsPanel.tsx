@@ -525,11 +525,11 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                 Name cannot be blank.
               </p>
             )}
-            <DiffField label="Shields" value={editingCustomDiff.shields} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, shields: +v }))} min={0} max={10} step={1} />
-            <DiffField label="Enemy Speed Multiplier" value={editingCustomDiff.enemySpeedMult} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, enemySpeedMult: +v }))} min={0.1} max={10} step={0.1} />
-            <DiffField label="Initial Spawn Interval (ms)" value={editingCustomDiff.spawnRateBase} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, spawnRateBase: +v }))} min={200} max={10000} step={100} />
-            <DiffField label="Minimum Spawn Interval (ms)" value={editingCustomDiff.spawnRateMin} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, spawnRateMin: +v }))} min={100} max={5000} step={100} />
-            <DiffField label="Max Enemies On Screen" value={editingCustomDiff.maxEnemies} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, maxEnemies: +v }))} min={1} max={200} step={1} />
+            <DiffField label="Shields" value={editingCustomDiff.shields} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, shields: +v }))} step={1} />
+            <DiffField label="Enemy Speed Multiplier" value={editingCustomDiff.enemySpeedMult} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, enemySpeedMult: +v }))} step={0.1} />
+            <DiffField label="Initial Spawn Interval (ms)" value={editingCustomDiff.spawnRateBase} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, spawnRateBase: +v }))} step={100} />
+            <DiffField label="Minimum Spawn Interval (ms)" value={editingCustomDiff.spawnRateMin} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, spawnRateMin: +v }))} step={100} />
+            <DiffField label="Max Enemies On Screen" value={editingCustomDiff.maxEnemies} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, maxEnemies: +v }))} step={1} />
             {/* Laser toggles */}
             <div className="border-t border-[#1a1a1a] pt-2 mt-1">
               <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black">Laser Types</span>
@@ -556,18 +556,18 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             </div>
             {editingCustomDiff.lineLaserEnabled && (
               <div className="flex flex-col gap-0.5">
-                <DiffField label="Line Laser Frequency (multiplier)" value={editingCustomDiff.lineLaserFreq} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, lineLaserFreq: +v }))} min={0.1} max={10} step={0.1} />
+                <DiffField label="Line Laser Frequency (multiplier)" value={editingCustomDiff.lineLaserFreq} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, lineLaserFreq: +v }))} step={0.1} />
                 <p className="text-[9px] text-zinc-600 ml-0 pl-0">1 = ~1 laser per 5.5s. 10 = ~1 per 0.5s. Higher = more frequent.</p>
               </div>
             )}
             {editingCustomDiff.waveLaserEnabled && (
               <div className="flex flex-col gap-0.5">
-                <DiffField label="Wave Laser Frequency (multiplier)" value={editingCustomDiff.waveLaserFreq} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, waveLaserFreq: +v }))} min={0.05} max={5} step={0.05} />
+                <DiffField label="Wave Laser Frequency (multiplier)" value={editingCustomDiff.waveLaserFreq} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, waveLaserFreq: +v }))} step={0.05} />
                 <p className="text-[9px] text-zinc-600">Controls how often wave lasers are chosen over line lasers. 0.05 = rare, 5 = wave-dominant.</p>
               </div>
             )}
-            <DiffField label="SLO Per Kill Multiplier" value={editingCustomDiff.sloPerKill} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, sloPerKill: +v }))} min={0} max={100} step={0.1} />
-            <DiffField label="Seconds Per Ploint" value={editingCustomDiff.secondsPerPloint} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, secondsPerPloint: +v }))} min={1} max={300} step={1} />
+            <DiffField label="SLO Per Kill Multiplier" value={editingCustomDiff.sloPerKill} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, sloPerKill: +v }))} step={0.1} />
+            <DiffField label="Seconds Per Ploint" value={editingCustomDiff.secondsPerPloint} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, secondsPerPloint: +v }))} step={1} />
             <div className="flex items-center gap-2 mt-1">
               <input
                 type="checkbox"
@@ -747,10 +747,8 @@ const DiffField: React.FC<{
   value: string | number;
   onChange: (v: string) => void;
   type?: string;
-  min?: number;
-  max?: number;
   step?: number;
-}> = ({ label, value, onChange, type = "number", min, max, step }) => {
+}> = ({ label, value, onChange, type = "number", step }) => {
   const [draft, setDraft] = React.useState(String(value));
   const [focused, setFocused] = React.useState(false);
 
@@ -776,12 +774,10 @@ const DiffField: React.FC<{
   const commit = () => {
     setFocused(false);
     const parsed = step != null && step < 1 ? parseFloat(draft) : parseInt(draft, 10);
-    const resolved = isNaN(parsed) ? (min != null ? min : 0) : parsed;
-    const clamped = min != null && resolved < min ? min : max != null && resolved > max ? max : resolved;
-    const rounded = step != null && step < 1 ? Math.round(clamped / step) * step : clamped;
-    const str = step != null && step < 1 ? String(parseFloat(rounded.toFixed(10))) : String(Math.round(rounded));
-    setDraft(str);
-    onChange(str);
+    const resolved = isNaN(parsed) ? 0 : parsed;
+    const rounded = step != null && step < 1 ? String(parseFloat((Math.round(resolved / step) * step).toFixed(10))) : String(Math.round(resolved));
+    setDraft(rounded);
+    onChange(rounded);
   };
 
   return (
@@ -790,27 +786,100 @@ const DiffField: React.FC<{
       <input
         type="number"
         value={draft}
-        min={min}
-        max={max}
         step={step}
         onChange={(e) => setDraft(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={commit}
-        onKeyDown={(e) => { if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); } }}
+        onKeyDown={(e) => { if (e.key === "Enter") { audio.playClick(); (e.target as HTMLInputElement).blur(); } }}
         className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
       />
     </div>
   );
 };
 
-// Triangle HSV color picker field with hex display
+// Converts hex to HSV. Returns [h 0-360, s 0-1, v 0-1].
+function hexToHsv(hex: string): [number, number, number] {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    if (max === r) h = ((g - b) / d + 6) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+  }
+  return [h, max === 0 ? 0 : d / max, max];
+}
+
+// Converts HSV to hex.
+function hsvToHex(h: number, s: number, v: number): string {
+  const f = (n: number) => {
+    const k = (n + h / 60) % 6;
+    const val = v - v * s * Math.max(0, Math.min(k, 4 - k, 1));
+    return Math.round(val * 255).toString(16).padStart(2, "0");
+  };
+  return `#${f(5)}${f(3)}${f(1)}`;
+}
+
+// Inline HSV color picker — no native input, no double-click nonsense
 const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void }> = ({ color, onChange }) => {
   const [open, setOpen] = useState(false);
   const [hexInput, setHexInput] = useState(color);
   const pickerRef = React.useRef<HTMLDivElement>(null);
+  const svCanvasRef = React.useRef<HTMLCanvasElement>(null);
+  const hueCanvasRef = React.useRef<HTMLCanvasElement>(null);
 
-  // Keep hex input synced when color changes externally
-  useEffect(() => { setHexInput(color); }, [color]);
+  const safeColor = /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#ffffff";
+  const [h, s, v] = hexToHsv(safeColor);
+  const [hue, setHue] = useState(h);
+  const [sat, setSat] = useState(s);
+  const [val, setVal] = useState(v);
+
+  // Sync local HSV when color prop changes externally
+  useEffect(() => {
+    if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+      const [nh, ns, nv] = hexToHsv(color);
+      setHue(nh); setSat(ns); setVal(nv);
+      setHexInput(color);
+    }
+  }, [color]);
+
+  // Draw SV gradient on canvas
+  useEffect(() => {
+    const canvas = svCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const W = canvas.width, H = canvas.height;
+    // White to hue gradient (horizontal)
+    const hGrad = ctx.createLinearGradient(0, 0, W, 0);
+    hGrad.addColorStop(0, "#ffffff");
+    hGrad.addColorStop(1, `hsl(${hue},100%,50%)`);
+    ctx.fillStyle = hGrad;
+    ctx.fillRect(0, 0, W, H);
+    // Transparent to black gradient (vertical)
+    const vGrad = ctx.createLinearGradient(0, 0, 0, H);
+    vGrad.addColorStop(0, "rgba(0,0,0,0)");
+    vGrad.addColorStop(1, "rgba(0,0,0,1)");
+    ctx.fillStyle = vGrad;
+    ctx.fillRect(0, 0, W, H);
+  }, [hue, open]);
+
+  // Draw hue strip on canvas
+  useEffect(() => {
+    const canvas = hueCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const W = canvas.width, H = canvas.height;
+    const grad = ctx.createLinearGradient(0, 0, W, 0);
+    for (let i = 0; i <= 6; i++) grad.addColorStop(i / 6, `hsl(${i * 60},100%,50%)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+  }, [open]);
 
   // Close on outside click or Escape
   useEffect(() => {
@@ -824,23 +893,73 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
     return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("mousedown", onOutside); };
   }, [open]);
 
+  const commit = (nh: number, ns: number, nv: number) => {
+    const hex = hsvToHex(nh, ns, nv);
+    onChange(hex);
+    setHexInput(hex);
+  };
+
+  const handleSvDrag = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = svCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const ns = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const nv = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top) / rect.height));
+    setSat(ns); setVal(nv);
+    commit(hue, ns, nv);
+  };
+
+  const handleHueDrag = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = hueCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const nh = Math.max(0, Math.min(360, ((e.clientX - rect.left) / rect.width) * 360));
+    setHue(nh);
+    commit(nh, sat, val);
+  };
+
+  const handleSvMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    handleSvDrag(e);
+    const onMove = (ev: MouseEvent) => handleSvDrag(ev as any);
+    const onUp = () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const handleHueMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    handleHueDrag(e);
+    const onMove = (ev: MouseEvent) => handleHueDrag(ev as any);
+    const onUp = () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
   const handleHexChange = (val: string) => {
     setHexInput(val);
-    // Only apply if it's a valid full hex color
-    if (/^#[0-9a-fA-F]{6}$/.test(val)) onChange(val);
+    if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+      onChange(val);
+      const [nh, ns, nv] = hexToHsv(val);
+      setHue(nh); setSat(ns); setVal(nv);
+    }
   };
+
+  // Cursor position on SV canvas
+  const svX = sat * 160;
+  const svY = (1 - val) * 140;
+  // Cursor position on hue strip
+  const hueX = (hue / 360) * 160;
 
   return (
     <div className="relative" ref={pickerRef}>
       <div className="flex gap-2 items-center">
-        {/* Color swatch — click to open picker */}
+        {/* Color swatch */}
         <button
           onClick={() => { audio.playClick(); setOpen((p) => !p); }}
           className="w-9 h-9 border border-[#333] hover:border-neon-cyan shrink-0 transition-colors cursor-pointer"
-          style={{ background: color }}
+          style={{ background: safeColor }}
           title="Pick color"
         />
-        {/* Hex field with undeletable # prefix */}
+        {/* Hex field */}
         <div className="flex flex-1 bg-[#0a0a0a] border border-[#333] focus-within:border-neon-cyan transition-colors">
           <span className="text-zinc-500 text-xs font-mono px-2 py-2 select-none pointer-events-none">#</span>
           <input
@@ -856,21 +975,47 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
 
       {/* Picker popup */}
       {open && (
-        <div className="absolute left-0 top-full mt-2 z-50 border border-[#444] bg-[#0a0a0a] p-3 shadow-2xl" style={{ width: "220px" }}>
-          {/* Native color input styled as a triangle/hue wheel picker */}
+        <div className="absolute left-0 top-full mt-2 z-50 border border-[#444] bg-[#0a0a0a] p-3 shadow-2xl select-none" style={{ width: "184px" }}>
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-0.5">
               <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black">Color Picker</span>
               <button onClick={() => setOpen(false)} className="text-zinc-500 hover:text-white text-xs cursor-pointer">✕</button>
             </div>
-            {/* The native color input covers a wide area for easy picking */}
-            <input
-              type="color"
-              value={/^#[0-9a-fA-F]{6}$/.test(color) ? color : "#ffffff"}
-              onChange={(e) => { onChange(e.target.value); setHexInput(e.target.value); }}
-              className="w-full cursor-pointer border-0 outline-none bg-transparent"
-              style={{ height: "160px", padding: 0, borderRadius: 0 }}
-            />
+
+            {/* SV canvas */}
+            <div className="relative" style={{ width: 160, height: 140 }}>
+              <canvas
+                ref={svCanvasRef}
+                width={160}
+                height={140}
+                onMouseDown={handleSvMouseDown}
+                className="cursor-crosshair block"
+                style={{ width: 160, height: 140 }}
+              />
+              {/* Cursor dot */}
+              <div
+                className="absolute pointer-events-none border-2 border-white rounded-full"
+                style={{ width: 10, height: 10, left: svX - 5, top: svY - 5, boxShadow: "0 0 0 1px rgba(0,0,0,0.5)" }}
+              />
+            </div>
+
+            {/* Hue strip */}
+            <div className="relative" style={{ width: 160, height: 14 }}>
+              <canvas
+                ref={hueCanvasRef}
+                width={160}
+                height={14}
+                onMouseDown={handleHueMouseDown}
+                className="cursor-ew-resize block"
+                style={{ width: 160, height: 14 }}
+              />
+              {/* Cursor */}
+              <div
+                className="absolute pointer-events-none border-2 border-white"
+                style={{ width: 6, height: 14, left: hueX - 3, top: 0, boxShadow: "0 0 0 1px rgba(0,0,0,0.5)" }}
+              />
+            </div>
+
             {/* Preset swatches */}
             <div className="grid grid-cols-8 gap-1 pt-1 border-t border-[#222]">
               {[
@@ -880,7 +1025,7 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
               ].map((swatch) => (
                 <button
                   key={swatch}
-                  onClick={() => { onChange(swatch); setHexInput(swatch); }}
+                  onClick={() => { onChange(swatch); setHexInput(swatch); const [nh,ns,nv]=hexToHsv(swatch); setHue(nh); setSat(ns); setVal(nv); }}
                   className="w-5 h-5 border border-transparent hover:border-white transition-colors cursor-pointer shrink-0"
                   style={{ background: swatch }}
                   title={swatch}
