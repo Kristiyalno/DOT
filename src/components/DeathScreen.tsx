@@ -10,6 +10,7 @@ import { Trophy, Swords, RotateCcw, Home, Clock, Coins } from "lucide-react";
 
 interface DeathScreenProps {
   difficulty: Difficulty;
+  customDiffName?: string | null;
   secondsSurvived: number;
   plointsGained: number;
   highScore: number;
@@ -20,6 +21,7 @@ interface DeathScreenProps {
 
 export const DeathScreen: React.FC<DeathScreenProps> = ({
   difficulty,
+  customDiffName,
   secondsSurvived,
   plointsGained,
   highScore,
@@ -71,7 +73,7 @@ export const DeathScreen: React.FC<DeathScreenProps> = ({
             DOT DESTROYED
           </h1>
           <p className="text-[10px] text-zinc-500 uppercase tracking-widest leading-none">
-            Concluded on {difficulty} difficulty.
+            Concluded on {customDiffName ? customDiffName : difficulty} difficulty.
           </p>
         </div>
 

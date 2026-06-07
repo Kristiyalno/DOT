@@ -2071,7 +2071,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       <div className="text-[9px] text-zinc-500 uppercase tracking-widest leading-none font-bold">ELAPSED</div>
       <div id="hud-timer" className="text-2xl font-black text-white py-1">{hudTime.toFixed(2)}s</div>
       <div className="text-[9px] bg-neon-red/10 border border-neon-red/50 text-neon-red px-2.5 py-0.5 uppercase tracking-widest font-black">
-        {difficulty.toUpperCase()}
+        {(customDifficulty ? customDifficulty.name : difficulty).toUpperCase()}
       </div>
     </div>
   );

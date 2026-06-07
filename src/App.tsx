@@ -415,6 +415,7 @@ export default function App() {
       {screen === "summary" && (
         <DeathScreen
           difficulty={currentDifficulty}
+          customDiffName={currentCustomDiff ? currentCustomDiff.name : null}
           secondsSurvived={secondsSurvived}
           plointsGained={plointsGained}
           highScore={prevHighScore}
