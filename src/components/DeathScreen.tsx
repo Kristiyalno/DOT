@@ -6,13 +6,14 @@
 import React, { useEffect, useState } from "react";
 import { Difficulty } from "../types";
 import { audio } from "../utils/audio";
-import { Trophy, Compass, RotateCcw, Home, Clock, Coins } from "lucide-react";
+import { Trophy, Swords, RotateCcw, Home, Clock, Coins } from "lucide-react";
 
 interface DeathScreenProps {
   difficulty: Difficulty;
   secondsSurvived: number;
   plointsGained: number;
   highScore: number;
+  kills: number;
   onRetry: () => void;
   onExit: () => void;
 }
@@ -22,6 +23,7 @@ export const DeathScreen: React.FC<DeathScreenProps> = ({
   secondsSurvived,
   plointsGained,
   highScore,
+  kills,
   onRetry,
   onExit
 }) => {
@@ -74,21 +76,30 @@ export const DeathScreen: React.FC<DeathScreenProps> = ({
         </div>
 
         {/* Stats segment */}
-        <div className="grid grid-cols-2 gap-4 py-2">
+        <div className="grid grid-cols-3 gap-3 py-2">
           {/* Time survived */}
-          <div className="bg-[#050505] border border-[#222] p-4 rounded-none flex flex-col items-center justify-center text-center">
-            <Clock className="w-5 h-5 text-zinc-500 mb-1.5 animate-pulse" />
-            <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">TIME SURVIVED</span>
-            <span id="death-stat-time" className="text-xl font-bold text-white tracking-widest mt-1">
+          <div className="bg-[#050505] border border-[#222] p-3 rounded-none flex flex-col items-center justify-center text-center">
+            <Clock className="w-4 h-4 text-zinc-500 mb-1.5 animate-pulse" />
+            <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">TIME</span>
+            <span id="death-stat-time" className="text-lg font-bold text-white tracking-widest mt-1">
               {secondsSurvived.toFixed(2)}s
             </span>
           </div>
 
+          {/* Kills */}
+          <div className="bg-[#050505] border border-[#222] p-3 rounded-none flex flex-col items-center justify-center text-center">
+            <Swords className="w-4 h-4 text-neon-red mb-1.5" />
+            <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">KILLS</span>
+            <span id="death-stat-kills" className="text-lg font-bold text-neon-red tracking-widest mt-1">
+              {kills}
+            </span>
+          </div>
+
           {/* Ploints gained */}
-          <div className="bg-[#050505] border border-[#222] p-4 rounded-none flex flex-col items-center justify-center text-center">
-            <Coins className="w-5 h-5 text-neon-yellow mb-1.5" />
-            <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">PLOINTS GAINED</span>
-            <span id="death-stat-ploints" className="text-xl font-bold text-neon-yellow tracking-widest mt-1">
+          <div className="bg-[#050505] border border-[#222] p-3 rounded-none flex flex-col items-center justify-center text-center">
+            <Coins className="w-4 h-4 text-neon-yellow mb-1.5" />
+            <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">PLOINTS</span>
+            <span id="death-stat-ploints" className="text-lg font-bold text-neon-yellow tracking-widest mt-1">
               +{plointsGained.toLocaleString()} P
             </span>
           </div>

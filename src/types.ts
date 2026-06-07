@@ -69,7 +69,7 @@ export const DOTS_DATABASE: DotConfig[] = [
     color: "#a855f7", // Purple-500 (Dark Purple)
     borderColor: "#f3e8ff",
     description: "Moves with complete visual stealth, discharging an instantaneous spatial fracture.",
-    specialAbility: "The teleportation preview line is invisible (must blind-aim). Teleport triggers an immediate, larger, instantaneous visual explosion."
+    specialAbility: "The teleportation preview line is invisible (must blind-aim). Teleport triggers an immediate, larger, instantaneous explosion that kills nearby enemies."
   },
   {
     id: "prism",

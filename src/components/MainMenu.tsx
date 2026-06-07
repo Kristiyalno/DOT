@@ -42,6 +42,9 @@ interface MainMenuProps {
   onNeoDropAnimDone: () => void;
   onNeedName: () => void;
   onResetNeoDrop: () => void;
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
+  onSetTotalKills: (k: Record<string, number>) => void;
   initialTab?: "menu" | "leaderboard" | "settings";
   onTabConsumed?: () => void;
 }
@@ -71,6 +74,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   onUnlockAll, stats, onSetStats, onSaveStats,
   neoDropUnlocked, neoDropAnimating, onNeoDropAnimDone,
   onNeedName, onResetNeoDrop,
+  isFullscreen, onToggleFullscreen,
+  onSetTotalKills,
   initialTab, onTabConsumed,
 }) => {
   const [activeTab, setActiveTab] = useState<"menu" | "leaderboard" | "settings">("menu");
@@ -336,6 +341,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           leaderboardName={leaderboardName} leaderboardColor={leaderboardColor}
           onSetLeaderboardName={onSetLeaderboardName} onSetLeaderboardColor={onSetLeaderboardColor}
           onResetNeoDrop={onResetNeoDrop}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={onToggleFullscreen}
+          totalKills={totalKills}
+          onSetTotalKills={onSetTotalKills}
         />
       )}
 
@@ -424,7 +433,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               {leaderboardName && (
                 <div className="border-t border-[#222] pt-3">
                   <span
-                    className="text-sm font-black tracking-wider uppercase"
+                    className="text-sm font-black tracking-wider"
                     style={{ color: leaderboardColor, textShadow: `0 0 10px ${leaderboardColor}66` }}
                   >
                     {leaderboardName}

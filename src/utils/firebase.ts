@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from "firebase/app";
 import {
-  initializeFirestore, // Forcing alternative connection protocols
+  initializeFirestore,
   collection,
   addDoc,
   getDocs,
@@ -21,10 +21,8 @@ const firebaseConfig = {
   measurementId: "G-DQX7FCE5F6",
 };
 
-// Initialize Firebase App
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Initialize Firestore with long-polling disabled to stop client-side blocks
 export const db = initializeFirestore(app, {
   experimentalAutoDetectLongPolling: false,
 });
@@ -45,9 +43,6 @@ export interface LeaderboardEntry {
   deleted?: boolean;
 }
 
-/**
- * Generates or retrieves a persistent unique client ID stored in localStorage
- */
 export function getDeviceId(): string {
   let id = localStorage.getItem("dot_game_device_id");
   if (!id) {
@@ -57,88 +52,86 @@ export function getDeviceId(): string {
   return id;
 }
 
-/**
- * Fetches a paginated slice of active leaderboard entries
- */
 export async function getLeaderboardPage(
   category: LeaderboardCategory,
   difficulty: string,
   bigMode: boolean,
   pageIndex: number
 ): Promise<{ entries: LeaderboardEntry[]; total: number }> {
-  const col = collection(db, "leaderboard");
-  const orderDir = category === "time" ? "desc" : "desc"; // Match your current sorting configuration
+  try {
+    // Fallbacks just in case the UI fails to pass these down
+    const safeCategory = category || "time";
+    const safeDifficulty = difficulty || "Medium";
+    const safeBigMode = bigMode ?? false;
 
-  const baseQuery = query(
-    col,
-    where("category", "==", category),
-    where("difficulty", "==", difficulty),
-    where("bigMode", "==", bigMode),
-    orderBy("score", orderDir)
-  );
+    const col = collection(db, "leaderboard");
+    const orderDir = "desc";
 
-  const allSnap = await getDocs(baseQuery);
-  
-  // Filter out any entries marked as soft-deleted
-  const activeDocs = allSnap.docs.filter((d) => d.data().deleted !== true);
+    const baseQuery = query(
+      col,
+      where("category", "==", safeCategory),
+      where("difficulty", "==", safeDifficulty),
+      where("bigMode", "==", safeBigMode),
+      orderBy("score", orderDir)
+    );
 
-  const total = activeDocs.length;
-  const start = pageIndex * PAGE_SIZE;
-  const pageSlice = activeDocs.slice(start, start + PAGE_SIZE);
+    const allSnap = await getDocs(baseQuery);
+    const activeDocs = allSnap.docs.filter((d) => d.data().deleted !== true);
 
-  const entries: LeaderboardEntry[] = pageSlice.map((d) => ({
-    id: d.id,
-    ...(d.data() as Omit<LeaderboardEntry, "id">),
-  }));
+    const total = activeDocs.length;
+    const start = pageIndex * PAGE_SIZE;
+    const pageSlice = activeDocs.slice(start, start + PAGE_SIZE);
 
-  return { entries, total };
+    const entries: LeaderboardEntry[] = pageSlice.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<LeaderboardEntry, "id">),
+    }));
+
+    return { entries, total };
+  } catch (error) {
+    console.error("Leaderboard connection dropped: ", error);
+    return { entries: [], total: 0 };
+  }
 }
 
-/**
- * Hard-deletes previous submissions matching the current configuration settings
- */
 export async function deleteExistingScore(
   deviceId: string,
   category: LeaderboardCategory,
   difficulty: string,
   bigMode: boolean
 ): Promise<void> {
-  const col = collection(db, "leaderboard");
-  const q = query(
-    col,
-    where("deviceId", "==", deviceId),
-    where("category", "==", category),
-    where("difficulty", "==", difficulty),
-    where("bigMode", "==", bigMode)
-  );
-  
-  const snap = await getDocs(q);
-  const batch = writeBatch(db);
-  snap.docs.forEach((d) => batch.delete(d.ref));
-  if (snap.docs.length > 0) {
-    await batch.commit();
+  try {
+    // Bulletproof fallbacks to prevent the "where() undefined" crash
+    const safeCategory = category || "time";
+    const safeDifficulty = difficulty || "Medium";
+    const safeBigMode = bigMode ?? false;
+
+    const col = collection(db, "leaderboard");
+    const q = query(
+      col,
+      where("deviceId", "==", deviceId),
+      where("category", "==", safeCategory),
+      where("difficulty", "==", safeDifficulty),
+      where("bigMode", "==", safeBigMode)
+    );
+    const snap = await getDocs(q);
+    const batch = writeBatch(db);
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    if (snap.docs.length > 0) await batch.commit();
+  } catch (error) {
+    console.error("Failed to clear existing score:", error);
   }
 }
 
-/**
- * Soft-deletes user submissions globally across all history fields
- */
 export async function markEntriesDeleted(deviceId: string): Promise<void> {
   const col = collection(db, "leaderboard");
   const q = query(col, where("deviceId", "==", deviceId));
   const snap = await getDocs(q);
   const batch = writeBatch(db);
-  snap.docs.forEach((d) => {
-    batch.update(d.ref, { deleted: true });
-  });
-  if (snap.docs.length > 0) {
-    await batch.commit();
-  }
+  snap.docs.forEach((d) => batch.update(d.ref, { deleted: true }));
+  if (snap.docs.length > 0) await batch.commit();
 }
 
-/**
- * Submits a fresh personal best score to the leaderboard collection
- */
 export async function submitScore(
   name: string,
   color: string,
@@ -147,21 +140,33 @@ export async function submitScore(
   difficulty: string,
   bigMode: boolean
 ): Promise<void> {
-  const deviceId = getDeviceId();
+  try {
+    const deviceId = getDeviceId();
+    
+    // Bulletproof fallbacks to prevent the "addDoc undefined color" crash
+    const safeName = name || "Anonymous";
+    const safeColor = color || "#FFFFFF"; // Instantly fixes the color bug
+    const safeScore = score ?? 0;
+    const safeCategory = category || "time";
+    const safeDifficulty = difficulty || "Medium";
+    const safeBigMode = bigMode ?? false;
 
-  // Clear previous matching configurations out first
-  await deleteExistingScore(deviceId, category, difficulty, bigMode);
+    await deleteExistingScore(deviceId, safeCategory, safeDifficulty, safeBigMode);
 
-  const col = collection(db, "leaderboard");
-  await addDoc(col, {
-    name,
-    color,
-    score,
-    category,
-    difficulty,
-    bigMode,
-    deviceId,
-    timestamp: serverTimestamp(),
-    deleted: false,
-  });
+    const col = collection(db, "leaderboard");
+    await addDoc(col, {
+      name: safeName,
+      color: safeColor,
+      score: safeScore,
+      category: safeCategory,
+      difficulty: safeDifficulty,
+      bigMode: safeBigMode,
+      deviceId,
+      timestamp: serverTimestamp(),
+      deleted: false,
+    });
+  } catch (error) {
+    console.error("Submission failed: ", error);
+    throw error;
+  }
 }

@@ -54,6 +54,10 @@ interface SettingsProps {
   onSetLeaderboardName: (n: string | null) => void;
   onSetLeaderboardColor: (c: string) => void;
   onResetNeoDrop: () => void;
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
+  totalKills: Record<string, number>;
+  onSetTotalKills: (k: Record<string, number>) => void;
 }
 
 const defaultCustomDiff: CustomDifficulty = {
@@ -86,6 +90,8 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
   leaderboardName, leaderboardColor,
   onSetLeaderboardName, onSetLeaderboardColor,
   onResetNeoDrop,
+  isFullscreen, onToggleFullscreen,
+  totalKills, onSetTotalKills,
 }) => {
   const [debugEnabled, setDebugEnabled] = useState<boolean>(() => {
     try { return localStorage.getItem(DEBUG_KEY) === "1"; } catch { return false; }
@@ -96,6 +102,8 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
   // Debug sub-states
   const [setPlointsVal, setSetPlointsVal] = useState<string>("");
   const [showBestTimePopup, setShowBestTimePopup] = useState(false);
+  const [showKillsPopup, setShowKillsPopup] = useState(false);
+  const [killEdits, setKillEdits] = useState<Record<string, string>>({});
   const [showCustomDiffEditor, setShowCustomDiffEditor] = useState(false);
   const [showCustomDiffSavePrompt, setShowCustomDiffSavePrompt] = useState(false);
   const [editingCustomDiff, setEditingCustomDiff] = useState<CustomDifficulty>({ ...defaultCustomDiff });
@@ -172,6 +180,18 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
     onSaveStats(updated);
     setBestTimeEdits({});
     setShowBestTimePopup(false);
+    audio.playClick();
+  };
+
+  const handleSaveKills = () => {
+    const next = { ...totalKills };
+    Object.entries(killEdits).forEach(([diff, val]) => {
+      const n = parseInt(val as string, 10);
+      if (!isNaN(n) && n >= 0) next[diff] = n;
+    });
+    onSetTotalKills(next);
+    setKillEdits({});
+    setShowKillsPopup(false);
     audio.playClick();
   };
 
@@ -252,6 +272,10 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
           Makes enemies and your dot larger. Does not affect lasers. Scores are tracked separately per mode in the leaderboard.
         </p>
+        {toggleSlider("Fullscreen", isFullscreen, onToggleFullscreen)}
+        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
+          Enables browser fullscreen mode. Can only be toggled from settings, not mid-game.
+        </p>
       </Section>
 
       {/* Audio */}
@@ -304,6 +328,17 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
               <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">Set Best Times</span>
               <button
                 onClick={() => { audio.playClick(); setShowBestTimePopup(true); }}
+                className="px-4 py-1.5 text-xs font-black uppercase border border-neon-yellow text-neon-yellow hover:bg-neon-yellow/10 cursor-pointer transition-all"
+              >
+                OPEN
+              </button>
+            </div>
+
+            {/* Set kills */}
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">Set Best Kills</span>
+              <button
+                onClick={() => { audio.playClick(); setShowKillsPopup(true); }}
                 className="px-4 py-1.5 text-xs font-black uppercase border border-neon-yellow text-neon-yellow hover:bg-neon-yellow/10 cursor-pointer transition-all"
               >
                 OPEN
@@ -405,15 +440,17 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
       {showBestTimePopup && (
         <Popup title="Set Best Times" onClose={() => setShowBestTimePopup(false)}>
           <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
-            {Object.values(Difficulty).map((diff) => (
-              <div key={diff} className="flex items-center gap-2">
-                <span className="text-[10px] text-zinc-400 uppercase tracking-widest w-28 shrink-0">{diff}</span>
+            {Object.values(Difficulty).flatMap((diff) => [diff, `${diff}_big`]).map((key) => (
+              <div key={key} className="flex items-center gap-2">
+                <span className="text-[10px] text-zinc-400 uppercase tracking-widest w-36 shrink-0">
+                  {key.endsWith("_big") ? `${key.replace("_big", "")} [BIG]` : key}
+                </span>
                 <input
                   type="number"
                   step="0.1"
                   min="0"
-                  defaultValue={stats.highScores[diff] || 0}
-                  onChange={(e) => setBestTimeEdits((prev) => ({ ...prev, [diff]: e.target.value }))}
+                  defaultValue={stats.highScores[key] || 0}
+                  onChange={(e) => setBestTimeEdits((prev) => ({ ...prev, [key]: e.target.value }))}
                   className="flex-1 bg-[#0a0a0a] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
                 />
                 <span className="text-zinc-600 text-[10px]">s</span>
@@ -422,6 +459,36 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
           </div>
           <button
             onClick={handleSaveBestTimes}
+            className="mt-3 w-full py-2 text-xs font-black uppercase border border-neon-cyan text-neon-cyan hover:bg-neon-cyan/10 cursor-pointer transition-all"
+          >
+            SAVE
+          </button>
+        </Popup>
+      )}
+
+      {/* Set kills popup */}
+      {showKillsPopup && (
+        <Popup title="Set Best Kills" onClose={() => setShowKillsPopup(false)}>
+          <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
+            {Object.values(Difficulty).flatMap((diff) => [diff, `${diff}_big`]).map((key) => (
+              <div key={key} className="flex items-center gap-2">
+                <span className="text-[10px] text-zinc-400 uppercase tracking-widest w-36 shrink-0">
+                  {key.endsWith("_big") ? `${key.replace("_big", "")} [BIG]` : key}
+                </span>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  defaultValue={totalKills[key] || 0}
+                  onChange={(e) => setKillEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+                  className="flex-1 bg-[#0a0a0a] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
+                />
+                <span className="text-zinc-600 text-[10px]">kills</span>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={handleSaveKills}
             className="mt-3 w-full py-2 text-xs font-black uppercase border border-neon-cyan text-neon-cyan hover:bg-neon-cyan/10 cursor-pointer transition-all"
           >
             SAVE

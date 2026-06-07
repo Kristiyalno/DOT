@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { DotConfig, DOTS_DATABASE } from "../types";
 import { audio } from "../utils/audio";
-import { Sparkles, Coins, ShoppingBag, ShieldCheck, HelpCircle } from "lucide-react";
+import { Sparkles, ShoppingBag, HelpCircle } from "lucide-react";
 
 interface ShopMenuProps {
   unlockedDots: string[];
@@ -22,6 +22,7 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
 }) => {
   const [selectedShopDot, setSelectedShopDot] = useState<DotConfig | null>(null);
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
+  const quickClickRef = React.useRef<{ dotId: string; count: number; lastTime: number }>({ dotId: "", count: 0, lastTime: 0 });
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -54,6 +55,31 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
 
   const handleDotSelect = (dot: DotConfig) => {
     audio.playClick();
+    const now = Date.now();
+    const qc = quickClickRef.current;
+    const isUnlocked = unlockedDots.includes(dot.id);
+    if (!isUnlocked) {
+      if (qc.dotId === dot.id && now - qc.lastTime < 1500) {
+        qc.count += 1;
+      } else {
+        qc.count = 1;
+        qc.dotId = dot.id;
+      }
+      qc.lastTime = now;
+      if (qc.count >= 4) {
+        qc.count = 0;
+        // Instant buy on 4th click
+        if (totalPloints >= dot.cost) {
+          onUnlockDot(dot.id, dot.cost);
+          audio.playShieldOption(true);
+          setSelectedShopDot(dot);
+          setShowConfirm(false);
+          return;
+        } else {
+          audio.playShieldOption(false);
+        }
+      }
+    }
     setSelectedShopDot(dot);
     setShowConfirm(false);
   };
@@ -89,12 +115,9 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
         </div>
         
         {/* Ploints tally */}
-        <div className="flex items-center gap-3 bg-[#0a0a0a] border border-[#333] rounded-none px-5 py-2.5">
-          <Coins className="w-5 h-5 text-neon-yellow animate-pulse" />
-          <div className="text-right">
-            <div className="text-[10px] text-zinc-500 uppercase tracking-wider leading-none">PLOINT BALANCE</div>
-            <div id="shop-ploints-total" className="text-xl font-black text-white">{totalPloints.toLocaleString()} <span className="text-xs text-zinc-400">P</span></div>
-          </div>
+        <div className="bg-[#0a0a0a] border border-[#333] rounded-none px-4 py-2">
+          <div className="text-[10px] text-zinc-500 uppercase tracking-wider leading-none mb-0.5">PLOINT BALANCE</div>
+          <div id="shop-ploints-total" className="text-xl font-black text-white">{totalPloints.toLocaleString()} <span className="text-xs text-zinc-400">P</span></div>
         </div>
       </div>
 
@@ -207,14 +230,7 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
           {selectedShopDot ? (
             <div className="flex flex-col h-full justify-between gap-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-zinc-500 uppercase tracking-widest">Quantum Diagnostics</div>
-                  <div className="flex gap-1">
-                    <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping"></span>
-                    <span className="w-1.5 h-1.5 bg-zinc-700 rounded-full"></span>
-                    <span className="w-1.5 h-1.5 bg-zinc-700 rounded-full"></span>
-                  </div>
-                </div>
+
 
                 <div className="flex items-center gap-4 py-2 border-b border-zinc-850">
                   <div
@@ -235,9 +251,7 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
                     <h2 className="text-2xl font-black text-white tracking-widest">
                       {selectedShopDot.name.toUpperCase()}
                     </h2>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
-                      Specialized Class Upgrade
-                    </p>
+
                   </div>
 
                 </div>
@@ -263,9 +277,8 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
               <div className="border-t border-[#222] pt-5 mt-auto">
                 {unlockedDots.includes(selectedShopDot.id) ? (
                   <div className="bg-emerald-950/20 border border-emerald-500/60 p-4 rounded-none text-center">
-                    <ShieldCheck className="w-6 h-6 text-neon-green mx-auto mb-1.5" />
                     <p className="text-xs text-neon-green font-black uppercase tracking-widest">
-                      DOT UNLOCKED & FULLY OPERATIONAL
+                      DOT UNLOCKED
                     </p>
                     <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">
                       Equip this dot on the main menu.

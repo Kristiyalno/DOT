@@ -29,6 +29,7 @@ interface GameCanvasProps {
   bigMode?: boolean;
   invincible?: boolean;
   customDifficulty?: any;
+  isFullscreen?: boolean;
 }
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
@@ -40,6 +41,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   bigMode = false,
   invincible = false,
   customDifficulty = null,
+  isFullscreen: isFullscreenProp = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -51,19 +53,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const [hudPlointsGained, setHudPlointsGained] = useState<number>(0);
   const [hudTime, setHudTime] = useState<number>(0);
 
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
-    try { return localStorage.getItem("dot_fullscreen") === "1"; } catch { return false; }
-  });
-
-  const toggleFullscreen = () => {
-    setIsFullscreen((p) => {
-      const next = !p;
-      try { localStorage.setItem("dot_fullscreen", next ? "1" : "0"); } catch {}
-      return next;
-    });
-    audio.playClick();
-  };
+  // Fullscreen mode — controlled by App via prop (toggle is in Settings, not mid-game)
+  const isFullscreen = isFullscreenProp;
   const [isHyperSlo, setIsHyperSlo] = useState<boolean>(false);
+  const [hudFreezeReady, setHudFreezeReady] = useState<boolean>(false);
+  const [hudFreezeCooldown, setHudFreezeCooldown] = useState<number>(0);
 
   // Gameplay state references for the requestAnimationFrame loop to prevent stale React closures
   // Big mode scale factor — applied to all radii and sizes
@@ -116,7 +110,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     gameOverTriggered: false,
     hasMoved: false,
     teleportLine: null as null | { x1: number; y1: number; x2: number; y2: number; alpha: number; color: string },
-    microDrops: [] as Array<{ id: string; x: number; y: number; vx: number; vy: number; radius: number; alpha: number; life: number }>
+    microDrops: [] as Array<{ id: string; x: number; y: number; vx: number; vy: number; radius: number; alpha: number; life: number }>,
+    neoFreezeCooldownRemaining: 0,
+    neoFreezeFlashAlpha: 0,
   });
 
   // Calculate Ploint yield interval
@@ -175,6 +171,25 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       if (e.key === "Escape") {
         e.preventDefault();
         triggerGameOver();
+      }
+      if (e.key === " ") {
+        e.preventDefault();
+        const s = stateRef.current;
+        if (!s.hasMoved || s.gameOverTriggered) return;
+        const isNeoDot = selectedDot.id === "neo_drop" || selectedDot.id === NEO_DROP_ID;
+        if (!isNeoDot) return;
+        if (s.neoFreezeCooldownRemaining > 0) return;
+        if (s.player.slo < 200) return;
+        s.player.slo = Math.max(0, s.player.slo - 200);
+        s.neoFreezeCooldownRemaining = 20000;
+        s.neoFreezeFlashAlpha = 0.7;
+        const freezeUntil = Date.now() + 2000;
+        s.enemies.forEach((enemy: any) => {
+          enemy.frozenUntil = freezeUntil;
+          enemy.vx = 0;
+          enemy.vy = 0;
+        });
+        audio.playClick();
       }
     };
 
@@ -241,7 +256,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     }
 
     // Real-time HUD updates
-    setHudTime(s.timeElapsedReal / 1000);
+    setHudTime(s.timeElapsedGame / 1000);
 
     // Speed scaling over time (they get faster in all difficulties)
     // Roughly 5% speed increase every 10 seconds of survival
@@ -263,61 +278,78 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       s.glintFlashAlpha = Math.max(0, s.glintFlashAlpha - 0.02 * (deltaReal / 16.67));
     }
 
+    // Neo Drop freeze cooldown tick and flash decay
+    if (s.neoFreezeCooldownRemaining > 0) {
+      s.neoFreezeCooldownRemaining = Math.max(0, s.neoFreezeCooldownRemaining - deltaReal);
+    }
+    if (s.neoFreezeFlashAlpha > 0) {
+      s.neoFreezeFlashAlpha = Math.max(0, s.neoFreezeFlashAlpha - 0.015 * (deltaReal / 16.67));
+    }
+    setHudFreezeReady(s.neoFreezeCooldownRemaining === 0 && s.player.slo >= 200);
+    setHudFreezeCooldown(Math.ceil(s.neoFreezeCooldownRemaining / 1000));
+
     // Proximity Slo-mo calculation
-    // Detect if an enemy or projectile is about to collide within 45px
-    let isNearDanger = false;
-    let minDangerDistance = Infinity;
+    // Two tiers: dot-near (full hyper slo) and cursor-near (soft slo)
+    let isDotNearDanger = false;
+    let isCursorNearDanger = false;
 
     const nowMs = Date.now();
     s.enemies.forEach((enemy: any) => {
-      if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return; // frozen by Neo Drop
+      if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return;
 
-      const dx = enemy.x - s.player.x;
-      const dy = enemy.y - s.player.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance < enemy.radius + s.player.radius + 40) {
-        isNearDanger = true;
-        if (distance < minDangerDistance) minDangerDistance = distance;
+      // Dot proximity — triggers full hyper slo
+      const ddx = enemy.x - s.player.x;
+      const ddy = enemy.y - s.player.y;
+      if (Math.sqrt(ddx * ddx + ddy * ddy) < (enemy.radius + s.player.radius) / BIG + 40) {
+        isDotNearDanger = true;
+      }
+      // Cursor proximity — triggers soft slo (wider radius)
+      const cdx = enemy.x - s.mouse.x;
+      const cdy = enemy.y - s.mouse.y;
+      if (Math.sqrt(cdx * cdx + cdy * cdy) < (enemy.radius + s.player.radius) / BIG + 55) {
+        isCursorNearDanger = true;
       }
     });
 
     s.projectiles.forEach((proj) => {
-      const dx = proj.x - s.player.x;
-      const dy = proj.y - s.player.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance < proj.radius + s.player.radius + 35) {
-        isNearDanger = true;
-        if (distance < minDangerDistance) minDangerDistance = distance;
+      const ddx = proj.x - s.player.x;
+      const ddy = proj.y - s.player.y;
+      if (Math.sqrt(ddx * ddx + ddy * ddy) < (proj.radius + s.player.radius) / BIG + 35) {
+        isDotNearDanger = true;
+      }
+      const cdx = proj.x - s.mouse.x;
+      const cdy = proj.y - s.mouse.y;
+      if (Math.sqrt(cdx * cdx + cdy * cdy) < (proj.radius + s.player.radius) / BIG + 50) {
+        isCursorNearDanger = true;
       }
     });
 
-    // Check line lasers that are currently ACTIVE and overlapping the player
+    // Check active line lasers against dot position
     s.lasers.forEach((laser) => {
       if (laser.isActive && laser.type === "line" && laser.activeTime > 0) {
-        // Calculate distance from player center to laser segment
         const distToLaser = distToSegment(
-          s.player.x,
-          s.player.y,
-          laser.x1 || 0,
-          laser.y1 || 0,
-          laser.x2 || 0,
-          laser.y2 || 0
+          s.player.x, s.player.y,
+          laser.x1 || 0, laser.y1 || 0,
+          laser.x2 || 0, laser.y2 || 0
         );
-        if (distToLaser < s.player.radius + 20) {
-          isNearDanger = true;
-        }
+        if (distToLaser < s.player.radius + 20) isDotNearDanger = true;
       }
     });
 
     // Handle SLO resource consumption and application
     let nearSloScale = 1.0;
-    if (isNearDanger && s.player.slo > 0) {
-      // Consume Slo resource when running hyper-slowmotion
-      // consumes roughly 40 Slo per second
+    if (isDotNearDanger && s.player.slo > 0) {
+      // Full hyper slo — dot is in danger, 40 slo/sec
       const sloSpent = 40 * (deltaReal / 1000);
       s.player.slo = Math.max(0, s.player.slo - sloSpent);
-      nearSloScale = 0.12; // Hyper-slow motion factor
+      nearSloScale = 0.12;
       setIsHyperSlo(true);
+    } else if (isCursorNearDanger && s.player.slo > 0) {
+      // Soft slo — cursor near danger but dot is safe, 15 slo/sec
+      const sloSpent = 15 * (deltaReal / 1000);
+      s.player.slo = Math.max(0, s.player.slo - sloSpent);
+      nearSloScale = 0.45;
+      setIsHyperSlo(false);
     } else {
       setIsHyperSlo(false);
     }
@@ -832,17 +864,21 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   };
 
   const triggerEnemyKillForce = (enemy: Enemy, source: string, killedByLine: boolean = false) => {
-    killCountRef.current += 1;
     const s = stateRef.current;
     // Explode into tiny retro square particles
     createExplosionParticles(enemy.x, enemy.y, enemy.color, 15);
     audio.playEnemyKill(enemy.type === "tank");
 
-    // Award Slo energy (divided by 10 to prevent easy abuse)
-    s.player.slo = Math.max(0, s.player.slo + enemy.scoreValue / 10);
+    // Only real kills (via teleport line or dot abilities) count toward killCount and slo.
+    // Laser kills are environmental and do not award slo or count in kill total.
+    const isRealKill = source !== "Vertical Disruption Beam";
+    if (isRealKill) {
+      killCountRef.current += 1;
+      s.player.slo = Math.max(0, s.player.slo + enemy.scoreValue / 10);
+    }
 
-    // Apply kill-based matrix slow motion
-    s.timeScale = 0.15;
+    // Apply kill-based matrix slow motion only for real kills
+    if (isRealKill) s.timeScale = 0.15;
 
     // Neo Drop: spawn explosive micro drops only when killed by the teleport line
     if ((selectedDot.id === "neo_drop" || selectedDot.id === NEO_DROP_ID) && killedByLine) {
@@ -913,7 +949,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Create massive game over firework particles
     createExplosionParticles(s.player.x, s.player.y, selectedDot.color, 90);
 
-    const secondsSurvived = s.timeElapsedReal / 1000;
+    const secondsSurvived = s.timeElapsedGame / 1000;
     onGameOver(secondsSurvived, s.plointsGained, killCountRef.current);
   };
 
@@ -1979,6 +2015,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fillStyle = `rgba(255, 255, 255, ${s.glintFlashAlpha * 0.75})`;
       ctx.fillRect(0, 0, s.width, s.height);
     }
+
+    // NEO DROP FREEZE FLASH
+    if (s.neoFreezeFlashAlpha > 0) {
+      ctx.fillStyle = `rgba(192, 132, 252, ${s.neoFreezeFlashAlpha * 0.35})`;
+      ctx.fillRect(0, 0, s.width, s.height);
+    }
   };
 
   const timerPanel = (
@@ -2007,6 +2049,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     </div>
   );
 
+  const isNeoDrop = selectedDot.id === "neo_drop" || selectedDot.id === NEO_DROP_ID;
+  const freezePanel = isNeoDrop && (
+    <div className={`border p-3 flex flex-col select-none ${hudFreezeReady ? "border-neon-purple bg-[#1a0a2a]" : "border-[#333] bg-[#0a0a0a]"}`}>
+      <div className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mb-1">FREEZE [SPACE]</div>
+      {hudFreezeCooldown > 0 ? (
+        <div className="text-[10px] font-black text-zinc-500">COOLDOWN {hudFreezeCooldown}s</div>
+      ) : hudSlo < 200 ? (
+        <div className="text-[10px] font-black text-zinc-600">NEED 200 SLO</div>
+      ) : (
+        <div className="text-[10px] font-black text-neon-purple animate-pulse">READY</div>
+      )}
+    </div>
+  );
+
   const plointsPanel = (
     <div className="bg-[#0a0a0a] border-2 border-neon-magenta/40 text-neon-magenta p-2 flex items-center gap-2 select-none glow-magenta">
       <div className="text-[10px] uppercase font-black">PLOINTS:</div>
@@ -2023,15 +2079,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     </button>
   );
 
-  const fullscreenButton = (
-    <button
-      onClick={toggleFullscreen}
-      className="text-[11px] text-zinc-400 hover:text-white transition-colors bg-[#0a0a0a] hover:bg-[#111] border border-[#333] hover:border-white px-3.5 py-1.5 font-black cursor-pointer pointer-events-auto"
-      title={isFullscreen ? "Exit focus mode" : "Focus mode"}
-    >
-      {isFullscreen ? "[ ]" : "[⛶]"}
-    </button>
-  );
+
 
   const hyperOverlay = isHyperSlo && (
     <div className="absolute inset-x-0 bottom-5 pointer-events-none flex justify-center z-10 select-none animate-pulse">
@@ -2063,7 +2111,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           <div className="flex flex-col gap-2">
             <div className="text-[8px] text-zinc-700 uppercase tracking-widest font-black border-t border-[#1a1a1a] pt-3 mb-1">CONTROLS</div>
             {exitButton}
-            {fullscreenButton}
           </div>
         </div>
 
@@ -2092,6 +2139,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               <div className="text-[8px] text-zinc-600 uppercase tracking-[0.2em] font-black">RESOURCES</div>
             </div>
             {sloPanel}
+          {freezePanel}
+            {freezePanel}
             {plointsPanel}
             {hudShields > 0 && (
               <div className="bg-[#0a0a0a] border border-[#333] p-2 flex flex-col gap-1 select-none">
@@ -2149,7 +2198,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       {/* Bottom controls */}
       <div className="absolute bottom-4 left-4 z-10 font-mono flex gap-2">
         {exitButton}
-        {fullscreenButton}
       </div>
     </div>
   );

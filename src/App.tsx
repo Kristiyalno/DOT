@@ -43,10 +43,40 @@ export default function App() {
   const [secondsSurvived, setSecondsSurvived] = useState<number>(0);
   const [plointsGained, setPlointsGained] = useState<number>(0);
   const [sessionKills, setSessionKills] = useState<number>(0);
+  const [prevHighScore, setPrevHighScore] = useState<number>(0);
 
   const [bigMode, setBigMode] = useState<boolean>(() => {
     try { return localStorage.getItem("dot_bigmode") === "1"; } catch { return false; }
   });
+
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
+    try { return localStorage.getItem("dot_fullscreen") === "1"; } catch { return false; }
+  });
+
+  const handleToggleFullscreen = () => {
+    setIsFullscreen((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("dot_fullscreen", next ? "1" : "0"); } catch {}
+      if (next) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      } else {
+        if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+      }
+      return next;
+    });
+  };
+
+  // Sync isFullscreen state when user exits fullscreen via browser (e.g. pressing F11 or Esc)
+  React.useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement) {
+        setIsFullscreen(false);
+        try { localStorage.setItem("dot_fullscreen", "0"); } catch {}
+      }
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
   // Persisted across sessions
   const [invincible, setInvincible] = useState<boolean>(() => {
     try { return localStorage.getItem("dot_invincible") === "1"; } catch { return false; }
@@ -213,15 +243,22 @@ export default function App() {
     setPlointsGained(finalGains);
     setSessionKills(kills);
 
-    const diffKey = currentCustomDiff ? currentCustomDiff.name : currentDifficulty;
+    // Scores are tracked per difficulty + bigMode separately
+    const baseDiffKey = currentCustomDiff ? currentCustomDiff.name : currentDifficulty;
+    const diffKey = bigMode ? `${baseDiffKey}_big` : baseDiffKey;
 
     const updatedKills = { ...totalKills, [diffKey]: Math.max(totalKills[diffKey] || 0, kills) };
     setTotalKills(updatedKills);
 
+    // Capture the old high score BEFORE updating stats, so DeathScreen can
+    // correctly detect a new personal best (after setStats it would always match).
+    const oldHighScore = stats.highScores[diffKey] || 0;
+    setPrevHighScore(oldHighScore);
+
     setStats((prev) => {
-      const prevMax = prev.highScores[currentDifficulty] || 0;
+      const prevMax = prev.highScores[diffKey] || 0;
       const isNewHigh = finalSeconds > prevMax;
-      const updatedHighScores = { ...prev.highScores, [currentDifficulty]: isNewHigh ? finalSeconds : prevMax };
+      const updatedHighScores = { ...prev.highScores, [diffKey]: isNewHigh ? finalSeconds : prevMax };
       const updated = { ...prev, totalPloints: prev.totalPloints + finalGains, highScores: updatedHighScores };
       saveStats(updated, updatedKills);
       return updated;
@@ -274,7 +311,7 @@ export default function App() {
               onChange={(e) => setNameInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleNameSubmit(); if (e.key === "Escape") { setShowNamePrompt(false); setNameInput(""); } }}
               placeholder="YOUR NAME"
-              className="bg-[#0a0a0a] border border-[#333] text-white text-sm px-3 py-2.5 font-mono focus:border-neon-cyan outline-none uppercase tracking-widest"
+              className="bg-[#0a0a0a] border border-[#333] text-white text-sm px-3 py-2.5 font-mono focus:border-neon-cyan outline-none tracking-widest"
             />
             <div className="flex gap-2">
               <button
@@ -306,6 +343,8 @@ export default function App() {
           onOpenShop={() => setScreen("shop")}
           bigMode={bigMode}
           onToggleBigMode={handleToggleBigMode}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={handleToggleFullscreen}
           isMuted={isMuted}
           onToggleMute={handleToggleMute}
           musicVolume={musicVolume}
@@ -335,6 +374,9 @@ export default function App() {
           onNeoDropAnimDone={() => setNeoDropAnimating(false)}
           onNeedName={handleNeedName}
           onResetNeoDrop={handleResetNeoDrop}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={handleToggleFullscreen}
+          onSetTotalKills={(k) => { setTotalKills(k); saveStats(stats, k); }}
           initialTab={menuTab}
           onTabConsumed={() => setMenuTab("menu")}
         />
@@ -350,6 +392,7 @@ export default function App() {
           bigMode={bigMode}
           invincible={invincible}
           addPloints={handleAddLivePloints}
+          isFullscreen={isFullscreen}
         />
       )}
 
@@ -369,7 +412,8 @@ export default function App() {
           difficulty={currentDifficulty}
           secondsSurvived={secondsSurvived}
           plointsGained={plointsGained}
-          highScore={stats.highScores[currentDifficulty] || 0}
+          highScore={prevHighScore}
+          kills={sessionKills}
           onRetry={handleRetryGame}
           onExit={handleExitToMenu}
         />
