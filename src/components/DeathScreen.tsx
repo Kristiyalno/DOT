@@ -15,6 +15,7 @@ interface DeathScreenProps {
   plointsGained: number;
   highScore: number;
   kills: number;
+  prevBestKills: number;
   onRetry: () => void;
   onExit: () => void;
 }
@@ -26,6 +27,7 @@ export const DeathScreen: React.FC<DeathScreenProps> = ({
   plointsGained,
   highScore,
   kills,
+  prevBestKills,
   onRetry,
   onExit
 }) => {
@@ -59,6 +61,7 @@ export const DeathScreen: React.FC<DeathScreenProps> = ({
   }, [onExit]);
 
   const isHighScoreTriggered = secondsSurvived > highScore && secondsSurvived > 0;
+  const isNewKillRecord = kills > prevBestKills;
 
   return (
     <div id="death-screen-root" className="min-h-screen bg-brutal-grid font-mono text-ink flex flex-col justify-center items-center p-6 border-4 border-[#222] select-none animate-fadeIn">
@@ -92,9 +95,12 @@ export const DeathScreen: React.FC<DeathScreenProps> = ({
           <div className="bg-[#050505] border border-[#222] p-3 rounded-none flex flex-col items-center justify-center text-center">
             <Swords className="w-4 h-4 text-neon-red mb-1.5" />
             <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">KILLS</span>
-            <span id="death-stat-kills" className="text-lg font-bold text-neon-red tracking-widest mt-1">
+            <span id="death-stat-kills" className={`text-lg font-bold tracking-widest mt-1 ${isNewKillRecord ? "text-neon-green" : "text-neon-red"}`}>
               {kills}
             </span>
+            {isNewKillRecord && (
+              <span className="text-[8px] text-neon-green font-black uppercase tracking-wider animate-pulse">NEW REC</span>
+            )}
           </div>
 
           {/* Ploints gained */}
@@ -125,6 +131,22 @@ export const DeathScreen: React.FC<DeathScreenProps> = ({
               {(highScore - secondsSurvived).toFixed(2)}s behind personal best.
             </div>
           )}
+          <div className="flex justify-between items-center text-xs pt-1 border-t border-[#1a1a1a]">
+            <span className="text-zinc-500 uppercase font-black flex items-center gap-1.5">
+              <Swords className="w-3.5 h-3.5 text-neon-red" />
+              BEST KILLS
+            </span>
+            <span className="text-[#ccc] font-bold tracking-wider">{Math.max(prevBestKills, kills)}</span>
+          </div>
+          {isNewKillRecord ? (
+            <div className="text-[10px] text-neon-green bg-emerald-950/20 border border-neon-green px-3 py-1.5 rounded-none uppercase font-black text-center tracking-wider animate-pulse glow-green">
+              NEW KILL RECORD!
+            </div>
+          ) : prevBestKills > 0 ? (
+            <div className="text-[9px] text-zinc-500 uppercase font-bold text-center">
+              {prevBestKills - kills} kill{prevBestKills - kills !== 1 ? "s" : ""} behind kill record.
+            </div>
+          ) : null}
         </div>
 
         {/* Interactive options */}

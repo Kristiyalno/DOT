@@ -44,6 +44,7 @@ export default function App() {
   const [plointsGained, setPlointsGained] = useState<number>(0);
   const [sessionKills, setSessionKills] = useState<number>(0);
   const [prevHighScore, setPrevHighScore] = useState<number>(0);
+  const [prevBestKills, setPrevBestKills] = useState<number>(0);
 
   const [bigMode, setBigMode] = useState<boolean>(() => {
     try { return localStorage.getItem("dot_bigmode") === "1"; } catch { return false; }
@@ -252,7 +253,10 @@ export default function App() {
     const baseDiffKey = currentCustomDiff ? currentCustomDiff.name : currentDifficulty;
     const diffKey = bigMode ? `${baseDiffKey}_big` : baseDiffKey;
 
-    const updatedKills = { ...totalKills, [diffKey]: Math.max(totalKills[diffKey] || 0, kills) };
+    const oldBestKills = totalKills[diffKey] || 0;
+    setPrevBestKills(oldBestKills);
+
+    const updatedKills = { ...totalKills, [diffKey]: Math.max(oldBestKills, kills) };
     setTotalKills(updatedKills);
 
     // Capture the old high score BEFORE updating stats, so DeathScreen can
@@ -420,6 +424,7 @@ export default function App() {
           plointsGained={plointsGained}
           highScore={prevHighScore}
           kills={sessionKills}
+          prevBestKills={prevBestKills}
           onRetry={handleRetryGame}
           onExit={handleExitToMenu}
         />

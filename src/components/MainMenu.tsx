@@ -449,7 +449,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             <div className="grid grid-cols-1 gap-2.5 max-h-[55vh] overflow-y-auto pr-2 no-scrollbar">
               {Object.values(Difficulty).map((diff, index) => {
                 const style = getDifficultyStyles(diff);
-                const score = highScores[diff] || 0;
+                const normalScore = highScores[diff] || 0;
+                const bigScore = highScores[`${diff}_big`] || 0;
+                const score = Math.max(normalScore, bigScore);
+                const scoreBig = bigScore > normalScore;
                 const sectorNum = String(index + 1).padStart(2, "0");
 
                 return (
@@ -475,7 +478,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       <Trophy className="w-4 h-4 text-zinc-500 group-hover:text-neon-yellow" />
                       <div>
                         <div className="text-[8px] text-zinc-500 uppercase font-black tracking-wider">BEST TIME</div>
-                        <div className="text-xs font-black text-white mt-0.5">{score.toFixed(1)}s</div>
+                        <div className="flex items-baseline gap-1 mt-0.5">
+                          <span className="text-xs font-black text-white">{score.toFixed(1)}s</span>
+                          {score > 0 && (
+                            <span className={`text-[8px] font-bold uppercase tracking-wider ${scoreBig ? "text-neon-cyan" : "text-zinc-600"}`}>
+                              {scoreBig ? "BIG" : "STD"}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     {(() => {
