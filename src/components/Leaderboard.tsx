@@ -51,8 +51,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [editingPage, setEditingPage] = useState(false);
-  const [pageInput, setPageInput] = useState("");
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const deviceId = getDeviceId();
@@ -227,10 +225,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
           page={page}
           totalPages={totalPages}
           onGoTo={goToPage}
-          editingPage={editingPage}
-          setEditingPage={setEditingPage}
-          pageInput={pageInput}
-          setPageInput={setPageInput}
         />
 
         {/* Table */}
@@ -284,10 +278,6 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
           page={page}
           totalPages={totalPages}
           onGoTo={goToPage}
-          editingPage={editingPage}
-          setEditingPage={setEditingPage}
-          pageInput={pageInput}
-          setPageInput={setPageInput}
         />
 
         <div className="text-[10px] text-zinc-600 font-mono">
@@ -302,55 +292,87 @@ interface PaginationBarProps {
   page: number;
   totalPages: number;
   onGoTo: (p: number) => void;
-  editingPage: boolean;
-  setEditingPage: (v: boolean) => void;
-  pageInput: string;
-  setPageInput: (v: string) => void;
 }
 
-const PaginationBar: React.FC<PaginationBarProps> = ({
-  page, totalPages, onGoTo, editingPage, setEditingPage, pageInput, setPageInput
-}) => {
+const PaginationBar: React.FC<PaginationBarProps> = ({ page, totalPages, onGoTo }) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const committingRef = React.useRef(false);
+
+  // Close edit mode if page changes externally (e.g. another bar navigated)
+  useEffect(() => { setEditing(false); }, [page]);
+
+  // Focus the input whenever editing becomes true
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
   const btnClass = "px-3 py-1.5 text-[10px] font-black uppercase tracking-widest border border-[#333] text-zinc-400 hover:text-white hover:border-zinc-500 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-default";
+
+  const commit = (raw: string) => {
+    if (committingRef.current) return;
+    committingRef.current = true;
+    const trimmed = raw.trim();
+    const n = trimmed === "" ? 1 : parseInt(trimmed, 10);
+    const target = isNaN(n) ? 1 : n;
+    setEditing(false);
+    audio.playClick();
+    onGoTo(target - 1);
+    setTimeout(() => { committingRef.current = false; }, 50);
+  };
+
+  const openEdit = () => {
+    setDraft(String(page + 1));
+    setEditing(true);
+  };
 
   return (
     <div className="flex items-center gap-2">
-      <button className={btnClass} onClick={() => onGoTo(0)} disabled={page === 0}>FIRST</button>
-      <button className={btnClass} onClick={() => onGoTo(page - 1)} disabled={page === 0}>PREV</button>
+      <button
+        className={btnClass}
+        onClick={() => { audio.playClick(); onGoTo(0); }}
+        disabled={page === 0}
+      >FIRST</button>
+      <button
+        className={btnClass}
+        onClick={() => { audio.playClick(); onGoTo(page - 1); }}
+        disabled={page === 0}
+      >PREV</button>
 
-      {editingPage ? (
+      {editing ? (
         <input
-          autoFocus
+          ref={inputRef}
           type="number"
-          value={pageInput}
-          onChange={(e) => setPageInput(e.target.value)}
-          onBlur={() => {
-            const n = parseInt(pageInput, 10);
-            if (!isNaN(n)) onGoTo(n - 1);
-            setEditingPage(false);
-          }}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => commit(draft)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              const n = parseInt(pageInput, 10);
-              if (!isNaN(n)) onGoTo(n - 1);
-              setEditingPage(false);
-            }
-            if (e.key === "Escape") setEditingPage(false);
+            if (e.key === "Enter") { commit(draft); }
+            if (e.key === "Escape") { audio.playClick(); setEditing(false); }
           }}
-          className="w-14 text-center bg-[#0a0a0a] border border-neon-cyan text-white text-xs font-mono px-2 py-1"
+          className="w-14 text-center bg-[#0a0a0a] border border-neon-cyan text-white text-xs font-mono px-2 py-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
       ) : (
         <button
           className="px-3 py-1.5 text-[10px] font-black border border-neon-cyan/30 text-neon-cyan bg-neon-cyan/5 cursor-pointer hover:bg-neon-cyan/10 transition-all"
-          onClick={() => { setPageInput(String(page + 1)); setEditingPage(true); }}
+          onClick={openEdit}
           title="Click to jump to page"
         >
           {page + 1}
         </button>
       )}
 
-      <button className={btnClass} onClick={() => onGoTo(page + 1)} disabled={page >= totalPages - 1}>NEXT</button>
-      <button className={btnClass} onClick={() => onGoTo(totalPages - 1)} disabled={page >= totalPages - 1}>LAST</button>
+      <button
+        className={btnClass}
+        onClick={() => { audio.playClick(); onGoTo(page + 1); }}
+        disabled={page >= totalPages - 1}
+      >NEXT</button>
+      <button
+        className={btnClass}
+        onClick={() => { audio.playClick(); onGoTo(totalPages - 1); }}
+        disabled={page >= totalPages - 1}
+      >LAST</button>
     </div>
   );
 };
