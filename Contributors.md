@@ -3,7 +3,7 @@
 ---
 
 ### Kristiyalno
-![Kristiyalno](public/contributors/kristiyalno.gif)
+<img src="public/contributors/kristiyalno.gif" width="160" />
 
 Main game developer and designer.
 [GitHub](https://github.com/Kristiyalno)
@@ -11,7 +11,7 @@ Main game developer and designer.
 ---
 
 ### Dedeniz
-![Dedeniz](public/contributors/spamton_neo.gif)
+<img src="public/contributors/spamton_neo.gif" width="160" />
 
 The person Kristiyalno stole the game idea from.
 [GitHub](https://github.com/dedenizz)
@@ -19,7 +19,7 @@ The person Kristiyalno stole the game idea from.
 ---
 
 ### Claude (kadn)
-![Claude](public/contributors/claude.gif)
+<img src="public/contributors/claude.gif" width="160" />
 
 The useful AI.
 [claude.ai](https://claude.ai)
@@ -27,7 +27,7 @@ The useful AI.
 ---
 
 ### Gemi
-![Gemi](public/contributors/gemi.gif)
+<img src="public/contributors/gemi.gif" width="160" />
 
 The useless AI.
 [gemini.google.com](https://gemini.google.com)
@@ -35,7 +35,7 @@ The useless AI.
 ---
 
 ### Google AI Studio
-![Google AI Studio](public/contributors/aistudio.png)
+<img src="public/contributors/aistudio.png" width="160" />
 
 Professional time waster and the retard AI.
 [aistudio.google.com](https://aistudio.google.com)
