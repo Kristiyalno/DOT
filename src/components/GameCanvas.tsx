@@ -1387,7 +1387,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         spawnRandomEnemy(activeSpeedFactor);
       }
     }
-    }
 
     // B. LASER SPAWNER
     // Progress scales with currentTimeScale so slow-mo doesn't cause laser pile-up.
@@ -2181,7 +2180,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               <div className="text-[8px] text-zinc-600 uppercase tracking-[0.2em] font-black">RESOURCES</div>
             </div>
             {sloPanel}
-          {freezePanel}
             {freezePanel}
             {plointsPanel}
             {hudShields > 0 && (
