@@ -2211,8 +2211,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     <div
       ref={containerRef}
       id="game-viewport-container"
-      className="relative w-full h-full min-h-[500px] overflow-hidden bg-brutal-grid flex flex-col justify-between"
-      style={{ cursor: "none" }}
+      className="relative w-full h-full min-h-[500px] overflow-hidden bg-brutal-grid flex flex-col justify-between select-none"
+      style={{ cursor: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "none" }}
     >
       {/* Top HUD overlay */}
       <div className="absolute top-0 inset-x-0 p-5 flex justify-between items-start pointer-events-none z-10 font-mono text-zinc-300">
