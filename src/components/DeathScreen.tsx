@@ -120,7 +120,7 @@ export const DeathScreen: React.FC<DeathScreenProps> = ({
               <Trophy className="w-3.5 h-3.5 text-neon-yellow" />
               HIGH SCORE
             </span>
-            <span className="text-[#ccc] font-bold tracking-wider">{highScore.toFixed(2)}s</span>
+            <span className="text-[#ccc] font-bold tracking-wider">{Math.max(highScore, secondsSurvived).toFixed(2)}s</span>
           </div>
           {isHighScoreTriggered ? (
             <div id="new-high-score-announcement" className="text-[10px] text-neon-green bg-emerald-950/20 border border-neon-green px-3 py-1.5 rounded-none uppercase font-black text-center tracking-wider animate-pulse glow-green">

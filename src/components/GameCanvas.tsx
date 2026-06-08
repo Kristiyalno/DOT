@@ -91,7 +91,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     glintSlowTimer: 0,
     lastTime: 0,
     startTimeReal: 0,
-    lastPlointAwardTime: 0, // real milliseconds timestamp
+    lastPlointAwardTime: 0, // game-scaled milliseconds timestamp
     plointsGained: 0,
     
     // Sizing
@@ -361,14 +361,15 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Handle SLO resource consumption and application
     let nearSloScale = 1.0;
     if (isDotNearDanger && s.player.slo > 0) {
-      // Full hyper slo — dot is in danger, 40 slo/sec
-      const sloSpent = 40 * (deltaReal / 1000);
+      // Full hyper slo — dot is in danger, 40 slo/sec scaled by current time scale
+      // (spending slo while already slowed costs proportionally less)
+      const sloSpent = 40 * (deltaReal / 1000) * s.currentTimeScale;
       s.player.slo = Math.max(0, s.player.slo - sloSpent);
       nearSloScale = 0.12;
       setIsHyperSlo(true);
     } else if (isCursorNearDanger && s.player.slo > 0) {
-      // Soft slo — cursor near danger but dot is safe, 15 slo/sec
-      const sloSpent = 15 * (deltaReal / 1000);
+      // Soft slo — cursor near danger but dot is safe, 15 slo/sec scaled by current time scale
+      const sloSpent = 15 * (deltaReal / 1000) * s.currentTimeScale;
       s.player.slo = Math.max(0, s.player.slo - sloSpent);
       nearSloScale = 0.45;
       setIsHyperSlo(false);
@@ -388,12 +389,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     setHudSlo(Math.round(s.player.slo));
     setHudShields(s.player.shields);
 
-    // Award Ploints based on real stopwatch elapsed time (non-slowed seconds) after a 5s initial cooldown
-    if (s.timeElapsedReal >= 5000) {
+    // Award Ploints based on game-scaled elapsed time (slowed seconds count less) after a 5s game-time cooldown
+    if (s.timeElapsedGame >= 5000) {
       if (s.lastPlointAwardTime === 0) {
-        s.lastPlointAwardTime = s.timeElapsedReal;
+        s.lastPlointAwardTime = s.timeElapsedGame;
       }
-      if (s.timeElapsedReal - s.lastPlointAwardTime >= plointInterval) {
+      if (s.timeElapsedGame - s.lastPlointAwardTime >= plointInterval) {
         s.plointsGained += 1;
         s.lastPlointAwardTime += plointInterval;
         setHudPlointsGained(s.plointsGained);
