@@ -5,7 +5,7 @@ import { GameCanvas } from "./components/GameCanvas";
 import { ShopMenu } from "./components/ShopMenu";
 import { DeathScreen } from "./components/DeathScreen";
 import { audio } from "./utils/audio";
-import { CustomDifficulty } from "./components/SettingsPanel";
+import { CustomDifficulty, ExperimentalSettings, defaultExperimentalSettings } from "./components/SettingsPanel";
 import { getDeviceId } from "./utils/firebase";
 
 const STORAGE_KEY = "dot_game_quantum_vessel_config_v2";
@@ -100,6 +100,7 @@ export default function App() {
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [spamtonRange, setSpamtonRange] = useState<[number, number]>([2, 3]);
+  const [experimentalSettings, setExperimentalSettings] = useState<ExperimentalSettings>(defaultExperimentalSettings);
   const [customDifficulties, setCustomDifficulties] = useState<CustomDifficulty[]>(() => {
     try {
       const saved = localStorage.getItem(CUSTOM_DIFF_KEY);
@@ -388,6 +389,8 @@ export default function App() {
           onSetTotalKills={(k) => { setTotalKills(k); saveStats(stats, k); }}
           initialTab={menuTab}
           onTabConsumed={() => setMenuTab("menu")}
+          experimentalSettings={experimentalSettings}
+          onSetExperimentalSettings={setExperimentalSettings}
         />
       )}
 
@@ -402,6 +405,11 @@ export default function App() {
           invincible={invincible}
           addPloints={handleAddLivePloints}
           isFullscreen={isFullscreen}
+          killFlashEnabled={experimentalSettings.killFlashEnabled}
+          killFlashIntensity={experimentalSettings.killFlashIntensity}
+          screenShakeEnabled={experimentalSettings.screenShakeEnabled}
+          screenShakeIntensity={experimentalSettings.screenShakeIntensity}
+          comboPitchEnabled={experimentalSettings.comboPitchEnabled}
         />
       )}
 

@@ -58,6 +58,8 @@ interface SettingsProps {
   onToggleFullscreen: () => void;
   totalKills: Record<string, number>;
   onSetTotalKills: (k: Record<string, number>) => void;
+  experimentalSettings: ExperimentalSettings;
+  onSetExperimentalSettings: (s: ExperimentalSettings) => void;
 }
 
 const defaultCustomDiff: CustomDifficulty = {
@@ -77,6 +79,22 @@ const defaultCustomDiff: CustomDifficulty = {
   permanent: false,
 };
 
+export interface ExperimentalSettings {
+  killFlashEnabled: boolean;
+  killFlashIntensity: number;
+  screenShakeEnabled: boolean;
+  screenShakeIntensity: number;
+  comboPitchEnabled: boolean;
+}
+
+export const defaultExperimentalSettings: ExperimentalSettings = {
+  killFlashEnabled: false,
+  killFlashIntensity: 1.0,
+  screenShakeEnabled: false,
+  screenShakeIntensity: 1.0,
+  comboPitchEnabled: false,
+};
+
 export const SettingsPanel: React.FC<SettingsProps> = ({
   bigMode, onToggleBigMode,
   isMuted, onToggleMute,
@@ -92,6 +110,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
   onResetNeoDrop,
   isFullscreen, onToggleFullscreen,
   totalKills, onSetTotalKills,
+  experimentalSettings, onSetExperimentalSettings,
 }) => {
   const [debugEnabled, setDebugEnabled] = useState<boolean>(() => {
     try { return localStorage.getItem(DEBUG_KEY) === "1"; } catch { return false; }
@@ -289,6 +308,35 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         {toggleSlider("All Audio", !isMuted, onToggleMute)}
         {volumeSlider("Music Volume", musicVolume, onMusicVolume)}
         {volumeSlider("SFX Volume", sfxVolume, onSfxVolume)}
+      </Section>
+
+      {/* Experimental */}
+      <Section title="Experimental">
+        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
+          These features are off by default and may affect performance or feel unpolished.
+        </p>
+        {toggleSlider("Kill Flash", experimentalSettings.killFlashEnabled, () =>
+          onSetExperimentalSettings({ ...experimentalSettings, killFlashEnabled: !experimentalSettings.killFlashEnabled })
+        )}
+        {experimentalSettings.killFlashEnabled && volumeSlider(
+          "Flash Intensity",
+          experimentalSettings.killFlashIntensity,
+          (v) => onSetExperimentalSettings({ ...experimentalSettings, killFlashIntensity: v })
+        )}
+        {toggleSlider("Screen Shake", experimentalSettings.screenShakeEnabled, () =>
+          onSetExperimentalSettings({ ...experimentalSettings, screenShakeEnabled: !experimentalSettings.screenShakeEnabled })
+        )}
+        {experimentalSettings.screenShakeEnabled && volumeSlider(
+          "Shake Intensity",
+          experimentalSettings.screenShakeIntensity,
+          (v) => onSetExperimentalSettings({ ...experimentalSettings, screenShakeIntensity: v })
+        )}
+        {toggleSlider("Kill Audio Combo Pitch", experimentalSettings.comboPitchEnabled, () =>
+          onSetExperimentalSettings({ ...experimentalSettings, comboPitchEnabled: !experimentalSettings.comboPitchEnabled })
+        )}
+        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
+          Raises the kill sound pitch on consecutive kills within 1.5 seconds.
+        </p>
       </Section>
 
       {/* Debug */}

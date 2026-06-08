@@ -30,6 +30,11 @@ interface GameCanvasProps {
   invincible?: boolean;
   customDifficulty?: any;
   isFullscreen?: boolean;
+  killFlashEnabled?: boolean;
+  killFlashIntensity?: number;
+  screenShakeEnabled?: boolean;
+  screenShakeIntensity?: number;
+  comboPitchEnabled?: boolean;
 }
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
@@ -42,6 +47,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   invincible = false,
   customDifficulty = null,
   isFullscreen: isFullscreenProp = false,
+  killFlashEnabled = false,
+  killFlashIntensity = 1.0,
+  screenShakeEnabled = false,
+  screenShakeIntensity = 1.0,
+  comboPitchEnabled = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -111,6 +121,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     teleportLine: null as null | { x1: number; y1: number; x2: number; y2: number; alpha: number; color: string },
     microDrops: [] as Array<{ id: string; x: number; y: number; vx: number; vy: number; radius: number; alpha: number; life: number }>,
     neoFreezeFlashAlpha: 0,
+    killFlashAlpha: 0,
+    shakeTimer: 0,
+    shakeIsTank: false,
+    comboCount: 0,
+    comboResetTimer: 0,
+    glintCritCooldown: 0,
   });
 
   // Calculate Ploint yield interval
@@ -302,6 +318,22 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Glint screen flash decay logic
     if (s.glintFlashAlpha > 0) {
       s.glintFlashAlpha = Math.max(0, s.glintFlashAlpha - 0.02 * (deltaReal / 16.67));
+    }
+    if (s.killFlashAlpha > 0) {
+      s.killFlashAlpha = Math.max(0, s.killFlashAlpha - 0.055 * (deltaReal / 16.67));
+    }
+    if (s.shakeTimer > 0) {
+      s.shakeTimer = Math.max(0, s.shakeTimer - deltaReal);
+    }
+    if (s.comboResetTimer > 0) {
+      s.comboResetTimer -= deltaReal;
+      if (s.comboResetTimer <= 0) {
+        s.comboCount = 0;
+        s.comboResetTimer = 0;
+      }
+    }
+    if (s.glintCritCooldown > 0) {
+      s.glintCritCooldown = Math.max(0, s.glintCritCooldown - deltaReal);
     }
 
     // Neo Drop freeze flash decay
@@ -890,7 +922,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const s = stateRef.current;
     // Explode into tiny retro square particles
     createExplosionParticles(enemy.x, enemy.y, enemy.color, 15);
-    audio.playEnemyKill(enemy.type === "tank");
+    s.comboCount += 1;
+    s.comboResetTimer = 1500;
+    const pitchMult = comboPitchEnabled ? 1.0 + Math.min(s.comboCount - 1, 8) * 0.12 : 1.0;
+    audio.playEnemyKill(enemy.type === "tank", pitchMult);
+    if (killFlashEnabled) {
+      s.killFlashAlpha = 0.55 * killFlashIntensity;
+    }
+    if (screenShakeEnabled) {
+      s.shakeTimer = enemy.type === "tank" ? 220 : 130;
+      s.shakeIsTank = enemy.type === "tank";
+    }
 
     // Only real kills (via teleport line or dot abilities) count toward killCount and slo.
     // Laser kills are environmental and do not award slo or count in kill total.
@@ -1253,9 +1295,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         killsProjectiles: false
       });
     } else if (selectedDot.id === "glint") {
-      // 5% hyper critical trigger
-      const crit = Math.random() < 0.05;
+      // 5% hyper critical trigger — 3 real-second cooldown between crits
+      const crit = Math.random() < 0.05 && s.glintCritCooldown <= 0;
       if (crit) {
+        s.glintCritCooldown = 3000;
         audio.playGlintCrit();
         
         // Trigger massive screen-flash alpha
@@ -1651,6 +1694,15 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Clear Screen with elegant retro pitch-black fade and subtle background grid
     ctx.fillStyle = "#0c0a0f"; // Extremely dark cybernetic violet
     ctx.fillRect(0, 0, s.width, s.height);
+
+    // Screen shake: offset the ctx transform for the duration of shakeTimer
+    if (screenShakeEnabled && s.shakeTimer > 0) {
+      const intensity = (s.shakeIsTank ? 8 : 4) * screenShakeIntensity * (s.shakeTimer / (s.shakeIsTank ? 220 : 130));
+      const dx = (Math.random() * 2 - 1) * intensity;
+      const dy = (Math.random() * 2 - 1) * intensity;
+      ctx.save();
+      ctx.translate(dx, dy);
+    }
 
     // Draw Cybernetic Grid Lines
     ctx.strokeStyle = "#1b1424";
@@ -2052,6 +2104,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
       ctx.font = "900 11px 'Space Grotesk', system-ui, sans-serif";
       ctx.fillText("CLICK TO START", s.width / 2, s.height / 2 + 100);
+    }
+
+    // Restore shake transform before fullscreen overlays (they should not shift)
+    if (screenShakeEnabled && s.shakeTimer > 0) {
+      ctx.restore();
+    }
+
+    // KILL FLASH
+    if (killFlashEnabled && s.killFlashAlpha > 0) {
+      ctx.fillStyle = `rgba(255, 255, 255, ${s.killFlashAlpha})`;
+      ctx.fillRect(0, 0, s.width, s.height);
     }
 
     // DRAW GLINT HIT FULL-SCREEN FLASH

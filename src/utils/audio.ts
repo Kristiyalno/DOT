@@ -213,7 +213,8 @@ class AudioEngine {
   }
 
   // SFX: Enemy hit / kill crunchy noise burst
-  public playEnemyKill(isTank = false) {
+  // pitchMult > 1.0 raises pitch for combo escalation
+  public playEnemyKill(isTank = false, pitchMult = 1.0) {
     this.initCtx();
     if (!this.ctx || this.isMutedState) return;
 
@@ -222,8 +223,9 @@ class AudioEngine {
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = "bandpass";
-    filter.frequency.setValueAtTime(isTank ? 200 : 500, this.ctx.currentTime);
-    filter.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + 0.15);
+    const baseFreq = isTank ? 200 : 500;
+    filter.frequency.setValueAtTime(baseFreq * pitchMult, this.ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(60 * pitchMult, this.ctx.currentTime + 0.15);
 
     const noiseSource = this.ctx.createBufferSource();
     noiseSource.buffer = noise;
@@ -243,6 +245,25 @@ class AudioEngine {
 
     noiseSource.start();
     noiseSource.stop(this.ctx.currentTime + 0.18);
+
+    // Tank: add a deep tonal thud underneath for a heavier feel
+    if (isTank) {
+      const osc = this.ctx.createOscillator();
+      const oscGain = this.ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(80 * pitchMult, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.25);
+      oscGain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+      osc.connect(oscGain);
+      if (this.sfxGainNode) {
+        oscGain.connect(this.sfxGainNode);
+      } else {
+        oscGain.connect(this.ctx.destination);
+      }
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.26);
+    }
   }
 
   // SFX: Glint high probability/crit item or slowdown

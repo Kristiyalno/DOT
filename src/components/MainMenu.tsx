@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Difficulty, DotConfig, DOTS_DATABASE, NEO_DROP_ID, PlayerStats } from "../types";
 import { audio } from "../utils/audio";
 import { Volume2, VolumeX, Trophy, Info } from "lucide-react";
-import { SettingsPanel, CustomDifficulty } from "./SettingsPanel";
+import { SettingsPanel, CustomDifficulty, ExperimentalSettings } from "./SettingsPanel";
 import { Leaderboard } from "./Leaderboard";
 import { Contributors } from "./Contributors";
 
@@ -45,6 +45,8 @@ interface MainMenuProps {
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
   onSetTotalKills: (k: Record<string, number>) => void;
+  experimentalSettings: ExperimentalSettings;
+  onSetExperimentalSettings: (s: ExperimentalSettings) => void;
   initialTab?: "menu" | "leaderboard" | "settings";
   onTabConsumed?: () => void;
 }
@@ -76,6 +78,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   onNeedName, onResetNeoDrop,
   isFullscreen, onToggleFullscreen,
   onSetTotalKills,
+  experimentalSettings,
+  onSetExperimentalSettings,
   initialTab, onTabConsumed,
 }) => {
   const [activeTab, setActiveTab] = useState<"menu" | "leaderboard" | "settings">("menu");
@@ -347,6 +351,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           onToggleFullscreen={onToggleFullscreen}
           totalKills={totalKills}
           onSetTotalKills={onSetTotalKills}
+          experimentalSettings={experimentalSettings}
+          onSetExperimentalSettings={onSetExperimentalSettings}
         />
       )}
 
