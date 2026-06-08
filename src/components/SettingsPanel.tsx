@@ -318,18 +318,22 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         {toggleSlider("Kill Flash", experimentalSettings.killFlashEnabled, () =>
           onSetExperimentalSettings({ ...experimentalSettings, killFlashEnabled: !experimentalSettings.killFlashEnabled })
         )}
-        {experimentalSettings.killFlashEnabled && volumeSlider(
-          "Flash Intensity",
-          experimentalSettings.killFlashIntensity,
-          (v) => onSetExperimentalSettings({ ...experimentalSettings, killFlashIntensity: v })
+        {experimentalSettings.killFlashEnabled && (
+          <ExperimentalSlider
+            label="Flash Intensity"
+            value={experimentalSettings.killFlashIntensity}
+            onChange={(v) => onSetExperimentalSettings({ ...experimentalSettings, killFlashIntensity: v })}
+          />
         )}
         {toggleSlider("Screen Shake", experimentalSettings.screenShakeEnabled, () =>
           onSetExperimentalSettings({ ...experimentalSettings, screenShakeEnabled: !experimentalSettings.screenShakeEnabled })
         )}
-        {experimentalSettings.screenShakeEnabled && volumeSlider(
-          "Shake Intensity",
-          experimentalSettings.screenShakeIntensity,
-          (v) => onSetExperimentalSettings({ ...experimentalSettings, screenShakeIntensity: v })
+        {experimentalSettings.screenShakeEnabled && (
+          <ExperimentalSlider
+            label="Shake Intensity"
+            value={experimentalSettings.screenShakeIntensity}
+            onChange={(v) => onSetExperimentalSettings({ ...experimentalSettings, screenShakeIntensity: v })}
+          />
         )}
         {toggleSlider("Kill Audio Combo Pitch", experimentalSettings.comboPitchEnabled, () =>
           onSetExperimentalSettings({ ...experimentalSettings, comboPitchEnabled: !experimentalSettings.comboPitchEnabled })
@@ -698,6 +702,59 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
           </div>
         </Popup>
       )}
+    </div>
+  );
+};
+
+// Slider + number input combo for experimental settings. No min/max enforced.
+const ExperimentalSlider: React.FC<{
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}> = ({ label, value, onChange }) => {
+  const [draft, setDraft] = React.useState(String(value));
+  const [focused, setFocused] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!focused) setDraft(String(parseFloat(value.toFixed(2))));
+  }, [value, focused]);
+
+  const commit = () => {
+    setFocused(false);
+    const parsed = parseFloat(draft);
+    if (!isNaN(parsed)) {
+      onChange(parsed);
+      setDraft(String(parsed));
+    } else {
+      setDraft(String(parseFloat(value.toFixed(2))));
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">{label}</span>
+      <input
+        type="range"
+        min={0}
+        max={3}
+        step={0.01}
+        value={Math.min(value, 3)}
+        onChange={(e) => {
+          const v = parseFloat(e.target.value);
+          onChange(v);
+        }}
+        className="w-full h-1.5 accent-neon-cyan cursor-pointer"
+      />
+      <input
+        type="number"
+        step={0.01}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === "Enter") { audio.playClick(); (e.target as HTMLInputElement).blur(); } }}
+        className="w-full bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
+      />
     </div>
   );
 };

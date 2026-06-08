@@ -176,8 +176,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   useEffect(() => {
     if (!spamton?.active) return;
 
-    // Music starts 5s before he enters screen (we start it immediately and
-    // fade in over 5s so that by the time he's visible it's at max)
     const audioObj = new Audio(`${import.meta.env.BASE_URL}contributors/bigshot.mp3`);
     spamtonAudioRef.current = audioObj;
     const randomStart = Math.random() * 135;
@@ -189,33 +187,42 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     let audioStarted = false;
     audioObj.play().then(() => { audioStarted = true; }).catch(() => {});
 
-    // Total animation: 5s pre-entry fade-in (music only, dot not visible yet),
-    // then 5s on screen sliding left, then 5s post-exit fade-out = 15s total
-    // But visually spamton appears at x=115% (off-right) and slides to x=-30%
-    // He becomes "visible" when x < 100%, i.e. after some fraction of travel.
-    // We delay his visual appearance 0s but start music immediately with 5s fade.
-    const MUSIC_FADE_IN = 5000;   // 5s fade in
-    const ON_SCREEN = 5000;       // 5s crossing
-    const MUSIC_FADE_OUT = 5000;  // 5s fade out after gone
-    const TOTAL = ON_SCREEN + MUSIC_FADE_OUT;
+    // Phase 1 — PRE_ENTRY (5s): Spamton is off-screen right (x=115%), music fades 0→1
+    // Phase 2 — ON_SCREEN (5s): Spamton slides from x=115% to x=-30%, music stays at 1
+    // Phase 3 — FADE_OUT (5s): Spamton is off-screen left (x=-30%), music fades 1→0
+    const PRE_ENTRY   = 5000;
+    const ON_SCREEN   = 5000;
+    const FADE_OUT    = 5000;
+    const TOTAL       = PRE_ENTRY + ON_SCREEN + FADE_OUT;
 
     const startX = 115;
-    const endX = -30;
+    const endX   = -30;
     const startTimeStamp = Date.now();
     let animId: number;
 
     const tick = () => {
       const elapsed = Date.now() - startTimeStamp;
-      const gifProgress = Math.min(1, elapsed / ON_SCREEN);
-      const currentX = startX + (endX - startX) * gifProgress;
+
+      // Position: hold off-screen during pre-entry, then slide, then hold off-screen left
+      let currentX: number;
+      if (elapsed < PRE_ENTRY) {
+        currentX = startX;
+      } else if (elapsed < PRE_ENTRY + ON_SCREEN) {
+        const t = (elapsed - PRE_ENTRY) / ON_SCREEN;
+        currentX = startX + (endX - startX) * t;
+      } else {
+        currentX = endX;
+      }
       const currentBob = Math.sin(elapsed / 120) * 12;
 
-      // Music volume: fade in over first 5s (pre-loaded), max when on-screen, fade out over last 5s
-      let volume = 1.0;
-      if (elapsed < MUSIC_FADE_IN) {
-        volume = elapsed / MUSIC_FADE_IN;
-      } else if (elapsed > ON_SCREEN) {
-        const fadeProgress = (elapsed - ON_SCREEN) / MUSIC_FADE_OUT;
+      // Volume: fade in during pre-entry, full during on-screen, fade out during fade-out
+      let volume: number;
+      if (elapsed < PRE_ENTRY) {
+        volume = elapsed / PRE_ENTRY;
+      } else if (elapsed < PRE_ENTRY + ON_SCREEN) {
+        volume = 1.0;
+      } else {
+        const fadeProgress = (elapsed - PRE_ENTRY - ON_SCREEN) / FADE_OUT;
         volume = Math.max(0, 1 - fadeProgress);
       }
 

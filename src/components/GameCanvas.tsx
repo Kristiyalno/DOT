@@ -922,24 +922,30 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const s = stateRef.current;
     // Explode into tiny retro square particles
     createExplosionParticles(enemy.x, enemy.y, enemy.color, 15);
-    s.comboCount += 1;
-    s.comboResetTimer = 1500;
-    const pitchMult = comboPitchEnabled ? 1.0 + Math.min(s.comboCount - 1, 8) * 0.12 : 1.0;
-    audio.playEnemyKill(enemy.type === "tank", pitchMult);
-    if (killFlashEnabled) {
-      s.killFlashAlpha = 0.55 * killFlashIntensity;
-    }
-    if (screenShakeEnabled) {
-      s.shakeTimer = enemy.type === "tank" ? 220 : 130;
-      s.shakeIsTank = enemy.type === "tank";
-    }
-
     // Only real kills (via teleport line or dot abilities) count toward killCount and slo.
     // Laser kills are environmental and do not award slo or count in kill total.
     const isRealKill = source !== "Vertical Disruption Beam";
     if (isRealKill) {
       killCountRef.current += 1;
       s.player.slo = Math.max(0, s.player.slo + enemy.scoreValue / 10 * (customDifficulty != null ? (customDifficulty.sloPerKill ?? 1.0) : 1.0));
+
+      // Combo tracking — increment before computing pitch so first kill of a combo already raises it
+      s.comboCount += 1;
+      s.comboResetTimer = 1500;
+
+      const pitchMult = comboPitchEnabled ? 1.0 + Math.min(s.comboCount - 1, 8) * 0.12 : 1.0;
+      audio.playEnemyKill(enemy.type === "tank", pitchMult);
+
+      if (killFlashEnabled) {
+        s.killFlashAlpha = 0.55 * killFlashIntensity;
+      }
+      if (screenShakeEnabled) {
+        s.shakeTimer = enemy.type === "tank" ? 220 : 130;
+        s.shakeIsTank = enemy.type === "tank";
+      }
+    } else {
+      // Laser kill — plain sound, no effects
+      audio.playEnemyKill(enemy.type === "tank", 1.0);
     }
 
     // Apply kill-based matrix slow motion only for real kills
