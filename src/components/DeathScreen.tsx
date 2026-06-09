@@ -126,11 +126,11 @@ export const DeathScreen: React.FC<DeathScreenProps> = ({
             <div id="new-high-score-announcement" className="text-[10px] text-neon-green bg-emerald-950/20 border border-neon-green px-3 py-1.5 rounded-none uppercase font-black text-center tracking-wider animate-pulse glow-green">
               NEW PERSONAL BEST!
             </div>
-          ) : highScore > 0 ? (
+          ) : (
             <div className="text-[9px] text-zinc-550 uppercase font-bold text-center">
               {(highScore - secondsSurvived).toFixed(2)}s behind personal best.
             </div>
-          ) : null}
+          )}
           <div className="flex justify-between items-center text-xs pt-1 border-t border-[#1a1a1a]">
             <span className="text-zinc-500 uppercase font-black flex items-center gap-1.5">
               <Swords className="w-3.5 h-3.5 text-neon-red" />

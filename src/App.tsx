@@ -143,9 +143,6 @@ export default function App() {
     }
   }, []);
 
-  const totalKillsRef = useRef(totalKills);
-  useEffect(() => { totalKillsRef.current = totalKills; }, [totalKills]);
-
   useEffect(() => {
     if (neoDropUnlocked) return;
     const allBought = ALL_PURCHASABLE_DOTS.every((id) => stats.unlockedDots.includes(id));
@@ -153,10 +150,9 @@ export default function App() {
       setNeoDropAnimating(true);
       const updated = { ...stats, unlockedDots: [...stats.unlockedDots] };
       setNeoDropUnlocked(true);
-      saveStats(updated, totalKillsRef.current, true);
+      saveStats(updated, totalKills, true);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stats.unlockedDots, neoDropUnlocked]);
+  }, [stats.unlockedDots]);
 
   const saveStats = (newStats: PlayerStats, kills = totalKills, neo = neoDropUnlocked) => {
     try {
@@ -388,6 +384,8 @@ export default function App() {
           onNeoDropAnimDone={() => setNeoDropAnimating(false)}
           onNeedName={handleNeedName}
           onResetNeoDrop={handleResetNeoDrop}
+          isFullscreen={isFullscreen}
+          onToggleFullscreen={handleToggleFullscreen}
           onSetTotalKills={(k) => { setTotalKills(k); saveStats(stats, k); }}
           initialTab={menuTab}
           onTabConsumed={() => setMenuTab("menu")}
