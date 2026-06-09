@@ -47,11 +47,11 @@ export const DOTS_DATABASE: DotConfig[] = [
   {
     id: "echo",
     name: "Echo",
-    cost: 40,
+    cost: 30,
     color: "#14b8a6", // Teal-500 (Faded Teal)
     borderColor: "#99f6e4",
     description: "Leaves a residual holographic copy that attracts nearby enemies.",
-    specialAbility: "Leaves a copy at your previous position that draws nearby enemy attention for 0.5 real seconds before dissolving."
+    specialAbility: "Leaves a copy at your previous position that draws nearby enemy attention for 2 real seconds before dissolving."
   },
   {
     id: "jolt",

@@ -419,6 +419,12 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                     const v = parseFloat(e.target.value);
                     if (!isNaN(v)) audio.setYawnProbability(v);
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      audio.playClick();
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
                   className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
                 />
               </div>
@@ -706,13 +712,14 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
   );
 };
 
-// Slider + number input combo for experimental settings. No min/max enforced.
+// Slider + number input combo for experimental settings.
+// Slider goes 0–3 for convenience; type any value in the input. No hard limits enforced.
 const ExperimentalSlider: React.FC<{
   label: string;
   value: number;
   onChange: (v: number) => void;
 }> = ({ label, value, onChange }) => {
-  const [draft, setDraft] = React.useState(String(value));
+  const [draft, setDraft] = React.useState(String(parseFloat(value.toFixed(2))));
   const [focused, setFocused] = React.useState(false);
 
   React.useEffect(() => {
@@ -732,7 +739,10 @@ const ExperimentalSlider: React.FC<{
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">{label}</span>
+      <div className="flex justify-between text-[10px] text-zinc-400 uppercase tracking-widest font-black">
+        <span>{label}</span>
+        <span className="text-white">{parseFloat(value.toFixed(2))}x</span>
+      </div>
       <input
         type="range"
         min={0}
@@ -742,6 +752,7 @@ const ExperimentalSlider: React.FC<{
         onChange={(e) => {
           const v = parseFloat(e.target.value);
           onChange(v);
+          setDraft(String(v));
         }}
         className="w-full h-1.5 accent-neon-cyan cursor-pointer"
       />
@@ -1090,6 +1101,12 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
             value={hexInput.replace(/^#/, "")}
             maxLength={6}
             onChange={(e) => handleHexChange("#" + e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 6))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                audio.playClick();
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
             placeholder="ffffff"
             className="flex-1 bg-transparent text-white text-xs px-0 py-2 pr-2 font-mono outline-none"
           />
@@ -1162,52 +1179,96 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
   );
 };
 
-// Spamton range field — uses local draft state, commits to parent on blur
+// Spamton range field — with unit dropdown (minutes/seconds/hours) and Enter key flow
 const SpamtonRangeField: React.FC<{
-  range: [number, number];
+  range: [number, number]; // always stored in minutes internally
   onChange: (r: [number, number]) => void;
 }> = ({ range, onChange }) => {
-  const [draftMin, setDraftMin] = React.useState(String(range[0]));
-  const [draftMax, setDraftMax] = React.useState(String(range[1]));
+  const [unit, setUnit] = React.useState<"minutes" | "seconds" | "hours">("minutes");
+  const minInputRef = React.useRef<HTMLInputElement>(null);
+  const maxInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Keep drafts in sync if parent changes externally (e.g. reset)
-  React.useEffect(() => { setDraftMin(String(range[0])); }, [range[0]]);
-  React.useEffect(() => { setDraftMax(String(range[1])); }, [range[1]]);
-
-  const commitMin = () => {
-    const val = draftMin === "" ? 0 : Math.max(0, parseFloat(draftMin) || 0);
-    setDraftMin(String(val));
-    onChange([val, range[1]]);
+  const toDisplay = (minutes: number) => {
+    if (unit === "seconds") return parseFloat((minutes * 60).toFixed(2));
+    if (unit === "hours") return parseFloat((minutes / 60).toFixed(4));
+    return minutes;
   };
-  const commitMax = () => {
-    const val = draftMax === "" ? 0 : Math.max(0, parseFloat(draftMax) || 0);
-    setDraftMax(String(val));
-    onChange([range[0], val]);
+  const toMinutes = (val: number) => {
+    if (unit === "seconds") return val / 60;
+    if (unit === "hours") return val * 60;
+    return val;
+  };
+
+  const [draftMin, setDraftMin] = React.useState(String(toDisplay(range[0])));
+  const [draftMax, setDraftMax] = React.useState(String(toDisplay(range[1])));
+
+  // Sync drafts when unit or range changes externally
+  React.useEffect(() => {
+    setDraftMin(String(toDisplay(range[0])));
+    setDraftMax(String(toDisplay(range[1])));
+  }, [unit, range[0], range[1]]);
+
+  const commitMin = (val: string) => {
+    const parsed = parseFloat(val);
+    const minutes = isNaN(parsed) ? range[0] : Math.max(0, toMinutes(parsed));
+    setDraftMin(String(toDisplay(minutes)));
+    onChange([minutes, range[1]]);
+  };
+  const commitMax = (val: string) => {
+    const parsed = parseFloat(val);
+    const minutes = isNaN(parsed) ? range[1] : Math.max(0, toMinutes(parsed));
+    setDraftMax(String(toDisplay(minutes)));
+    onChange([range[0], minutes]);
   };
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">
-        Spamton Appearance Range (minutes)
-      </span>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">
+          Spamton Appearance Range
+        </span>
+        <select
+          value={unit}
+          onChange={(e) => setUnit(e.target.value as any)}
+          className="bg-[#0a0a0a] border border-[#333] text-zinc-400 text-[10px] px-2 py-1 font-mono focus:border-neon-cyan outline-none cursor-pointer uppercase tracking-widest"
+        >
+          <option value="minutes">MIN</option>
+          <option value="seconds">SEC</option>
+          <option value="hours">HRS</option>
+        </select>
+      </div>
       <div className="flex gap-2 items-center">
         <input
+          ref={minInputRef}
           type="number"
           value={draftMin}
-          min={0}
           placeholder="0"
           onChange={(e) => setDraftMin(e.target.value)}
-          onBlur={commitMin}
+          onBlur={(e) => commitMin(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              commitMin(draftMin);
+              audio.playClick();
+              maxInputRef.current?.focus();
+            }
+          }}
           className="w-20 bg-[#0a0a0a] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
         />
         <span className="text-zinc-500 text-xs">to</span>
         <input
+          ref={maxInputRef}
           type="number"
           value={draftMax}
-          min={0}
           placeholder="0"
           onChange={(e) => setDraftMax(e.target.value)}
-          onBlur={commitMax}
+          onBlur={(e) => commitMax(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              commitMax(draftMax);
+              audio.playClick();
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
           className="w-20 bg-[#0a0a0a] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
         />
       </div>

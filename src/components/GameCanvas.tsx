@@ -73,6 +73,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const BIG = bigMode ? 2.2 : 1.0;
 
   const killCountRef = useRef(0);
+  const comboPitchEnabledRef = useRef(comboPitchEnabled);
+  const killFlashEnabledRef = useRef(killFlashEnabled);
+  const killFlashIntensityRef = useRef(killFlashIntensity);
+  const screenShakeEnabledRef = useRef(screenShakeEnabled);
+  const screenShakeIntensityRef = useRef(screenShakeIntensity);
+  useEffect(() => { comboPitchEnabledRef.current = comboPitchEnabled; }, [comboPitchEnabled]);
+  useEffect(() => { killFlashEnabledRef.current = killFlashEnabled; }, [killFlashEnabled]);
+  useEffect(() => { killFlashIntensityRef.current = killFlashIntensity; }, [killFlashIntensity]);
+  useEffect(() => { screenShakeEnabledRef.current = screenShakeEnabled; }, [screenShakeEnabled]);
+  useEffect(() => { screenShakeIntensityRef.current = screenShakeIntensity; }, [screenShakeIntensity]);
 
   const stateRef = useRef({
     player: {
@@ -127,6 +137,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     comboCount: 0,
     comboResetTimer: 0,
     glintCritCooldown: 0,
+    prismCritCooldown: 0,
+    ploumResidues: [] as Array<{ x: number; y: number; duration: number; maxDuration: number; radius: number }>,
   });
 
   // Calculate Ploint yield interval
@@ -335,6 +347,26 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if (s.glintCritCooldown > 0) {
       s.glintCritCooldown = Math.max(0, s.glintCritCooldown - deltaReal);
     }
+    if (s.prismCritCooldown > 0) {
+      s.prismCritCooldown = Math.max(0, s.prismCritCooldown - deltaReal);
+    }
+    // Update ploum residues — decay in real time, kill enemies inside them each frame
+    s.ploumResidues = s.ploumResidues.filter((r) => {
+      r.duration -= deltaReal;
+      if (r.duration > 0) {
+        const nowMs = Date.now();
+        s.enemies.forEach((enemy: any) => {
+          if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return;
+          const dx = enemy.x - r.x;
+          const dy = enemy.y - r.y;
+          if (Math.sqrt(dx * dx + dy * dy) <= r.radius + enemy.radius && !enemy._markedForKill) {
+            enemy._markedForKill = true;
+          }
+        });
+        return true;
+      }
+      return false;
+    });
 
     // Neo Drop freeze flash decay
     if (s.neoFreezeFlashAlpha > 0) {
@@ -933,13 +965,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       s.comboCount += 1;
       s.comboResetTimer = 1500;
 
-      const pitchMult = comboPitchEnabled ? 1.0 + Math.min(s.comboCount - 1, 8) * 0.12 : 1.0;
+      const pitchMult = comboPitchEnabledRef.current ? 1.0 + Math.min(s.comboCount - 1, 8) * 0.12 : 1.0;
       audio.playEnemyKill(enemy.type === "tank", pitchMult);
 
-      if (killFlashEnabled) {
-        s.killFlashAlpha = 0.55 * killFlashIntensity;
+      if (killFlashEnabledRef.current) {
+        s.killFlashAlpha = 0.55 * killFlashIntensityRef.current;
       }
-      if (screenShakeEnabled) {
+      if (screenShakeEnabledRef.current) {
         s.shakeTimer = enemy.type === "tank" ? 220 : 130;
         s.shakeIsTank = enemy.type === "tank";
       }
@@ -1104,8 +1136,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           x: startX,
           y: startY,
           radius: s.player.radius + 2,
-          duration: 500, // 0.5 real-time seconds (unscaled)
-          maxDuration: 500,
+          duration: 2000, // 2 real-time seconds (unscaled)
+          maxDuration: 2000,
           color: selectedDot.color
         }
       ];
@@ -1118,11 +1150,19 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         x: startX,
         y: startY,
         radius: Math.round(5 * BIG),
-        maxRadius: Math.round(75 * BIG),
+        maxRadius: Math.round(115 * BIG),
         speed: 4,
         color: selectedDot.color,
         killsEnemies: true,
         killsProjectiles: false
+      });
+      // Leave a flaming ground residue at departure for 0.3 real seconds
+      s.ploumResidues.push({
+        x: startX,
+        y: startY,
+        duration: 300,
+        maxDuration: 300,
+        radius: Math.round(40 * BIG),
       });
     }
 
@@ -1188,7 +1228,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         x: clickX,
         y: clickY,
         radius: Math.round(10 * BIG),
-        maxRadius: Math.round(130 * BIG), // medium range blast
+        maxRadius: Math.round(90 * BIG), // reduced blast radius
         speed: 6,
         color: "#f43f5e",
         killsEnemies: true,
@@ -1201,7 +1241,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         x: clickX,
         y: clickY,
         radius: Math.round(5 * BIG),
-        maxRadius: Math.round(90 * BIG),
+        maxRadius: Math.round(130 * BIG),
         speed: 8, // fast instant visual shockwave
         color: selectedDot.color,
         killsEnemies: true,
@@ -1260,14 +1300,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     } else if (selectedDot.id === "prism") {
       // Prism: fires a wave from destination that destroys projectiles
+      // 10% crit chance with 5s real cooldown — crit wave also kills enemies
+      const prismCrit = Math.random() < 0.10 && s.prismCritCooldown <= 0;
+      if (prismCrit) {
+        s.prismCritCooldown = 5000;
+        createExplosionParticles(clickX, clickY, "#38bdf8", 40);
+      }
       s.shockwaves.push({
         x: clickX,
         y: clickY,
         radius: Math.round(5 * BIG),
         maxRadius: Math.round(180 * BIG), // Generous defensive sweep
         speed: 7,
-        color: "#38bdf8",
-        killsEnemies: false,
+        color: prismCrit ? "#ffffff" : "#38bdf8",
+        killsEnemies: prismCrit,
         killsProjectiles: true
       });
     } else if (selectedDot.id === "jolt") {
@@ -1746,6 +1792,19 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     });
 
     // DRAW ECHO GHOST RESIDUALS
+    // DRAW PLOUM FIRE RESIDUES
+    s.ploumResidues.forEach((r) => {
+      const p = r.duration / r.maxDuration; // 1 at spawn, 0 at death
+      const grad = ctx.createRadialGradient(r.x, r.y, 0, r.x, r.y, r.radius);
+      grad.addColorStop(0, `rgba(251, 146, 60, ${0.55 * p})`);
+      grad.addColorStop(0.5, `rgba(239, 68, 68, ${0.35 * p})`);
+      grad.addColorStop(1, `rgba(239, 68, 68, 0)`);
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+    });
+
     s.echoGhosts.forEach((eg) => {
       ctx.beginPath();
       ctx.arc(eg.x, eg.y, eg.radius, 0, Math.PI * 2);
