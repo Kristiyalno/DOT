@@ -84,7 +84,18 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<"menu" | "leaderboard" | "settings">("menu");
   const [showContributors, setShowContributors] = useState(false);
-  const [spamtonUnit, setSpamtonUnit] = useState<"minutes" | "seconds" | "hours">("minutes");
+  const [spamtonUnit, setSpamtonUnit] = useState<"minutes" | "seconds" | "hours">(() => {
+    try {
+      const stored = localStorage.getItem("dot_spamton_unit");
+      if (stored === "seconds" || stored === "hours") return stored;
+    } catch {}
+    return "minutes";
+  });
+
+  const handleSetSpamtonUnit = (u: "minutes" | "seconds" | "hours") => {
+    setSpamtonUnit(u);
+    try { localStorage.setItem("dot_spamton_unit", u); } catch {}
+  };
 
   // Consume initialTab prop from parent (e.g. navigating back from shop)
   useEffect(() => {
@@ -355,7 +366,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           onUnlockAll={onUnlockAll}
           invincible={invincible} onToggleInvincible={onToggleInvincible}
           spamtonRange={spamtonRange} onSetSpamtonRange={onSetSpamtonRange}
-          spamtonUnit={spamtonUnit} onSetSpamtonUnit={setSpamtonUnit}
+          spamtonUnit={spamtonUnit} onSetSpamtonUnit={handleSetSpamtonUnit}
           customDifficulties={customDifficulties} onSetCustomDifficulties={onSetCustomDifficulties}
           leaderboardName={leaderboardName} leaderboardColor={leaderboardColor}
           onSetLeaderboardName={onSetLeaderboardName} onSetLeaderboardColor={onSetLeaderboardColor}
