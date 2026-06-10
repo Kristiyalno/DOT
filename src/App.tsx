@@ -99,7 +99,18 @@ export default function App() {
   const [nameInput, setNameInput] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const [spamtonRange, setSpamtonRange] = useState<[number, number]>([2, 3]);
+  const [spamtonRange, setSpamtonRange] = useState<[number, number]>(() => {
+    try {
+      const stored = localStorage.getItem("dot_spamton_range");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length === 2 && parsed.every((v) => typeof v === "number" && v >= 0)) {
+          return parsed as [number, number];
+        }
+      }
+    } catch {}
+    return [2, 3];
+  });
   const [experimentalSettings, setExperimentalSettings] = useState<ExperimentalSettings>(defaultExperimentalSettings);
   const [customDifficulties, setCustomDifficulties] = useState<CustomDifficulty[]>(() => {
     try {
@@ -372,7 +383,7 @@ export default function App() {
             return next;
           })}
           spamtonRange={spamtonRange}
-          onSetSpamtonRange={setSpamtonRange}
+          onSetSpamtonRange={(r) => { setSpamtonRange(r); try { localStorage.setItem("dot_spamton_range", JSON.stringify(r)); } catch {} }}
           customDifficulties={customDifficulties}
           onSetCustomDifficulties={setCustomDifficulties}
           leaderboardName={leaderboardName}
