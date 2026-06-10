@@ -1563,17 +1563,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // All difficulties can have fast and shooter enemies to maintain strong active engagement
     types.push("fast", "shooter");
 
+    // Custom difficulties get the full type pool (the difficulty enum value is meaningless for them)
+    const isCustom = customDifficulty != null;
+
     // All difficulties except Blissful can have bullet hell and target shooter types
-    if (difficulty !== Difficulty.Blissful) {
+    if (isCustom || difficulty !== Difficulty.Blissful) {
       types.push("bullet_hell", "target_shooter");
     }
 
     // Ez and above gets swarmer
-    if (difficulty !== Difficulty.Blissful && difficulty !== Difficulty.Pissful) {
+    if (isCustom || (difficulty !== Difficulty.Blissful && difficulty !== Difficulty.Pissful)) {
       types.push("swarmer");
     }
     // Hard and above gets tank
-    if (difficulty === Difficulty.Hard || difficulty === Difficulty.HardR || difficulty === Difficulty.Impossible || difficulty === Difficulty.Hell || difficulty === Difficulty.Dot0) {
+    if (isCustom || difficulty === Difficulty.Hard || difficulty === Difficulty.HardR || difficulty === Difficulty.Impossible || difficulty === Difficulty.Hell || difficulty === Difficulty.Dot0) {
       types.push("tank");
     }
 
@@ -1748,8 +1751,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.fillRect(0, 0, s.width, s.height);
 
     // Screen shake: offset the ctx transform for the duration of shakeTimer
-    if (screenShakeEnabled && s.shakeTimer > 0) {
-      const intensity = (s.shakeIsTank ? 8 : 4) * screenShakeIntensity * (s.shakeTimer / (s.shakeIsTank ? 220 : 130));
+    if (screenShakeEnabledRef.current && s.shakeTimer > 0) {
+      const intensity = (s.shakeIsTank ? 8 : 4) * screenShakeIntensityRef.current * (s.shakeTimer / (s.shakeIsTank ? 220 : 130));
       const dx = (Math.random() * 2 - 1) * intensity;
       const dy = (Math.random() * 2 - 1) * intensity;
       ctx.save();
@@ -1970,7 +1973,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // DRAW ALL ENEMIES
     const nowMs = Date.now();
     s.enemies.forEach((enemy: any) => {
-      if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return; // frozen by Neo Drop
+      const isFrozen = !!(enemy.frozenUntil && nowMs < enemy.frozenUntil);
+
+      ctx.save();
+      if (isFrozen) {
+        ctx.globalAlpha = 0.35;
+      }
 
       ctx.beginPath();
       ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
@@ -2038,6 +2046,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.arc(enemy.x, enemy.y, enemy.radius * 0.4, 0, Math.PI * 2);
       ctx.fillStyle = "#ffffff";
       ctx.fill();
+
+      ctx.restore();
     });
 
     // DRAW PARTICLES
@@ -2172,12 +2182,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     }
 
     // Restore shake transform before fullscreen overlays (they should not shift)
-    if (screenShakeEnabled && s.shakeTimer > 0) {
+    if (screenShakeEnabledRef.current && s.shakeTimer > 0) {
       ctx.restore();
     }
 
     // KILL FLASH
-    if (killFlashEnabled && s.killFlashAlpha > 0) {
+    if (killFlashEnabledRef.current && s.killFlashAlpha > 0) {
       ctx.fillStyle = `rgba(255, 255, 255, ${s.killFlashAlpha})`;
       ctx.fillRect(0, 0, s.width, s.height);
     }
