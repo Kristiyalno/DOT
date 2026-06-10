@@ -84,6 +84,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<"menu" | "leaderboard" | "settings">("menu");
   const [showContributors, setShowContributors] = useState(false);
+  const [spamtonUnit, setSpamtonUnit] = useState<"minutes" | "seconds" | "hours">("minutes");
 
   // Consume initialTab prop from parent (e.g. navigating back from shop)
   useEffect(() => {
@@ -152,13 +153,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   const currentSelectedDot = visibleDots.find((d) => d.id === effectiveSelectedId) || visibleDots[0];
 
   // Spamton easter egg
-  const [spamton, setSpamton] = useState<{ active: boolean; x: number; y: number; bob: number } | null>(null);
+  const [spamton, setSpamton] = useState<{ active: boolean; y: number } | null>(null);
+  const spamtonElRef = useRef<HTMLAnchorElement | null>(null);
   const spamtonAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const triggerSpamton = useCallback(() => {
     if (spamton) return;
     const randomY = 15 + Math.random() * 25;
-    setSpamton({ active: true, x: 115, y: randomY, bob: 0 });
+    setSpamton({ active: true, y: randomY });
   }, [spamton]);
 
   useEffect(() => {
@@ -232,7 +234,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         audioObj.volume = 0;
       }
 
-      setSpamton((prev) => prev ? { ...prev, x: currentX, bob: currentBob } : null);
+      if (spamtonElRef.current) {
+        spamtonElRef.current.style.left = `${currentX}%`;
+        spamtonElRef.current.style.top = `calc(${spamton.y}% + ${currentBob}px)`;
+      }
 
       if (elapsed < TOTAL) {
         animId = requestAnimationFrame(tick);
@@ -350,6 +355,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           onUnlockAll={onUnlockAll}
           invincible={invincible} onToggleInvincible={onToggleInvincible}
           spamtonRange={spamtonRange} onSetSpamtonRange={onSetSpamtonRange}
+          spamtonUnit={spamtonUnit} onSetSpamtonUnit={setSpamtonUnit}
           customDifficulties={customDifficulties} onSetCustomDifficulties={onSetCustomDifficulties}
           leaderboardName={leaderboardName} leaderboardColor={leaderboardColor}
           onSetLeaderboardName={onSetLeaderboardName} onSetLeaderboardColor={onSetLeaderboardColor}
@@ -569,13 +575,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       {/* Spamton */}
       {spamton?.active && (
         <a
+          ref={spamtonElRef}
           href="https://github.com/dedenizz"
           target="_blank"
           rel="noopener noreferrer"
           className="fixed z-50 hover:scale-110 cursor-pointer pointer-events-auto transition-transform duration-200"
           style={{
-            left: `${spamton.x}%`,
-            top: `calc(${spamton.y}% + ${spamton.bob}px)`,
+            left: "115%",
+            top: `${spamton.y}%`,
             transform: "translate(-50%, -50%)",
             width: "288px",
             height: "288px",

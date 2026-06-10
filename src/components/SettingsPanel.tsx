@@ -47,6 +47,8 @@ interface SettingsProps {
   onToggleInvincible: () => void;
   spamtonRange: [number, number];
   onSetSpamtonRange: (r: [number, number]) => void;
+  spamtonUnit: "minutes" | "seconds" | "hours";
+  onSetSpamtonUnit: (u: "minutes" | "seconds" | "hours") => void;
   customDifficulties: CustomDifficulty[];
   onSetCustomDifficulties: (d: CustomDifficulty[]) => void;
   leaderboardName: string | null;
@@ -104,6 +106,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
   onUnlockAll,
   invincible, onToggleInvincible,
   spamtonRange, onSetSpamtonRange,
+  spamtonUnit, onSetSpamtonUnit,
   customDifficulties, onSetCustomDifficulties,
   leaderboardName, leaderboardColor,
   onSetLeaderboardName, onSetLeaderboardColor,
@@ -405,7 +408,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             </div>
 
             {/* Spamton range */}
-            <SpamtonRangeField range={spamtonRange} onChange={onSetSpamtonRange} />
+            <SpamtonRangeField range={spamtonRange} onChange={onSetSpamtonRange} unit={spamtonUnit} onUnitChange={onSetSpamtonUnit} />
 
             {/* Yawn probability */}
             <div className="flex flex-col gap-1.5">
@@ -1179,12 +1182,13 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
   );
 };
 
-// Spamton range field — with unit dropdown (minutes/seconds/hours) and Enter key flow
+// Spamton range field — with unit toggle (minutes/seconds/hours) and Enter key flow
 const SpamtonRangeField: React.FC<{
   range: [number, number]; // always stored in minutes internally
   onChange: (r: [number, number]) => void;
-}> = ({ range, onChange }) => {
-  const [unit, setUnit] = React.useState<"minutes" | "seconds" | "hours">("minutes");
+  unit: "minutes" | "seconds" | "hours";
+  onUnitChange: (u: "minutes" | "seconds" | "hours") => void;
+}> = ({ range, onChange, unit, onUnitChange }) => {
   const minInputRef = React.useRef<HTMLInputElement>(null);
   const maxInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -1221,22 +1225,17 @@ const SpamtonRangeField: React.FC<{
     onChange([range[0], minutes]);
   };
 
+  const units: Array<{ value: "minutes" | "seconds" | "hours"; label: string }> = [
+    { value: "minutes", label: "MIN" },
+    { value: "seconds", label: "SEC" },
+    { value: "hours", label: "HRS" },
+  ];
+
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">
-          Spamton Appearance Range
-        </span>
-        <select
-          value={unit}
-          onChange={(e) => setUnit(e.target.value as any)}
-          className="bg-[#0a0a0a] border border-[#333] text-zinc-400 text-[10px] px-2 py-1 font-mono focus:border-neon-cyan outline-none cursor-pointer uppercase tracking-widest"
-        >
-          <option value="minutes">MIN</option>
-          <option value="seconds">SEC</option>
-          <option value="hours">HRS</option>
-        </select>
-      </div>
+      <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">
+        Spamton Appearance Range
+      </span>
       <div className="flex gap-2 items-center">
         <input
           ref={minInputRef}
@@ -1271,6 +1270,21 @@ const SpamtonRangeField: React.FC<{
           }}
           className="w-20 bg-[#0a0a0a] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
         />
+        <div className="flex border border-[#333] overflow-hidden ml-1">
+          {units.map((u) => (
+            <button
+              key={u.value}
+              onClick={() => { onUnitChange(u.value); audio.playClick(); }}
+              className={`px-2 py-1.5 text-[10px] font-mono uppercase tracking-widest transition-colors ${
+                unit === u.value
+                  ? "bg-neon-cyan text-black font-black"
+                  : "bg-[#0a0a0a] text-zinc-500 hover:text-zinc-200 hover:bg-[#1a1a1a]"
+              }`}
+            >
+              {u.label}
+            </button>
+          ))}
+        </div>
       </div>
       <p className="text-[9px] text-zinc-600">Resets on page reload. Default: 2 to 3 minutes.</p>
     </div>
