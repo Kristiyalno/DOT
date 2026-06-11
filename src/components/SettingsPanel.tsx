@@ -147,8 +147,8 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         setDebugEnabled(newVal);
         try { localStorage.setItem(DEBUG_KEY, newVal ? "1" : "0"); } catch {}
         setKonamiFlash(true);
-        // Play high-pitch beep
-        try {
+        // Play high-pitch beep (only if not muted)
+        if (!isMuted) try {
           const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
           const ctx = new AudioCtxClass();
           const osc = ctx.createOscillator();

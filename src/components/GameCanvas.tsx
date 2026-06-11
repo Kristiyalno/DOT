@@ -1291,8 +1291,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         x: clickX,
         y: clickY,
         radius: Math.round(65 * BIG),
-        duration: 800, // Shortened to 0.8s so it doesn't linger too long
-        maxDuration: 800,
+        duration: 3200,
+        maxDuration: 3200,
         color: selectedDot.color
       });
       while (s.damageZones.length > 4) {
