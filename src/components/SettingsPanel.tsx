@@ -147,7 +147,24 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         setDebugEnabled(newVal);
         try { localStorage.setItem(DEBUG_KEY, newVal ? "1" : "0"); } catch {}
         setKonamiFlash(true);
-        audio.playClick();
+        if (!audio.isMuted) {
+          try {
+            const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+            const ctx = new AudioCtxClass();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(3200, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.4);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.45);
+            setTimeout(() => ctx.close(), 600);
+          } catch {}
+        }
         setTimeout(() => setKonamiFlash(false), 800);
         return [];
       }
@@ -292,7 +309,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
 
       {/* Audio */}
       <Section title="Audio">
-        {toggleSlider("All Audio", !isMuted, onToggleMute)}
+        {toggleSlider("All Audio", !isMuted, () => { onToggleMute(); audio.playClick(); })}
         {volumeSlider("Music Volume", musicVolume, onMusicVolume)}
         {volumeSlider("SFX Volume", sfxVolume, onSfxVolume)}
       </Section>
