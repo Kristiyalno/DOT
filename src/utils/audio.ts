@@ -246,15 +246,19 @@ class AudioEngine {
     noiseSource.start();
     noiseSource.stop(this.ctx.currentTime + 0.18);
 
-    // Tank: add a deep tonal thud underneath for a heavier feel
-    if (isTank) {
+    // Tonal "zing" oscillator — always present for tanks, and for combo hits (pitchMult > 1).
+    // This is the primary carrier of the combo pitch escalation effect since filtered
+    // white noise alone provides no perceptible pitch change.
+    const shouldZing = isTank || pitchMult > 1.0;
+    if (shouldZing) {
       const osc = this.ctx.createOscillator();
       const oscGain = this.ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(80 * pitchMult, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.25);
-      oscGain.gain.setValueAtTime(0.4, this.ctx.currentTime);
-      oscGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+      osc.type = isTank ? "sine" : "triangle";
+      const baseNote = isTank ? 80 : 220;
+      osc.frequency.setValueAtTime(baseNote * pitchMult, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(isTank ? 30 : 60, this.ctx.currentTime + 0.22);
+      oscGain.gain.setValueAtTime(isTank ? 0.4 : 0.28, this.ctx.currentTime);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
       osc.connect(oscGain);
       if (this.sfxGainNode) {
         oscGain.connect(this.sfxGainNode);
@@ -262,7 +266,7 @@ class AudioEngine {
         oscGain.connect(this.ctx.destination);
       }
       osc.start();
-      osc.stop(this.ctx.currentTime + 0.26);
+      osc.stop(this.ctx.currentTime + 0.24);
     }
   }
 

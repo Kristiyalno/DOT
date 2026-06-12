@@ -93,7 +93,9 @@ export default function App() {
   const [sfxVolume, setSfxVolumeState] = useState<number>(() => {
     try { return parseFloat(localStorage.getItem("dot_sfx_vol") || "1"); } catch { return 1; }
   });
-  const [isMuted, setIsMuted] = useState<boolean>(audio.isMuted);
+  const [isMuted, setIsMuted] = useState<boolean>(() => {
+    try { return localStorage.getItem("dot_muted") === "1"; } catch { return false; }
+  });
 
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [nameInput, setNameInput] = useState("");
@@ -129,6 +131,10 @@ export default function App() {
   useEffect(() => {
     audio.setMusicVolume(musicVolume);
     audio.setSfxVolume(sfxVolume);
+    // Sync audio engine with persisted mute state
+    if (isMuted !== audio.isMuted) {
+      audio.toggleMute();
+    }
   }, []);
 
   // Load from localStorage
@@ -226,6 +232,7 @@ export default function App() {
   const handleToggleMute = () => {
     const nextMuted = audio.toggleMute();
     setIsMuted(nextMuted);
+    try { localStorage.setItem("dot_muted", nextMuted ? "1" : "0"); } catch {}
   };
 
   const handleMusicVolume = (v: number) => {
