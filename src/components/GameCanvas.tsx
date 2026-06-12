@@ -460,7 +460,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if (isDotNearDanger && s.player.slo > 0) {
       // Full hyper slo — dot is in danger, 40 slo/sec scaled by current time scale
       // (spending slo while already slowed costs proportionally less)
-      const sloSpent = 40 * (deltaReal / 1000) * s.currentTimeScale;
+      const sloSpent = 90 * (deltaReal / 1000) * s.currentTimeScale;
       s.player.slo = Math.max(0, s.player.slo - sloSpent);
       nearSloScale = 0.12;
       setIsHyperSlo(true);
@@ -792,20 +792,26 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
 
       // Apply drag to keep velocities stabilized (smoother sliding during Jolt knockbacks)
+      const isRanged = enemy.type === "shooter" || enemy.type === "bullet_hell" || enemy.type === "target_shooter";
+      const rangedDx = targetX - enemy.x;
+      const rangedDy = targetY - enemy.y;
+      const rangedDist = Math.sqrt(rangedDx * rangedDx + rangedDy * rangedDy);
+      // Ranged enemies far from player get less drag so their acceleration actually accumulates
+      const drag = (isRanged && rangedDist > 120) ? 0.994 : 0.98;
       if (enemy.knockbackTimer !== undefined && enemy.knockbackTimer > 0) {
         enemy.vx *= 0.98;
         enemy.vy *= 0.98;
       } else {
-        enemy.vx *= 0.98;
-        enemy.vy *= 0.98;
+        enemy.vx *= drag;
+        enemy.vy *= drag;
       }
 
       // Update position with cap speed limits
-      let capSpeed = enemy.type === "swarmer" ? 320 : enemy.type === "fast" ? 240 : 160;
+      let capSpeed = enemy.type === "swarmer" ? 320 : enemy.type === "fast" ? 240 : enemy.type === "shooter" ? 220 : 160;
       if (enemy.type === "bullet_hell") {
-        capSpeed = 180;
+        capSpeed = 260;
       } else if (enemy.type === "target_shooter") {
-        capSpeed = 160;
+        capSpeed = 240;
       } else if (enemy.type === "tank") {
         capSpeed = 100;
       }
@@ -1007,7 +1013,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if (isRealKill) {
       killCountRef.current += 1;
       // Smaller enemies reward more slo — slo scales inversely with enemy radius
-      const baseSloPerKill = Math.max(2, 20 - enemy.radius / BIG);
+      const baseSloPerKill = Math.max(0.4, (20 - enemy.radius / BIG) * 0.18);
       s.player.slo = Math.max(0, s.player.slo + baseSloPerKill * (customDifficulty != null ? (customDifficulty.sloPerKill ?? 1.0) : 1.0));
 
       // Combo tracking — increment before computing pitch so first kill of a combo already raises it
@@ -1680,7 +1686,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const dcy = centerY - y;
     const dcDist = Math.sqrt(dcx * dcx + dcy * dcy);
     // Use a strong initial push so they visibly enter the field right away
-    const entrySpeed = speed * 80 + 30;
+    // Ranged enemies get a stronger entry push since their speed stat is low
+    const isRangedSpawn = type === "shooter" || type === "bullet_hell" || type === "target_shooter";
+    const entrySpeed = isRangedSpawn ? speed * 80 + 120 : speed * 80 + 30;
     const wanderVx = (dcx / dcDist) * entrySpeed + (Math.random() - 0.5) * 8;
     const wanderVy = (dcy / dcDist) * entrySpeed + (Math.random() - 0.5) * 8;
 
