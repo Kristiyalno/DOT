@@ -386,7 +386,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const nowMsPull = Date.now();
       if (nowMsPull >= pull.endTime) return false;
       const timeLeft = pull.endTime - nowMsPull;
-      const strength = (timeLeft / 400) * 0.18; // fades as pull expires
+      const strength = (timeLeft / 250) * 0.55; // fades as pull expires
       s.enemies.forEach((enemy: any) => {
         const dx = pull.x - enemy.x;
         const dy = pull.y - enemy.y;
@@ -941,10 +941,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           }
 
           // Kills enemies in contact as well!
-          const nowMs = Date.now();
     s.enemies.forEach((enemy: any) => {
-      if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return; // frozen by Neo Drop
-
             const distEnemy = distToSegment(
               enemy.x,
               enemy.y,
@@ -1110,10 +1107,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Check if player clicked/teleported directly onto an enemy, projectile, or active laser hazard
     let teleportOverlap = false;
 
-    const nowMs = Date.now();
     s.enemies.forEach((enemy: any) => {
-      if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return; // frozen by Neo Drop
-
       const dx = clickX - enemy.x;
       const dy = clickY - enemy.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -1188,8 +1182,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       s.ploumPulls.push({
         x: startX,
         y: startY,
-        endTime: Date.now() + 400,
-        radius: Math.round(120 * BIG),
+        endTime: Date.now() + 250,
+        radius: Math.round(220 * BIG),
       });
       createExplosionParticles(startX, startY, selectedDot.color, 30);
       s.shockwaves.push({
@@ -1222,11 +1216,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     if (!isNullAbility) {
       // Normal Line Kill: Check intersection with all enemies along the trace segment
-      const nowMs = Date.now();
       const enemiesToKill: any[] = [];
       s.enemies.forEach((enemy: any) => {
-        if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return; // frozen by Neo Drop
-
         // Calculate distance from enemy center to teleport line track
         const dist = distToSegment(enemy.x, enemy.y, startX, startY, clickX, clickY);
         // Tanks get a larger hitbox to compensate for their size
@@ -1296,8 +1287,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     } else if (selectedDot.id === "katsune") {
       // Katsune shoots 2 directed waves from DEPARTURE point toward teleport direction
       const angle = Math.atan2(clickY - startY, clickX - startX);
-      const leftAngle = angle - Math.PI / 6;
-      const rightAngle = angle + Math.PI / 6;
+      const leftAngle = angle - Math.PI / 10;
+      const rightAngle = angle + Math.PI / 10;
       
       const waveTravelSpeed = 7.0;
 
@@ -1845,7 +1836,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // DRAW PLOUM PULLS (contracting vacuum ring)
     s.ploumPulls.forEach((pull: any) => {
       const nowMsDraw = Date.now();
-      const t = Math.max(0, (pull.endTime - nowMsDraw) / 400); // 1 -> 0
+      const t = Math.max(0, (pull.endTime - nowMsDraw) / 250); // 1 -> 0
       const ringRadius = pull.radius * t; // contracts inward
       const alpha = t * 0.7;
       ctx.beginPath();
@@ -1896,7 +1887,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.lineWidth = 1.5 + p * 4.5;
       if (sw.arcAngle !== undefined) {
         // Katsune: draw a curved arc crescent in the travel direction
-        const spread = Math.PI * 0.4125; // arc spans ~74 degrees (0.75x original)
+        const spread = Math.PI * 0.20625; // arc spans ~37 degrees (0.5x previous)
         const startA = sw.arcAngle - spread / 2;
         const endA = sw.arcAngle + spread / 2;
         ctx.beginPath();
