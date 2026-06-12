@@ -386,14 +386,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const nowMsPull = Date.now();
       if (nowMsPull >= pull.endTime) return false;
       const timeLeft = pull.endTime - nowMsPull;
-      const strength = (timeLeft / 250) * 0.55; // fades as pull expires
+      const strength = (timeLeft / 250) * 3.5; // fades as pull expires
       s.enemies.forEach((enemy: any) => {
         const dx = pull.x - enemy.x;
         const dy = pull.y - enemy.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < pull.radius && dist > 1) {
-          enemy.vx += (dx / dist) * strength * 60;
-          enemy.vy += (dy / dist) * strength * 60;
+          // Scale force inversely with distance so close enemies get yanked harder
+          const distFactor = Math.max(0.3, 1 - dist / pull.radius);
+          enemy.vx += (dx / dist) * strength * 60 * distFactor;
+          enemy.vy += (dy / dist) * strength * 60 * distFactor;
         }
       });
       return true;
