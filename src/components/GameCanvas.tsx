@@ -997,7 +997,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const isRealKill = source !== "Vertical Disruption Beam";
     if (isRealKill) {
       killCountRef.current += 1;
-      s.player.slo = Math.max(0, s.player.slo + enemy.scoreValue / 10 * (customDifficulty != null ? (customDifficulty.sloPerKill ?? 1.0) : 1.0));
+      // Smaller enemies reward more slo — slo scales inversely with enemy radius
+      const baseSloPerKill = Math.max(2, 20 - enemy.radius / BIG);
+      s.player.slo = Math.max(0, s.player.slo + baseSloPerKill * (customDifficulty != null ? (customDifficulty.sloPerKill ?? 1.0) : 1.0));
 
       // Combo tracking — increment before computing pitch so first kill of a combo already raises it
       s.comboCount += 1;
