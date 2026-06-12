@@ -739,7 +739,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           const dx = targetX - enemy.x;
           const dy = targetY - enemy.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 5) {
+          if (dist > 120) {
+            enemy.vx += (dx / dist) * 0.28;
+            enemy.vy += (dy / dist) * 0.28;
+          } else if (dist > 5) {
             enemy.vx += (dx / dist) * 0.15;
             enemy.vy += (dy / dist) * 0.15;
           }
@@ -748,7 +751,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           const dx = targetX - enemy.x;
           const dy = targetY - enemy.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 80) {
+          if (dist > 160) {
+            enemy.vx += (dx / dist) * 0.42;
+            enemy.vy += (dy / dist) * 0.42;
+          } else if (dist > 80) {
             enemy.vx += (dx / dist) * 0.22;
             enemy.vy += (dy / dist) * 0.22;
           } else if (dist < 50) {
@@ -763,7 +769,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           const dx = targetX - enemy.x;
           const dy = targetY - enemy.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 75) {
+          if (dist > 150) {
+            enemy.vx += (dx / dist) * 0.38;
+            enemy.vy += (dy / dist) * 0.38;
+          } else if (dist > 75) {
             enemy.vx += (dx / dist) * 0.18;
             enemy.vy += (dy / dist) * 0.18;
           } else if (dist < 45) {
