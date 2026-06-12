@@ -58,7 +58,7 @@ const NEO_DOT: DotConfig = {
   color: "#c084fc",
   borderColor: "#e9d5ff",
   description: "An evolved form of Drop. Kills scatter explosive micro-drops.",
-  specialAbility: "Enemies killed by the teleport line explode into micro-drops that kill on contact. Space key: freeze all enemies for 2s (costs 100 Slo).",
+  specialAbility: "Enemies killed by the teleport line explode into micro-drops that kill on contact. Space key: freeze all enemies, projectiles, and lasers for 2s (costs 100 Slo). Frozen enemies can still be killed.",
 };
 
 export const MainMenu: React.FC<MainMenuProps> = ({

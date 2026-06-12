@@ -96,7 +96,7 @@ export const DOTS_DATABASE: DotConfig[] = [
     color: "#fb7185", // Rose-400 (Coral pink)
     borderColor: "#fff1f2",
     description: "Generates heavy backdraft combustion behind its teleportation path.",
-    specialAbility: "Leaves a thermal explosion at your departure location that kills any enemies caught in its fire."
+    specialAbility: "On teleport, briefly pulls nearby enemies toward the departure point, then detonates a thermal explosion that kills anything caught in it."
   },
   {
     id: "vex",

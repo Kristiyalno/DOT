@@ -131,6 +131,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     teleportLine: null as null | { x1: number; y1: number; x2: number; y2: number; alpha: number; color: string },
     microDrops: [] as Array<{ id: string; x: number; y: number; vx: number; vy: number; radius: number; alpha: number; life: number }>,
     neoFreezeFlashAlpha: 0,
+    neoFreezeUntil: 0,
     killFlashAlpha: 0,
     shakeTimer: 0,
     shakeIsTank: false,
@@ -139,6 +140,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     glintCritCooldown: 0,
     prismCritCooldown: 0,
     ploumResidues: [] as Array<{ x: number; y: number; duration: number; maxDuration: number; radius: number }>,
+    ploumPulls: [] as Array<{ x: number; y: number; endTime: number; radius: number }>,
   });
 
   // Calculate Ploint yield interval
@@ -224,10 +226,23 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         s.player.slo = Math.max(0, s.player.slo - 100);
         s.neoFreezeFlashAlpha = 0.7;
         const freezeUntil = Date.now() + 2000;
+        s.neoFreezeUntil = freezeUntil;
         s.enemies.forEach((enemy: any) => {
           enemy.frozenUntil = freezeUntil;
           enemy.vx = 0;
           enemy.vy = 0;
+        });
+        // Freeze projectiles in place
+        s.projectiles.forEach((proj: any) => {
+          proj._frozenVx = proj.vx;
+          proj._frozenVy = proj.vy;
+          proj.vx = 0;
+          proj.vy = 0;
+          proj._frozenUntil = freezeUntil;
+        });
+        // Pause laser timers
+        s.lasers.forEach((laser: any) => {
+          laser._frozenUntil = freezeUntil;
         });
         audio.playClick();
       }
@@ -354,9 +369,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     s.ploumResidues = s.ploumResidues.filter((r) => {
       r.duration -= deltaReal;
       if (r.duration > 0) {
-        const nowMs = Date.now();
         s.enemies.forEach((enemy: any) => {
-          if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return;
           const dx = enemy.x - r.x;
           const dy = enemy.y - r.y;
           if (Math.sqrt(dx * dx + dy * dy) <= r.radius + enemy.radius && !enemy._markedForKill) {
@@ -366,6 +379,24 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         return true;
       }
       return false;
+    });
+
+    // Update ploum pulls — attract enemies toward departure point for pull duration
+    s.ploumPulls = s.ploumPulls.filter((pull) => {
+      const nowMsPull = Date.now();
+      if (nowMsPull >= pull.endTime) return false;
+      const timeLeft = pull.endTime - nowMsPull;
+      const strength = (timeLeft / 400) * 0.18; // fades as pull expires
+      s.enemies.forEach((enemy: any) => {
+        const dx = pull.x - enemy.x;
+        const dy = pull.y - enemy.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < pull.radius && dist > 1) {
+          enemy.vx += (dx / dist) * strength * 60;
+          enemy.vy += (dy / dist) * strength * 60;
+        }
+      });
+      return true;
     });
 
     // Neo Drop freeze flash decay
@@ -484,9 +515,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         drop.life -= deltaReal;
         drop.alpha = Math.max(0, drop.life / 2000);
         // Check collision with enemies
-        const nowMs = Date.now();
         s.enemies.forEach((enemy: any) => {
-          if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return;
           const dx = enemy.x - drop.x;
           const dy = enemy.y - drop.y;
           if (Math.sqrt(dx*dx+dy*dy) < drop.radius + enemy.radius && !enemy._markedByDrop) {
@@ -525,10 +554,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     s.damageZones = s.damageZones.filter((dz) => {
       dz.duration -= deltaReal;
       const toKillInZone: string[] = [];
-      const nowMs = Date.now();
     s.enemies.forEach((enemy: any) => {
-      if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return; // frozen by Neo Drop
-
         const dx = enemy.x - dz.x;
         const dy = enemy.y - dz.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -562,10 +588,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       
       // Perform hits - mark enemies for kill, apply after all shockwaves processed
       if (sw.killsEnemies) {
-        const nowMs = Date.now();
     s.enemies.forEach((enemy: any) => {
-      if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return; // frozen by Neo Drop
-
           const dx = enemy.x - sw.x;
           const dy = enemy.y - sw.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
@@ -604,7 +627,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     updateEnemies(dt, activeSpeedFactor, deltaReal);
 
     // 6. UPDATE PROJECTILES
-    s.projectiles = s.projectiles.filter((proj) => {
+    s.projectiles = s.projectiles.filter((proj: any) => {
+      const nowMsProj = Date.now();
+      // Restore frozen projectile velocity once freeze expires
+      if (proj._frozenUntil && nowMsProj >= proj._frozenUntil) {
+        proj.vx = proj._frozenVx ?? proj.vx;
+        proj.vy = proj._frozenVy ?? proj.vy;
+        proj._frozenUntil = undefined;
+        proj._frozenVx = undefined;
+        proj._frozenVy = undefined;
+      }
+      // Don't move frozen projectiles
+      if (proj._frozenUntil && nowMsProj < proj._frozenUntil) return true;
       proj.x += proj.vx * dt * 60;
       proj.y += proj.vy * dt * 60;
 
@@ -868,7 +902,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const updateLasers = (deltaReal: number) => {
     const s = stateRef.current;
 
-    s.lasers = s.lasers.filter((laser) => {
+    s.lasers = s.lasers.filter((laser: any) => {
+      // Pause laser timers during Neo Drop freeze
+      const nowMsLaser = Date.now();
+      if (laser._frozenUntil && nowMsLaser < laser._frozenUntil) return true;
+      laser._frozenUntil = undefined;
+
       const dtScaled = deltaReal * s.currentTimeScale;
 
       if (!laser.isActive) {
@@ -1145,6 +1184,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // 3. Perform Ploum explosion at Departure/Origin
     if (selectedDot.id === "ploum") {
+      // Backdraft pull: drag nearby enemies toward departure point before explosion
+      s.ploumPulls.push({
+        x: startX,
+        y: startY,
+        endTime: Date.now() + 400,
+        radius: Math.round(120 * BIG),
+      });
       createExplosionParticles(startX, startY, selectedDot.color, 30);
       s.shockwaves.push({
         x: startX,
@@ -1260,8 +1306,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       s.shockwaves.push({
         x: startX,
         y: startY,
-        radius: Math.round(5 * BIG),
-        maxRadius: Math.round(90 * BIG),
+        radius: Math.round(2 * BIG),
+        maxRadius: Math.round(157 * BIG), // ~1.75x original 90
         speed: 3.5,
         color: selectedDot.color,
         killsEnemies: true,
@@ -1274,8 +1320,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       s.shockwaves.push({
         x: startX,
         y: startY,
-        radius: Math.round(5 * BIG),
-        maxRadius: Math.round(90 * BIG),
+        radius: Math.round(2 * BIG),
+        maxRadius: Math.round(157 * BIG), // ~1.75x original 90
         speed: 3.5,
         color: selectedDot.color,
         killsEnemies: true,
@@ -1318,7 +1364,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
     } else if (selectedDot.id === "jolt") {
       // Jolt: knock away surrounding enemies (massive displacement)
-      const knockRadius = 150;
+      const knockRadius = Math.round(150 * BIG);
       const nowMs = Date.now();
     s.enemies.forEach((enemy: any) => {
       if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return; // frozen by Neo Drop
@@ -1796,6 +1842,25 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // DRAW ECHO GHOST RESIDUALS
     // DRAW PLOUM FIRE RESIDUES
+    // DRAW PLOUM PULLS (contracting vacuum ring)
+    s.ploumPulls.forEach((pull: any) => {
+      const nowMsDraw = Date.now();
+      const t = Math.max(0, (pull.endTime - nowMsDraw) / 400); // 1 -> 0
+      const ringRadius = pull.radius * t; // contracts inward
+      const alpha = t * 0.7;
+      ctx.beginPath();
+      ctx.arc(pull.x, pull.y, Math.max(1, ringRadius), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(251, 113, 133, ${alpha})`;
+      ctx.lineWidth = 2.5 + (1 - t) * 3;
+      ctx.stroke();
+      // Inner glow ring
+      ctx.beginPath();
+      ctx.arc(pull.x, pull.y, Math.max(1, ringRadius * 0.6), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255, 200, 210, ${alpha * 0.5})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    });
+
     s.ploumResidues.forEach((r) => {
       const p = r.duration / r.maxDuration; // 1 at spawn, 0 at death
       const grad = ctx.createRadialGradient(r.x, r.y, 0, r.x, r.y, r.radius);
@@ -1831,7 +1896,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.lineWidth = 1.5 + p * 4.5;
       if (sw.arcAngle !== undefined) {
         // Katsune: draw a curved arc crescent in the travel direction
-        const spread = Math.PI * 0.55; // arc spans ~100 degrees
+        const spread = Math.PI * 0.4125; // arc spans ~74 degrees (0.75x original)
         const startA = sw.arcAngle - spread / 2;
         const endA = sw.arcAngle + spread / 2;
         ctx.beginPath();
