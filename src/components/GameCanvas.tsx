@@ -386,7 +386,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const nowMsPull = Date.now();
       if (nowMsPull >= pull.endTime) return false;
       const timeLeft = pull.endTime - nowMsPull;
-      const strength = (timeLeft / 250) * 3.5; // fades as pull expires
+      const strength = (timeLeft / 83) * 8.0; // fades as pull expires
       s.enemies.forEach((enemy: any) => {
         const dx = pull.x - enemy.x;
         const dy = pull.y - enemy.y;
@@ -572,9 +572,45 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     });
 
     // 3. UPDATE ECHO GHOSTS (Echo ability)
-    s.echoGhosts = s.echoGhosts.filter((eg) => {
+    s.echoGhosts = s.echoGhosts.filter((eg: any) => {
       eg.duration -= deltaReal; // Decay in real-time non-slowed milliseconds
-      return eg.duration > 0;
+      if (eg.duration <= 0) return false;
+
+      // Taunt: pull targeting enemies (shooter, target_shooter, bullet_hell) toward ghost
+      s.enemies.forEach((enemy: any) => {
+        const isTargeting = enemy.type === "shooter" || enemy.type === "target_shooter" || enemy.type === "bullet_hell";
+        if (!isTargeting) return;
+        const dx = eg.x - enemy.x;
+        const dy = eg.y - enemy.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 1) return;
+        const pull = Math.min(1.2, 300 / dist); // stronger when closer
+        enemy.vx += (dx / dist) * pull;
+        enemy.vy += (dy / dist) * pull;
+      });
+
+      // Explode if any enemy touches the ghost
+      const touchingEnemy = s.enemies.find((enemy: any) => {
+        const dx = eg.x - enemy.x;
+        const dy = eg.y - enemy.y;
+        return Math.sqrt(dx * dx + dy * dy) <= eg.radius + enemy.radius;
+      });
+      if (touchingEnemy) {
+        createExplosionParticles(eg.x, eg.y, eg.color, 20);
+        s.shockwaves.push({
+          x: eg.x,
+          y: eg.y,
+          radius: Math.round(5 * BIG),
+          maxRadius: Math.round(60 * BIG),
+          speed: 10,
+          color: eg.color,
+          killsEnemies: true,
+          killsProjectiles: false
+        });
+        return false;
+      }
+
+      return true;
     });
 
     // 4. UPDATE SHOCKWAVES (Visual physical expansion)
@@ -1193,8 +1229,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       s.ploumPulls.push({
         x: startX,
         y: startY,
-        endTime: Date.now() + 250,
-        radius: Math.round(220 * BIG),
+        endTime: Date.now() + 83,
+        radius: Math.round(385 * BIG),
       });
       createExplosionParticles(startX, startY, selectedDot.color, 30);
       s.shockwaves.push({
@@ -1309,7 +1345,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         x: startX,
         y: startY,
         radius: Math.round(2 * BIG),
-        maxRadius: Math.round(157 * BIG), // ~1.75x original 90
+        maxRadius: Math.round(118 * BIG), // 1.75x original 90, reduced 25%
         speed: 3.5,
         color: selectedDot.color,
         killsEnemies: true,
@@ -1323,7 +1359,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         x: startX,
         y: startY,
         radius: Math.round(2 * BIG),
-        maxRadius: Math.round(157 * BIG), // ~1.75x original 90
+        maxRadius: Math.round(118 * BIG), // 1.75x original 90, reduced 25%
         speed: 3.5,
         color: selectedDot.color,
         killsEnemies: true,
@@ -1427,8 +1463,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         s.shockwaves.push({
           x: clickX,
           y: clickY,
-          radius: 10,
-          maxRadius: 360,
+          radius: Math.round(10 * BIG),
+          maxRadius: Math.round(360 * BIG),
           speed: 18,
           color: "#22d3ee",
           killsEnemies: true,
@@ -1549,13 +1585,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       : spawnRateMultiplier;
     const laserSpawnThreshold = (2500 / (laserSpeedMult * 0.45 * effectiveLaserFreqMult));
     s.laserSpawnProgress += deltaReal * s.currentTimeScale;
-    const MAX_CONCURRENT_LASERS = 3;
-    if (s.laserSpawnProgress >= laserSpawnThreshold && s.lasers.length < MAX_CONCURRENT_LASERS) {
+    const MAX_CONCURRENT_LASERS = (difficulty === Difficulty.Dot0) ? 8 :
+                                   (difficulty === Difficulty.Hell) ? 6 :
+                                   (difficulty === Difficulty.Impossible) ? 5 : 3;
+    // Harder difficulties spawn lasers faster
+    const hardLaserMult = (difficulty === Difficulty.Dot0) ? 4.5 :
+                          (difficulty === Difficulty.Hell) ? 3.0 :
+                          (difficulty === Difficulty.Impossible) ? 2.0 : 1.0;
+    const effectiveLaserThreshold = laserSpawnThreshold / (customDifficulty ? 1.0 : hardLaserMult);
+    if (s.laserSpawnProgress >= effectiveLaserThreshold && s.lasers.length < MAX_CONCURRENT_LASERS) {
       s.laserSpawnProgress = 0;
       spawnIncomingLaser(customDifficulty ? lineLaserFreqMult : null, customDifficulty ? waveLaserFreqMult : null);
     } else if (s.lasers.length >= MAX_CONCURRENT_LASERS) {
       // Don't let progress keep accumulating while capped — reset so we wait a full interval after clearing
-      s.laserSpawnProgress = Math.min(s.laserSpawnProgress, laserSpawnThreshold * 0.75);
+      s.laserSpawnProgress = Math.min(s.laserSpawnProgress, effectiveLaserThreshold * 0.75);
     }
 
     // C. SHIELD POWER UP SPAWNER
@@ -1847,7 +1890,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // DRAW PLOUM PULLS (contracting vacuum ring)
     s.ploumPulls.forEach((pull: any) => {
       const nowMsDraw = Date.now();
-      const t = Math.max(0, (pull.endTime - nowMsDraw) / 250); // 1 -> 0
+      const t = Math.max(0, (pull.endTime - nowMsDraw) / 83); // 1 -> 0
       const ringRadius = pull.radius * t; // contracts inward
       const alpha = t * 0.7;
       ctx.beginPath();
