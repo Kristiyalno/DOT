@@ -168,7 +168,10 @@ export default function App() {
     const allBought = ALL_PURCHASABLE_DOTS.every((id) => stats.unlockedDots.includes(id));
     if (allBought) {
       setNeoDropAnimating(true);
-      const updated = { ...stats, unlockedDots: [...stats.unlockedDots] };
+      // Auto-switch to Neo Drop if Drop was selected
+      const newSelectedDot = stats.selectedDot === "drop" ? NEO_DROP_ID : stats.selectedDot;
+      const updated = { ...stats, unlockedDots: [...stats.unlockedDots], selectedDot: newSelectedDot };
+      setStats(updated);
       setNeoDropUnlocked(true);
       saveStats(updated, totalKillsRef.current, true);
     }

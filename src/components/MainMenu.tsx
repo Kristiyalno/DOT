@@ -149,11 +149,15 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
   // Neo Drop animation state
   const [neoGlow, setNeoGlow] = useState(false);
+  const [neoSurge, setNeoSurge] = useState(false); // full-screen surge overlay
   useEffect(() => {
     if (!neoDropAnimating) return;
+    audio.playNeoDropUnlock();
+    setNeoSurge(true);
     setNeoGlow(true);
-    const t = setTimeout(() => { setNeoGlow(false); onNeoDropAnimDone(); }, 3000);
-    return () => clearTimeout(t);
+    const tSurge = setTimeout(() => setNeoSurge(false), 1200);
+    const tDone = setTimeout(() => { setNeoGlow(false); onNeoDropAnimDone(); }, 3000);
+    return () => { clearTimeout(tSurge); clearTimeout(tDone); };
   }, [neoDropAnimating]);
 
   // Effective dot list shown in selection (replace drop with neo drop if unlocked)
@@ -434,7 +438,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                           ? "border-white bg-[#151515]"
                           : "border-[#333] hover:border-neon-cyan hover:bg-[#111] cursor-pointer"
                       }`}
-                      style={isUnlocked && isSelected ? { boxShadow: `0 0 12px ${dot.color}` } : glowAnim ? { animation: "neoGlow 0.4s ease-in-out infinite alternate", boxShadow: `0 0 20px ${dot.color}` } : {}}
+                      style={isUnlocked && isSelected && !glowAnim ? { boxShadow: `0 0 12px ${dot.color}` } : glowAnim ? { animation: "neoGlow 0.35s ease-in-out infinite alternate", boxShadow: `0 0 40px ${dot.color}, 0 0 80px ${dot.color}`, border: `2px solid ${dot.color}`, transform: "scale(1.18)" } : {}}
                       title={isUnlocked ? dot.name : `${dot.name}: Locked`}
                     >
                       <span
@@ -605,6 +609,18 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
       {/* Contributors panel */}
       {showContributors && <Contributors onClose={() => setShowContributors(false)} />}
+    {/* Neo Drop unlock surge overlay */}
+      {neoSurge && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            pointerEvents: "none",
+            animation: "neoSurgeFlash 1.2s ease-out forwards",
+          }}
+        />
+      )}
     </div>
   );
 };

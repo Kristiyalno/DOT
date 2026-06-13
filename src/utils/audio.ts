@@ -387,6 +387,90 @@ class AudioEngine {
     return buffer;
   }
 
+  // SFX: Neo Drop unlock — power surge with buildup, crackle, and triumphant tone
+  public playNeoDropUnlock() {
+    this.initCtx();
+    if (!this.ctx) return; // Play even if muted — this is a once-per-save moment
+    const ctx = this.ctx;
+    const dest = this.sfxGainNode || ctx.destination;
+    const t = ctx.currentTime;
+
+    // Phase 1: Low rumble build-up (noise filtered low, 0-0.6s)
+    const noise1 = this.createNoiseBuffer();
+    if (noise1) {
+      const src1 = ctx.createBufferSource();
+      src1.buffer = noise1;
+      src1.loop = true;
+      const f1 = ctx.createBiquadFilter();
+      f1.type = "lowpass";
+      f1.frequency.setValueAtTime(80, t);
+      f1.frequency.linearRampToValueAtTime(400, t + 0.6);
+      const g1 = ctx.createGain();
+      g1.gain.setValueAtTime(0.0, t);
+      g1.gain.linearRampToValueAtTime(0.55, t + 0.6);
+      g1.gain.linearRampToValueAtTime(0.0, t + 0.85);
+      src1.connect(f1); f1.connect(g1); g1.connect(dest);
+      src1.start(t); src1.stop(t + 0.9);
+    }
+
+    // Phase 2: Electrical crackle burst (wide-band noise, 0.5-1.1s)
+    const noise2 = this.createNoiseBuffer();
+    if (noise2) {
+      const src2 = ctx.createBufferSource();
+      src2.buffer = noise2;
+      src2.loop = true;
+      const f2 = ctx.createBiquadFilter();
+      f2.type = "bandpass";
+      f2.frequency.setValueAtTime(2000, t + 0.5);
+      f2.frequency.exponentialRampToValueAtTime(8000, t + 1.1);
+      f2.Q.setValueAtTime(0.5, t + 0.5);
+      const g2 = ctx.createGain();
+      g2.gain.setValueAtTime(0.0, t + 0.5);
+      g2.gain.linearRampToValueAtTime(0.7, t + 0.65);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+      src2.connect(f2); f2.connect(g2); g2.connect(dest);
+      src2.start(t + 0.5); src2.stop(t + 1.3);
+    }
+
+    // Phase 3: Deep impact thud at peak (0.7s)
+    const thudOsc = ctx.createOscillator();
+    const thudGain = ctx.createGain();
+    thudOsc.type = "sine";
+    thudOsc.frequency.setValueAtTime(60, t + 0.7);
+    thudOsc.frequency.exponentialRampToValueAtTime(20, t + 1.1);
+    thudGain.gain.setValueAtTime(0.9, t + 0.7);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, t + 1.1);
+    thudOsc.connect(thudGain); thudGain.connect(dest);
+    thudOsc.start(t + 0.7); thudOsc.stop(t + 1.2);
+
+    // Phase 4: Rising triumphant tone (1.0-2.5s) — three layered harmonics
+    const notes = [220, 329.63, 440]; // A3, E4, A4
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = i === 0 ? "triangle" : "sine";
+      osc.frequency.setValueAtTime(freq * 0.5, t + 1.0 + i * 0.05);
+      osc.frequency.exponentialRampToValueAtTime(freq, t + 1.3 + i * 0.05);
+      g.gain.setValueAtTime(0.0, t + 1.0 + i * 0.05);
+      g.gain.linearRampToValueAtTime(0.22 - i * 0.04, t + 1.35 + i * 0.05);
+      g.gain.setValueAtTime(0.22 - i * 0.04, t + 2.0);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 2.6);
+      osc.connect(g); g.connect(dest);
+      osc.start(t + 1.0 + i * 0.05); osc.stop(t + 2.7);
+    });
+
+    // Phase 5: Sparkle high ping at the end (2.1s)
+    const sparkOsc = ctx.createOscillator();
+    const sparkGain = ctx.createGain();
+    sparkOsc.type = "sine";
+    sparkOsc.frequency.setValueAtTime(1800, t + 2.0);
+    sparkOsc.frequency.exponentialRampToValueAtTime(3600, t + 2.4);
+    sparkGain.gain.setValueAtTime(0.18, t + 2.0);
+    sparkGain.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
+    sparkOsc.connect(sparkGain); sparkGain.connect(dest);
+    sparkOsc.start(t + 2.0); sparkOsc.stop(t + 2.6);
+  }
+
   // BACKGROUND CHIPTUNE SYNTH
   public startMusic() {
     this.initCtx();
