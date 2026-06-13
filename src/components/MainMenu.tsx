@@ -442,7 +442,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                     <button
                       key={dot.id}
                       onClick={() => { if (isUnlocked && !isSelected) { audio.playClick(); onSelectDot(dot.id); } }}
-                      className={`w-10 h-10 border-2 flex items-center justify-center relative transition-all ${
+                      className={`w-10 h-10 border-2 flex items-center justify-center relative transition-all group ${
                         !isUnlocked
                           ? "border-[#222] bg-zinc-950/20 cursor-not-allowed opacity-20"
                           : isSelected
@@ -472,12 +472,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                         }} />
                       )}
                       <span
-                        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 text-[8px] text-zinc-400 whitespace-nowrap pointer-events-none"
-                        style={{ letterSpacing: "0.05em" }}
-                      >
-                        {dot.name.toUpperCase()}
-                      </span>
-                      <span
                         className="w-3.5 h-3.5"
                         style={{
                           backgroundColor: dot.color,
@@ -485,6 +479,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                         }}
                       />
 
+                      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap z-20">
+                        {dot.name}
+                      </span>
                     </button>
                   );
                 })}
