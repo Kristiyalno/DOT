@@ -382,11 +382,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     });
 
     // Update ploum pulls — attract enemies toward departure point for pull duration
-    s.ploumPulls = s.ploumPulls.filter((pull) => {
-      const nowMsPull = Date.now();
-      if (nowMsPull >= pull.endTime) return false;
-      return true;
-    });
+
 
     // Neo Drop freeze flash decay
     if (s.neoFreezeFlashAlpha > 0) {
@@ -1285,12 +1281,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         pushType: "ploum_pull",
         _hitEnemies: new Set(),
       } as any);
-      s.ploumPulls.push({
-        x: startX,
-        y: startY,
-        endTime: Date.now() + 200,
-        radius: ploumPullRadius,
-      });
+
       createExplosionParticles(startX, startY, selectedDot.color, 30);
       s.shockwaves.push({
         x: startX,
@@ -1932,23 +1923,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // DRAW ECHO GHOST RESIDUALS
     // DRAW PLOUM FIRE RESIDUES
     // DRAW PLOUM PULLS (contracting vacuum ring)
-    s.ploumPulls.forEach((pull: any) => {
-      const nowMsDraw = Date.now();
-      const t = Math.max(0, (pull.endTime - nowMsDraw) / 200); // 1 -> 0
-      const ringRadius = pull.radius * t; // contracts inward
-      const alpha = t * 0.7;
-      ctx.beginPath();
-      ctx.arc(pull.x, pull.y, Math.max(1, ringRadius), 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(251, 113, 133, ${alpha})`;
-      ctx.lineWidth = 2.5 + (1 - t) * 3;
-      ctx.stroke();
-      // Inner glow ring
-      ctx.beginPath();
-      ctx.arc(pull.x, pull.y, Math.max(1, ringRadius * 0.6), 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(255, 200, 210, ${alpha * 0.5})`;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    });
+
 
     s.ploumResidues.forEach((r) => {
       const p = r.duration / r.maxDuration; // 1 at spawn, 0 at death
