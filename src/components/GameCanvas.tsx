@@ -1216,8 +1216,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           x: startX,
           y: startY,
           radius: s.player.radius + 2,
-          duration: 2000, // 2 real-time seconds (unscaled)
-          maxDuration: 2000,
+          duration: 6000, // 6 real-time seconds (unscaled)
+          maxDuration: 6000,
           color: selectedDot.color
         }
       ];
