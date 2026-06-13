@@ -1213,7 +1213,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // 3. Perform Ploum explosion at Departure/Origin
     if (selectedDot.id === "ploum") {
       // Backdraft pull: drag nearby enemies toward departure point before explosion
-      const ploumPullRadius = Math.round(385 * BIG);
+      const ploumPullRadius = Math.round(289 * BIG);
       // Apply the pull as a single violent impulse immediately
       s.enemies.forEach((enemy: any) => {
         const pdx = startX - enemy.x;
@@ -1222,8 +1222,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         if (pdist < ploumPullRadius && pdist > 1) {
           // Mirror Jolt's formula exactly but pulling inward instead of outward
           const force = (ploumPullRadius - pdist) / 10;
-          enemy.vx = (pdx / pdist) * force * 200;
-          enemy.vy = (pdy / pdist) * force * 200;
+          enemy.vx = (pdx / pdist) * force * 120;
+          enemy.vy = (pdy / pdist) * force * 120;
           enemy.knockbackTimer = 600;
         }
       });
