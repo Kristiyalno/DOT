@@ -618,7 +618,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
       {/* Custom difficulty editor popup */}
       {showCustomDiffEditor && (
         <CustomDiffPopup
-          title={editingCustomIndex !== null ? "Edit Custom Difficulty" : "New Custom Difficulty"}
+          
           onClose={() => { setShowCustomDiffSavePrompt(false); setShowCustomDiffEditor(false); setEditingCustomIndex(null); setEditingCustomDiff({ ...defaultCustomDiff }); setCustomDiffNameError(false); }}
           onSave={handleSaveCustomDiff}
           showSavePrompt={showCustomDiffSavePrompt}
@@ -1146,7 +1146,7 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
           onClick={() => { audio.playClick(); setOpen((p) => !p); }}
           className="w-9 h-9 border border-[#333] hover:border-neon-cyan shrink-0 transition-colors cursor-pointer"
           style={{ background: safeColor }}
-          title="Pick color"
+          
         />
         {/* Hex field */}
         <div className="flex flex-1 bg-[#0a0a0a] border border-[#333] focus-within:border-neon-cyan transition-colors">
@@ -1223,7 +1223,7 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
                   onClick={() => { onChange(swatch); setHexInput(swatch); const [nh,ns,nv]=hexToHsv(swatch); setHue(nh); setSat(ns); setVal(nv); }}
                   className="w-5 h-5 border border-transparent hover:border-white transition-colors cursor-pointer shrink-0"
                   style={{ background: swatch }}
-                  title={swatch}
+                  
                 />
               ))}
             </div>

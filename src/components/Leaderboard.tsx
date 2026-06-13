@@ -357,7 +357,7 @@ const PaginationBar: React.FC<PaginationBarProps> = ({ page, totalPages, onGoTo 
         <button
           className="px-3 py-1.5 text-[10px] font-black border border-neon-cyan/30 text-neon-cyan bg-neon-cyan/5 cursor-pointer hover:bg-neon-cyan/10 transition-all"
           onClick={openEdit}
-          title="Click to jump to page"
+          
         >
           {page + 1}
         </button>

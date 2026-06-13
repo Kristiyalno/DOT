@@ -331,7 +331,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           <button
             onClick={() => { onToggleMute(); audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); }}
             className="p-2.5 border border-[#333] hover:border-neon-cyan hover:bg-[#111] bg-[#050505] text-zinc-400 hover:text-white transition-all cursor-pointer"
-            title="Toggle Audio"
+            
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-neon-red" /> : <Volume2 className="w-4 h-4 text-neon-cyan" />}
           </button>
