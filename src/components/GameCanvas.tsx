@@ -707,6 +707,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const targetX = activeGhost ? activeGhost.x : s.player.x;
     const targetY = activeGhost ? activeGhost.y : s.player.y;
 
+    // Use a percentage of the smaller canvas dimension for distance thresholds
+    const screenRef = Math.min(s.width, s.height);
+
     const nowMs = Date.now();
     s.enemies.forEach((enemy: any) => {
       if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return; // frozen by Neo Drop
@@ -740,35 +743,44 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           const dy = targetY - enemy.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist > 5) {
-            enemy.vx += (dx / dist) * 0.35;
-            enemy.vy += (dy / dist) * 0.35;
+            enemy.vx += (dx / dist) * 0.26;
+            enemy.vy += (dy / dist) * 0.26;
           }
         } else if (enemy.type === "target_shooter") {
-          // Approaches until close enough, then holds position and shoots
+          // Approaches to a real shooting range then holds position
           const dx = targetX - enemy.x;
           const dy = targetY - enemy.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 80) {
+          if (dist > screenRef * 0.37) {
             enemy.vx += (dx / dist) * 0.38;
             enemy.vy += (dy / dist) * 0.38;
-          } else if (dist < 50) {
-            enemy.vx -= (dx / dist) * 0.08;
-            enemy.vy -= (dy / dist) * 0.08;
+          } else if (dist > screenRef * 0.27) {
+            enemy.vx += (dx / dist) * 0.10;
+            enemy.vy += (dy / dist) * 0.10;
+          } else if (dist < screenRef * 0.22) {
+            enemy.vx -= (dx / dist) * 0.20;
+            enemy.vy -= (dy / dist) * 0.20;
           } else {
             enemy.vx *= 0.85;
             enemy.vy *= 0.85;
           }
         } else if (enemy.type === "shooter") {
-          // Floats at mid range inside the screen
+          // Approaches to a comfortable shooting range then holds position
           const dx = targetX - enemy.x;
           const dy = targetY - enemy.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 75) {
+          if (dist > screenRef * 0.33) {
             enemy.vx += (dx / dist) * 0.32;
             enemy.vy += (dy / dist) * 0.32;
-          } else if (dist < 45) {
-            enemy.vx -= (dx / dist) * 0.05;
-            enemy.vy -= (dy / dist) * 0.05;
+          } else if (dist > screenRef * 0.23) {
+            enemy.vx += (dx / dist) * 0.08;
+            enemy.vy += (dy / dist) * 0.08;
+          } else if (dist < screenRef * 0.18) {
+            enemy.vx -= (dx / dist) * 0.18;
+            enemy.vy -= (dy / dist) * 0.18;
+          } else {
+            enemy.vx *= 0.88;
+            enemy.vy *= 0.88;
           }
         } else if (enemy.type === "tank") {
           // Tanks slow steer
