@@ -618,8 +618,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           // Ring band: enemy within 30px behind the current ring edge
           if (dist <= sw.radius && dist > sw.radius - 30 * BIG) {
             hitSet.add(enemy.id);
-            const distFactor = 1 - (dist / sw.maxRadius); // stronger near center
-            const impulse = distFactor * 3000;
+            const distFactor = 0.35 + (1 - dist / sw.maxRadius) * 0.65; // 0.35 floor at edge, 1.0 at center
+            const impulse = distFactor * 1500;
             if (dist > 0) {
               enemy.vx = (dx / dist) * impulse;
               enemy.vy = (dy / dist) * impulse;
@@ -630,7 +630,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         });
       }
 
-      // Ploum pull-wave: apply inward force as ring sweeps past each enemy
+      // Ploum pull-wave: ring contracts inward, pulls enemies as it sweeps past them
       if ((sw as any).pushType === "ploum_pull") {
         const hitSet = (sw as any)._hitEnemies as Set<string>;
         s.enemies.forEach((enemy: any) => {
@@ -638,12 +638,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           const dx = enemy.x - sw.x;
           const dy = enemy.y - sw.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist <= sw.radius && dist > sw.radius - 30 * BIG) {
+          // Hit when enemy is just outside the contracting ring edge (ring sweeps inward past them)
+          if (dist >= sw.radius && dist < sw.radius + 30 * BIG) {
             hitSet.add(enemy.id);
-            const distFactor = dist / sw.maxRadius; // stronger at edges (further out)
-            const impulse = (0.4 + distFactor * 0.6) * 2500;
+            const distFactor = dist / sw.maxRadius; // stronger at edges (further from center)
+            const impulse = (0.4 + distFactor * 0.6) * 1250;
             if (dist > 0) {
-              // Pull inward toward origin
               enemy.vx = -(dx / dist) * impulse;
               enemy.vy = -(dy / dist) * impulse;
               enemy.knockbackTimer = 400;
@@ -677,7 +677,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         });
       }
 
-      return sw.radius < sw.maxRadius;
+      if ((sw as any).speed < 0) return sw.radius > 0; // contracting
+      return sw.radius < sw.maxRadius; // expanding
     });
 
     // 5a. Deferred shockwave kills (applied after all shockwaves processed to avoid stale reference)
@@ -1268,13 +1269,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if (selectedDot.id === "ploum") {
       // Backdraft pull: drag nearby enemies toward departure point before explosion
       const ploumPullRadius = Math.round(173 * BIG); // ~0.6x previous 289
-      // Pull-wave: ring expands outward, pulling enemies inward as it reaches them
+      // Pull-wave: ring contracts inward from maxRadius to center, pulling enemies as it passes
       s.shockwaves.push({
         x: startX,
         y: startY,
-        radius: Math.round(5 * BIG),
+        radius: ploumPullRadius, // start at full radius
         maxRadius: ploumPullRadius,
-        speed: 7.0,
+        speed: -7.0, // negative = contracting
         color: selectedDot.color,
         killsEnemies: false,
         killsProjectiles: false,
@@ -1288,7 +1289,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         y: startY,
         radius: Math.round(5 * BIG),
         maxRadius: Math.round(115 * BIG),
-        speed: 4,
+        speed: 2.1,
         color: selectedDot.color,
         killsEnemies: true,
         killsProjectiles: false
@@ -1955,7 +1956,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // DRAW EXPANDING VISUAL SHOCKWAVES
     s.shockwaves.forEach((sw: any) => {
-      const p = 1.0 - (sw.radius / sw.maxRadius);
+      // p=1 at spawn, p=0 at end — for contracting waves, radius shrinks so invert
+      const p = sw.speed < 0 ? sw.radius / sw.maxRadius : 1.0 - (sw.radius / sw.maxRadius);
       ctx.strokeStyle = sw.color;
       ctx.lineWidth = 1.5 + p * 4.5;
       if (sw.arcAngle !== undefined) {
