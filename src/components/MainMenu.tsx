@@ -149,15 +149,26 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
   // Neo Drop animation state
   const [neoGlow, setNeoGlow] = useState(false);
-  const [neoSurge, setNeoSurge] = useState(false); // full-screen surge overlay
+  const [neoShake, setNeoShake] = useState(false);  // shake phase before knock
+  const [neoSurge, setNeoSurge] = useState(false);  // full-screen surge overlay
   useEffect(() => {
     if (!neoDropAnimating) return;
+    // Force to main menu tab so player sees the animation
+    setActiveTab("menu");
     audio.playNeoDropUnlock();
-    setNeoSurge(true);
-    setNeoGlow(true);
-    const tSurge = setTimeout(() => setNeoSurge(false), 1200);
-    const tDone = setTimeout(() => { setNeoGlow(false); onNeoDropAnimDone(); }, 3000);
-    return () => { clearTimeout(tSurge); clearTimeout(tDone); };
+    // Phase 1: shake (0 - 2.5s)
+    setNeoShake(true);
+    // Phase 2: knock + transform (2.5s)
+    const tKnock = setTimeout(() => {
+      setNeoShake(false);
+      setNeoSurge(true);
+      setNeoGlow(true);
+    }, 2500);
+    // Phase 3: surge fades (2.5 + 1.2s)
+    const tSurge = setTimeout(() => setNeoSurge(false), 3700);
+    // Done (2.5 + 4.5s total)
+    const tDone = setTimeout(() => { setNeoGlow(false); onNeoDropAnimDone(); }, 7000);
+    return () => { clearTimeout(tKnock); clearTimeout(tSurge); clearTimeout(tDone); };
   }, [neoDropAnimating]);
 
   // Effective dot list shown in selection (replace drop with neo drop if unlocked)
@@ -430,7 +441,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   return (
                     <button
                       key={dot.id}
-                      onClick={() => isUnlocked && onSelectDot(dot.id)}
+                      onClick={() => { if (isUnlocked) { audio.playClick(); onSelectDot(dot.id); } }}
                       className={`w-10 h-10 border-2 flex items-center justify-center relative transition-all group ${
                         !isUnlocked
                           ? "border-[#222] bg-zinc-950/20 cursor-not-allowed opacity-20"
@@ -438,9 +449,28 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                           ? "border-white bg-[#151515]"
                           : "border-[#333] hover:border-neon-cyan hover:bg-[#111] cursor-pointer"
                       }`}
-                      style={isUnlocked && isSelected && !glowAnim ? { boxShadow: `0 0 12px ${dot.color}` } : glowAnim ? { animation: "neoGlow 0.35s ease-in-out infinite alternate", boxShadow: `0 0 40px ${dot.color}, 0 0 80px ${dot.color}`, border: `2px solid ${dot.color}`, transform: "scale(1.18)" } : {}}
+                      style={
+                        glowAnim
+                          ? { border: `2px solid ${dot.color}`, transform: "scale(1.18)", position: "relative", zIndex: 10 }
+                          : neoShake && isNeo
+                          ? { animation: "neoShakeCard 0.12s ease-in-out infinite alternate", border: `2px solid ${dot.color}`, position: "relative", zIndex: 10 }
+                          : isUnlocked && isSelected
+                          ? { boxShadow: `0 0 12px ${dot.color}` }
+                          : {}
+                      }
                       title={isUnlocked ? dot.name : `${dot.name}: Locked`}
                     >
+                      {glowAnim && (
+                        <span style={{
+                          position: "absolute",
+                          inset: "-12px",
+                          borderRadius: "4px",
+                          boxShadow: `0 0 30px 12px ${dot.color}`,
+                          animation: "neoGlow 0.35s ease-in-out infinite alternate",
+                          pointerEvents: "none",
+                          zIndex: -1,
+                        }} />
+                      )}
                       <span
                         className="w-3.5 h-3.5"
                         style={{
