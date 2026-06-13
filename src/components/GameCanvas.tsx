@@ -1224,6 +1224,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           const impulse = 28 * distFactor;
           enemy.vx += (pdx / pdist) * impulse;
           enemy.vy += (pdy / pdist) * impulse;
+          // Bypass velocity cap so the impulse isn't immediately clamped away
+          enemy.knockbackTimer = 300;
         }
       });
       s.ploumPulls.push({
