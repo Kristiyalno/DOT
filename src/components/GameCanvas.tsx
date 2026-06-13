@@ -610,6 +610,51 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       
       // Expand radius in unscaled real-time for immediate snappy sweeps
       sw.radius += sw.speed * (deltaReal / 16.67) * 2.0;
+
+      // Jolt push: apply outward force as ring sweeps past each enemy
+      if ((sw as any).pushType === "jolt") {
+        const hitSet = (sw as any)._hitEnemies as Set<string>;
+        s.enemies.forEach((enemy: any) => {
+          if (hitSet.has(enemy.id)) return;
+          const dx = enemy.x - sw.x;
+          const dy = enemy.y - sw.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          // Ring band: enemy within 30px behind the current ring edge
+          if (dist <= sw.radius && dist > sw.radius - 30 * BIG) {
+            hitSet.add(enemy.id);
+            const distFactor = 1 - (dist / sw.maxRadius); // stronger near center
+            const impulse = distFactor * 3000;
+            if (dist > 0) {
+              enemy.vx = (dx / dist) * impulse;
+              enemy.vy = (dy / dist) * impulse;
+              enemy.knockbackTimer = 600;
+              createExplosionParticles(enemy.x, enemy.y, "#facc15", 3);
+            }
+          }
+        });
+      }
+
+      // Ploum pull-wave: apply inward force as ring sweeps past each enemy
+      if ((sw as any).pushType === "ploum_pull") {
+        const hitSet = (sw as any)._hitEnemies as Set<string>;
+        s.enemies.forEach((enemy: any) => {
+          if (hitSet.has(enemy.id)) return;
+          const dx = enemy.x - sw.x;
+          const dy = enemy.y - sw.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist <= sw.radius && dist > sw.radius - 30 * BIG) {
+            hitSet.add(enemy.id);
+            const distFactor = dist / sw.maxRadius; // stronger at edges (further out)
+            const impulse = (0.4 + distFactor * 0.6) * 2500;
+            if (dist > 0) {
+              // Pull inward toward origin
+              enemy.vx = -(dx / dist) * impulse;
+              enemy.vy = -(dy / dist) * impulse;
+              enemy.knockbackTimer = 400;
+            }
+          }
+        });
+      }
       
       // Perform hits - mark enemies for kill, apply after all shockwaves processed
       if (sw.killsEnemies) {
@@ -1226,20 +1271,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // 3. Perform Ploum explosion at Departure/Origin
     if (selectedDot.id === "ploum") {
       // Backdraft pull: drag nearby enemies toward departure point before explosion
-      const ploumPullRadius = Math.round(289 * BIG);
-      // Apply the pull as a single violent impulse immediately
-      s.enemies.forEach((enemy: any) => {
-        const pdx = startX - enemy.x;
-        const pdy = startY - enemy.y;
-        const pdist = Math.sqrt(pdx * pdx + pdy * pdy);
-        if (pdist < ploumPullRadius && pdist > 1) {
-          // Mirror Jolt's formula exactly but pulling inward instead of outward
-          const force = (ploumPullRadius - pdist) / 10;
-          enemy.vx = (pdx / pdist) * force * 50;
-          enemy.vy = (pdy / pdist) * force * 50;
-          enemy.knockbackTimer = 400;
-        }
-      });
+      const ploumPullRadius = Math.round(173 * BIG); // ~0.6x previous 289
+      // Pull-wave: ring expands outward, pulling enemies inward as it reaches them
+      s.shockwaves.push({
+        x: startX,
+        y: startY,
+        radius: Math.round(5 * BIG),
+        maxRadius: ploumPullRadius,
+        speed: 7.0,
+        color: selectedDot.color,
+        killsEnemies: false,
+        killsProjectiles: false,
+        pushType: "ploum_pull",
+        _hitEnemies: new Set(),
+      } as any);
       s.ploumPulls.push({
         x: startX,
         y: startY,
@@ -1415,25 +1460,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         killsProjectiles: true
       });
     } else if (selectedDot.id === "jolt") {
-      // Jolt: knock away surrounding enemies (massive displacement)
+      // Jolt: ring expands and pushes enemies as it reaches them
       const knockRadius = Math.round(150 * BIG);
-      const nowMs = Date.now();
-    s.enemies.forEach((enemy: any) => {
-      if (enemy.frozenUntil && nowMs < enemy.frozenUntil) return; // frozen by Neo Drop
-
-        const dx = enemy.x - clickX;
-        const dy = enemy.y - clickY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist === 0) return;
-        if (dist < knockRadius) {
-          const force = (knockRadius - dist) / 10;
-          enemy.vx = (dx / dist) * force * 200; // Strong kinetic punch
-          enemy.vy = (dy / dist) * force * 200;
-          enemy.knockbackTimer = 600; // 0.6 seconds of knockback
-          createExplosionParticles(enemy.x, enemy.y, "#facc15", 3);
-        }
-      });
-      // push out a yellow particle visual ripple
       s.shockwaves.push({
         x: clickX,
         y: clickY,
@@ -1442,8 +1470,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         speed: 5.5,
         color: "#facc15",
         killsEnemies: false,
-        killsProjectiles: false
-      });
+        killsProjectiles: false,
+        pushType: "jolt",
+        _hitEnemies: new Set(),
+      } as any);
     } else if (selectedDot.id === "glint") {
       // 5% hyper critical trigger — 3 real-second cooldown between crits
       const crit = Math.random() < 0.05 && s.glintCritCooldown <= 0;
