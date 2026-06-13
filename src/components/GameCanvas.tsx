@@ -1220,12 +1220,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         const pdy = startY - enemy.y;
         const pdist = Math.sqrt(pdx * pdx + pdy * pdy);
         if (pdist < ploumPullRadius && pdist > 1) {
-          const distFactor = Math.max(0.4, 1 - pdist / ploumPullRadius);
-          const impulse = 28 * distFactor;
-          enemy.vx += (pdx / pdist) * impulse;
-          enemy.vy += (pdy / pdist) * impulse;
-          // Bypass velocity cap so the impulse isn't immediately clamped away
-          enemy.knockbackTimer = 300;
+          // Mirror Jolt's formula exactly but pulling inward instead of outward
+          const force = (ploumPullRadius - pdist) / 10;
+          enemy.vx = (pdx / pdist) * force * 200;
+          enemy.vy = (pdy / pdist) * force * 200;
+          enemy.knockbackTimer = 600;
         }
       });
       s.ploumPulls.push({
