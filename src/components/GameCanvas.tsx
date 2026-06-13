@@ -761,46 +761,57 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             enemy.vy += (dy / dist) * 0.22;
           }
         } else if (enemy.type === "bullet_hell") {
-          // Bullet hell enemies float and general homing
+          // Directly steer toward player — bypass accel+drag terminal velocity trap
           const dx = targetX - enemy.x;
           const dy = targetY - enemy.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist > 5) {
-            enemy.vx += (dx / dist) * 0.26;
-            enemy.vy += (dy / dist) * 0.26;
+            const targetVx = (dx / dist) * 55;
+            const targetVy = (dy / dist) * 55;
+            enemy.vx += (targetVx - enemy.vx) * 0.04;
+            enemy.vy += (targetVy - enemy.vy) * 0.04;
           }
         } else if (enemy.type === "target_shooter") {
-          // Approaches to a real shooting range then holds position
+          // Approach until in shooting range (180px), then hold
           const dx = targetX - enemy.x;
           const dy = targetY - enemy.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > screenRef * 0.37) {
-            enemy.vx += (dx / dist) * 0.38;
-            enemy.vy += (dy / dist) * 0.38;
-          } else if (dist > screenRef * 0.27) {
-            enemy.vx += (dx / dist) * 0.10;
-            enemy.vy += (dy / dist) * 0.10;
-          } else if (dist < screenRef * 0.22) {
-            enemy.vx -= (dx / dist) * 0.20;
-            enemy.vy -= (dy / dist) * 0.20;
+          const holdDist = 160;
+          const backOffDist = 100;
+          if (dist > holdDist) {
+            // Steer toward player at full speed
+            const targetVx = (dx / dist) * 70;
+            const targetVy = (dy / dist) * 70;
+            enemy.vx += (targetVx - enemy.vx) * 0.06;
+            enemy.vy += (targetVy - enemy.vy) * 0.06;
+          } else if (dist < backOffDist) {
+            // Too close — back off
+            const targetVx = -(dx / dist) * 50;
+            const targetVy = -(dy / dist) * 50;
+            enemy.vx += (targetVx - enemy.vx) * 0.05;
+            enemy.vy += (targetVy - enemy.vy) * 0.05;
           } else {
-            enemy.vx *= 0.85;
-            enemy.vy *= 0.85;
+            // In hold zone — brake
+            enemy.vx *= 0.88;
+            enemy.vy *= 0.88;
           }
         } else if (enemy.type === "shooter") {
-          // Approaches to a comfortable shooting range then holds position
+          // Approach until in shooting range (200px), then hold
           const dx = targetX - enemy.x;
           const dy = targetY - enemy.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > screenRef * 0.33) {
-            enemy.vx += (dx / dist) * 0.32;
-            enemy.vy += (dy / dist) * 0.32;
-          } else if (dist > screenRef * 0.23) {
-            enemy.vx += (dx / dist) * 0.08;
-            enemy.vy += (dy / dist) * 0.08;
-          } else if (dist < screenRef * 0.18) {
-            enemy.vx -= (dx / dist) * 0.18;
-            enemy.vy -= (dy / dist) * 0.18;
+          const holdDist = 180;
+          const backOffDist = 110;
+          if (dist > holdDist) {
+            const targetVx = (dx / dist) * 60;
+            const targetVy = (dy / dist) * 60;
+            enemy.vx += (targetVx - enemy.vx) * 0.05;
+            enemy.vy += (targetVy - enemy.vy) * 0.05;
+          } else if (dist < backOffDist) {
+            const targetVx = -(dx / dist) * 45;
+            const targetVy = -(dy / dist) * 45;
+            enemy.vx += (targetVx - enemy.vx) * 0.04;
+            enemy.vy += (targetVy - enemy.vy) * 0.04;
           } else {
             enemy.vx *= 0.88;
             enemy.vy *= 0.88;
@@ -824,9 +835,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       // Update position with cap speed limits
       let capSpeed = enemy.type === "swarmer" ? 320 : enemy.type === "fast" ? 240 : 160;
       if (enemy.type === "bullet_hell") {
-        capSpeed = 180;
+        capSpeed = 400;
       } else if (enemy.type === "target_shooter") {
-        capSpeed = 160;
+        capSpeed = 400;
+      } else if (enemy.type === "shooter") {
+        capSpeed = 400;
       } else if (enemy.type === "tank") {
         capSpeed = 100;
       }
@@ -1222,9 +1235,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         if (pdist < ploumPullRadius && pdist > 1) {
           // Mirror Jolt's formula exactly but pulling inward instead of outward
           const force = (ploumPullRadius - pdist) / 10;
-          enemy.vx = (pdx / pdist) * force * 120;
-          enemy.vy = (pdy / pdist) * force * 120;
-          enemy.knockbackTimer = 600;
+          enemy.vx = (pdx / pdist) * force * 50;
+          enemy.vy = (pdy / pdist) * force * 50;
+          enemy.knockbackTimer = 400;
         }
       });
       s.ploumPulls.push({
