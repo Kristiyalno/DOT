@@ -385,19 +385,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     s.ploumPulls = s.ploumPulls.filter((pull) => {
       const nowMsPull = Date.now();
       if (nowMsPull >= pull.endTime) return false;
-      const timeLeft = pull.endTime - nowMsPull;
-      const strength = (timeLeft / 83) * 8.0; // fades as pull expires
-      s.enemies.forEach((enemy: any) => {
-        const dx = pull.x - enemy.x;
-        const dy = pull.y - enemy.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < pull.radius && dist > 1) {
-          // Scale force inversely with distance so close enemies get yanked harder
-          const distFactor = Math.max(0.3, 1 - dist / pull.radius);
-          enemy.vx += (dx / dist) * strength * 60 * distFactor;
-          enemy.vy += (dy / dist) * strength * 60 * distFactor;
-        }
-      });
       return true;
     });
 
@@ -1226,11 +1213,24 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // 3. Perform Ploum explosion at Departure/Origin
     if (selectedDot.id === "ploum") {
       // Backdraft pull: drag nearby enemies toward departure point before explosion
+      const ploumPullRadius = Math.round(385 * BIG);
+      // Apply the pull as a single violent impulse immediately
+      s.enemies.forEach((enemy: any) => {
+        const pdx = startX - enemy.x;
+        const pdy = startY - enemy.y;
+        const pdist = Math.sqrt(pdx * pdx + pdy * pdy);
+        if (pdist < ploumPullRadius && pdist > 1) {
+          const distFactor = Math.max(0.4, 1 - pdist / ploumPullRadius);
+          const impulse = 28 * distFactor;
+          enemy.vx += (pdx / pdist) * impulse;
+          enemy.vy += (pdy / pdist) * impulse;
+        }
+      });
       s.ploumPulls.push({
         x: startX,
         y: startY,
-        endTime: Date.now() + 83,
-        radius: Math.round(385 * BIG),
+        endTime: Date.now() + 200,
+        radius: ploumPullRadius,
       });
       createExplosionParticles(startX, startY, selectedDot.color, 30);
       s.shockwaves.push({
@@ -1890,7 +1890,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // DRAW PLOUM PULLS (contracting vacuum ring)
     s.ploumPulls.forEach((pull: any) => {
       const nowMsDraw = Date.now();
-      const t = Math.max(0, (pull.endTime - nowMsDraw) / 83); // 1 -> 0
+      const t = Math.max(0, (pull.endTime - nowMsDraw) / 200); // 1 -> 0
       const ringRadius = pull.radius * t; // contracts inward
       const alpha = t * 0.7;
       ctx.beginPath();
