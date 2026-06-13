@@ -148,7 +148,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   return (
     <div className="my-auto py-6 flex gap-6 w-full max-w-5xl">
       {/* LEFT: filters column */}
-      <div className="flex flex-col gap-3 w-52 shrink-0 pt-1">
+      <div className="flex flex-col gap-3 w-44 shrink-0 pt-1">
         <div className="text-[9px] text-zinc-600 uppercase tracking-widest font-black border-b border-[#1a1a1a] pb-2">FILTERS</div>
 
         {/* Category */}
@@ -244,7 +244,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
           <div className="grid grid-cols-[3rem_1fr_7rem_5rem_8rem_8rem] text-[10px] text-zinc-500 uppercase tracking-widest font-black bg-[#0a0a0a] border-b border-[#222] px-5 py-3">
             <span>#</span>
             <span>Name</span>
-            <span>Score</span>
+            <span className="text-right">Score</span>
             <span>Mode</span>
             <span>Difficulty</span>
             <span>Category</span>
@@ -277,7 +277,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                     {entry.name}
                     {isMe && <span className="ml-2 text-[10px] text-zinc-500 font-normal">(you)</span>}
                   </span>
-                  <span className="text-white font-black text-base">{formatScore(entry)}</span>
+                  <span className="text-white font-black text-base text-right">{formatScore(entry)}</span>
                   <span className={`text-xs font-bold uppercase tracking-wider ${entry.bigMode ? "text-neon-cyan" : "text-zinc-600"}`}>
                     {entry.bigMode ? "BIG" : "STD"}
                   </span>

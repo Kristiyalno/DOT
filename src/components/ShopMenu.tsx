@@ -88,7 +88,7 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
                   key={dot.id}
                   id={`shop-item-${dot.id}`}
                   onClick={() => handleDotSelect(dot)}
-                  className={`relative p-4 rounded-none border transition-all flex flex-col justify-between gap-3 overflow-hidden ${
+                  className={`relative p-4 rounded-none border transition-all flex flex-col justify-between gap-3 overflow-hidden text-left ${
                     isSelected
                       ? "border-neon-magenta bg-neon-magenta/10 shadow-[0_0_15px_rgba(255,0,255,0.15)]"
                       : "border-[#222] bg-[#0c0c0c] hover:border-[#444] hover:bg-[#111]"
