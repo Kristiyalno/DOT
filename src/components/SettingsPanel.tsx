@@ -532,7 +532,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
       {/* Best time popup */}
       {showBestTimePopup && (
         <Popup title="Set Best Times" onClose={() => setShowBestTimePopup(false)}>
-          <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
+          <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1" data-besttime="1">
             {Object.values(Difficulty).flatMap((diff) => [diff, `${diff}_big`]).map((key) => (
               <div key={key} className="flex items-center gap-2">
                 <span className="text-[10px] text-zinc-400 uppercase tracking-widest w-36 shrink-0">
@@ -546,8 +546,9 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                   onChange={(e) => setBestTimeEdits((prev) => ({ ...prev, [key]: e.target.value }))}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
+                      audio.playClick();
                       const inputs = Array.from(
-                        (e.target as HTMLElement).closest(".flex.flex-col")?.querySelectorAll("input") || []
+                        (e.target as HTMLElement).closest("[data-besttime]")?.querySelectorAll("input") || []
                       );
                       const idx = inputs.indexOf(e.target as HTMLInputElement);
                       if (idx >= 0 && idx < inputs.length - 1) {
@@ -575,7 +576,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
       {/* Set kills popup */}
       {showKillsPopup && (
         <Popup title="Set Best Kills" onClose={() => setShowKillsPopup(false)}>
-          <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
+          <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1" data-bestkill="1">
             {Object.values(Difficulty).flatMap((diff) => [diff, `${diff}_big`]).map((key) => (
               <div key={key} className="flex items-center gap-2">
                 <span className="text-[10px] text-zinc-400 uppercase tracking-widest w-36 shrink-0">
@@ -589,8 +590,9 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                   onChange={(e) => setKillEdits((prev) => ({ ...prev, [key]: e.target.value }))}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
+                      audio.playClick();
                       const inputs = Array.from(
-                        (e.target as HTMLElement).closest(".flex.flex-col")?.querySelectorAll("input") || []
+                        (e.target as HTMLElement).closest("[data-bestkill]")?.querySelectorAll("input") || []
                       );
                       const idx = inputs.indexOf(e.target as HTMLInputElement);
                       if (idx >= 0 && idx < inputs.length - 1) {
@@ -624,7 +626,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
           showSavePrompt={showCustomDiffSavePrompt}
           setShowSavePrompt={setShowCustomDiffSavePrompt}
         >
-          <div className="flex flex-col gap-2.5 max-h-96 overflow-y-auto pr-1">
+          <div className="flex flex-col gap-2.5 max-h-96 overflow-y-auto pr-1" data-difffields="1">
             <DiffField label="Name" value={editingCustomDiff.name} onChange={(v) => { setEditingCustomDiff((p) => ({ ...p, name: v.toUpperCase().slice(0, 20) })); setCustomDiffNameError(false); }} type="text" />
             {customDiffNameError && (
               <p className="text-[10px] text-neon-red font-bold uppercase tracking-widest -mt-1">
@@ -944,8 +946,10 @@ const DiffField: React.FC<{
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
-              const container = (e.target as HTMLElement).closest(".flex.flex-col");
-              const inputs = Array.from(container?.querySelectorAll("input") || []);
+              audio.playClick();
+              const inputs = Array.from(
+                (e.target as HTMLElement).closest("[data-difffields]")?.querySelectorAll("input") || []
+              );
               const idx = inputs.indexOf(e.target as HTMLInputElement);
               if (idx >= 0 && idx < inputs.length - 1) {
                 (inputs[idx + 1] as HTMLInputElement).focus();
@@ -979,7 +983,21 @@ const DiffField: React.FC<{
         onChange={(e) => setDraft(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={commit}
-        onKeyDown={(e) => { if (e.key === "Enter") { audio.playClick(); (e.target as HTMLInputElement).blur(); } }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            audio.playClick();
+            commit();
+            const inputs = Array.from(
+              (e.target as HTMLElement).closest("[data-difffields]")?.querySelectorAll("input") || []
+            );
+            const idx = inputs.indexOf(e.target as HTMLInputElement);
+            if (idx >= 0 && idx < inputs.length - 1) {
+              (inputs[idx + 1] as HTMLInputElement).focus();
+            } else {
+              (e.target as HTMLInputElement).blur();
+            }
+          }
+        }}
         className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
       />
     </div>

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Difficulty, PlayerStats, DOTS_DATABASE, DotConfig, NEO_DROP_ID } from "./types";
 import { MainMenu } from "./components/MainMenu";
 import { GameCanvas } from "./components/GameCanvas";
-import { ShopMenu } from "./components/ShopMenu";
 import { DeathScreen } from "./components/DeathScreen";
 import { audio } from "./utils/audio";
 import { CustomDifficulty, ExperimentalSettings, defaultExperimentalSettings } from "./components/SettingsPanel";
@@ -31,7 +30,7 @@ const defaultStats: PlayerStats = {
 const ALL_PURCHASABLE_DOTS = DOTS_DATABASE.map((d) => d.id);
 
 export default function App() {
-  const [screen, setScreen] = useState<"menu" | "playing" | "summary" | "shop">("menu");
+  const [screen, setScreen] = useState<"menu" | "playing" | "summary">("menu");
   const [menuTab, setMenuTab] = useState<"menu" | "leaderboard" | "settings">("menu");
   const [stats, setStats] = useState<PlayerStats>(defaultStats);
   const [totalKills, setTotalKills] = useState<Record<string, number>>({});
@@ -378,7 +377,8 @@ export default function App() {
           totalKills={totalKills}
           totalPloints={stats.totalPloints}
           onStartGame={handleStartGame}
-          onOpenShop={() => setScreen("shop")}
+          onOpenShop={() => {}}
+          onUnlockDot={handleUnlockDot}
           bigMode={bigMode}
           onToggleBigMode={handleToggleBigMode}
           isFullscreen={isFullscreen}
@@ -439,18 +439,7 @@ export default function App() {
         />
       )}
 
-      {screen === "shop" && (
-        <ShopMenu
-          unlockedDots={stats.unlockedDots}
-          totalPloints={stats.totalPloints}
-          onUnlockDot={handleUnlockDot}
-          onExit={handleExitToMenu}
-          onOpenLeaderboard={() => { setMenuTab("leaderboard"); setScreen("menu"); }}
-          onOpenSettings={() => { setMenuTab("settings"); setScreen("menu"); }}
-        />
-      )}
-
-      {screen === "summary" && (
+{screen === "summary" && (
         <DeathScreen
           difficulty={currentDifficulty}
           customDiffName={currentCustomDiff ? currentCustomDiff.name : null}

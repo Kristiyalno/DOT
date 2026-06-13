@@ -1,57 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { DotConfig, DOTS_DATABASE } from "../types";
 import { audio } from "../utils/audio";
-import { Sparkles, ShoppingBag, HelpCircle } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 
 interface ShopMenuProps {
   unlockedDots: string[];
   totalPloints: number;
   onUnlockDot: (dotId: string, cost: number) => void;
-  onExit: () => void;
-  onOpenLeaderboard: () => void;
-  onOpenSettings: () => void;
 }
 
 export const ShopMenu: React.FC<ShopMenuProps> = ({
   unlockedDots,
   totalPloints,
   onUnlockDot,
-  onExit,
-  onOpenLeaderboard,
-  onOpenSettings,
 }) => {
   const [selectedShopDot, setSelectedShopDot] = useState<DotConfig | null>(null);
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
   const quickClickRef = React.useRef<{ dotId: string; count: number; lastTime: number }>({ dotId: "", count: 0, lastTime: 0 });
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
-      if (e.key === "Escape") {
-        e.preventDefault();
-        audio.playClick();
-        if (showConfirm) { setShowConfirm(false); return; }
-        onExit();
-      }
-
-      // Arrow key navigation: shop sits between main menu and leaderboard
-      // Left → main menu, Right → leaderboard
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        audio.playClick();
-        onExit();
-      }
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        audio.playClick();
-        onOpenLeaderboard();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onExit, onOpenLeaderboard, showConfirm]);
 
   const handleDotSelect = (dot: DotConfig) => {
     audio.playClick();
@@ -102,58 +69,9 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
   };
 
   return (
-    <div id="shop-menu-root" className="min-h-screen bg-brutal-grid font-mono text-ink flex flex-col justify-between p-6 md:p-8 border-4 border-[#222] select-none">
-      {/* Top Header Row */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-[#333]">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-black text-neon-magenta tracking-widest uppercase" style={{ textShadow: '0 0 10px rgba(255, 0, 255, 0.4)' }}>
-            DOT UPGRADES
-          </h1>
-          <p className="text-xs text-zinc-500 uppercase tracking-widest mt-1">
-            Exchange Ploints to unlock advanced dots.
-          </p>
-        </div>
-        
-        {/* Ploints tally */}
-        <div className="bg-[#0a0a0a] border border-[#333] rounded-none px-4 py-2">
-          <div className="text-[10px] text-zinc-500 uppercase tracking-wider leading-none mb-0.5">PLOINT BALANCE</div>
-          <div id="shop-ploints-total" className="text-xl font-black text-white">{totalPloints.toLocaleString()} <span className="text-xs text-zinc-400">P</span></div>
-        </div>
-      </div>
-
-      {/* Sub-Header Navigation Tabs to split the app into 2 clearly defined menus */}
-      <div className="flex border border-[#222] bg-[#050505] p-1 gap-1 select-none my-4">
-        <button
-          onClick={() => {
-            audio.playClick();
-            onExit();
-          }}
-          className="px-6 py-2.5 text-xs uppercase font-black tracking-widest border border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333] transition-all cursor-pointer"
-        >
-          MAIN MENU
-        </button>
-        <button
-          className="px-6 py-2.5 text-xs uppercase font-black tracking-widest border border-neon-magenta/40 bg-zinc-950 text-neon-magenta"
-          disabled
-        >
-          DOT SHOP
-        </button>
-        <button
-          onClick={() => { audio.playClick(); onOpenLeaderboard(); }}
-          className="px-6 py-2.5 text-xs uppercase font-black tracking-widest border border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333] transition-all cursor-pointer"
-        >
-          LEADERBOARD
-        </button>
-        <button
-          onClick={() => { audio.playClick(); onOpenSettings(); }}
-          className="px-6 py-2.5 text-xs uppercase font-black tracking-widest border border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333] transition-all cursor-pointer"
-        >
-          SETTINGS
-        </button>
-      </div>
-
+    <div className="flex flex-col gap-4">
       {/* Main Core Body Segment */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 my-8 flex-grow">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left column: List of available upgrade dots */}
         <div className="lg:col-span-7 flex flex-col gap-4 max-h-[55vh] overflow-y-auto pr-2 no-scrollbar">
           <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
@@ -194,9 +112,7 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
                           }}
                         ></span>
                       </h3>
-                      <div className="text-[10px] text-zinc-500 font-bold overflow-hidden text-ellipsis whitespace-nowrap max-w-[150px]">
-                        {dot.id === "drop" ? "CLASSIC DOT" : `SYSTEM ID: ${dot.id.toUpperCase()}`}
-                      </div>
+
                     </div>
 
                     {isUnlocked ? (
@@ -339,18 +255,6 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
         </div>
       </div>
 
-      {/* Retro Bottom Navigation Row */}
-      <div className="flex justify-end gap-4 border-t border-[#333] pt-6">
-        <button
-          onClick={() => {
-            audio.playClick();
-            onExit();
-          }}
-          className="bg-[#0a0a0a] hover:bg-[#111] hover:border-white border border-[#333] px-8 py-3 text-xs uppercase tracking-widest font-black transition-all cursor-pointer rounded-none"
-        >
-          [ESC] Return to Main Menu
-        </button>
-      </div>
     </div>
   );
 };

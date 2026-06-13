@@ -39,7 +39,7 @@ export const DOTS_DATABASE: DotConfig[] = [
     id: "null",
     name: "Null",
     cost: 25,
-    color: "#1a1e30", // Dark Navy
+    color: "#3b4a6b", // Brighter navy blue
     borderColor: "#f43f5e", // Rose neon border for visibility
     description: "Sacrifices linear projection for a singular concentrated blast.",
     specialAbility: "Line-clearing damage is replaced by a massive medium-range circular explosion at the destination point."
@@ -66,7 +66,7 @@ export const DOTS_DATABASE: DotConfig[] = [
     id: "wraith",
     name: "Wraith",
     cost: 60,
-    color: "#390b59", // Deep Dark Purple
+    color: "#7c3aed", // Violet-600 — vivid deep purple
     borderColor: "#f3e8ff",
     description: "Moves with complete visual stealth, discharging an instantaneous spatial fracture.",
     specialAbility: "The teleportation preview line is invisible (must blind-aim). Teleport triggers an immediate, larger, instantaneous explosion that kills nearby enemies."

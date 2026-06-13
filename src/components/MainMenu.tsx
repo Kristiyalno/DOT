@@ -5,6 +5,7 @@ import { Volume2, VolumeX, Trophy, Info } from "lucide-react";
 import { SettingsPanel, CustomDifficulty, ExperimentalSettings } from "./SettingsPanel";
 import { Leaderboard } from "./Leaderboard";
 import { Contributors } from "./Contributors";
+import { ShopMenu } from "./ShopMenu";
 
 interface MainMenuProps {
   unlockedDots: string[];
@@ -47,7 +48,8 @@ interface MainMenuProps {
   onSetTotalKills: (k: Record<string, number>) => void;
   experimentalSettings: ExperimentalSettings;
   onSetExperimentalSettings: (s: ExperimentalSettings) => void;
-  initialTab?: "menu" | "leaderboard" | "settings";
+  onUnlockDot: (dotId: string, cost: number) => void;
+  initialTab?: "menu" | "leaderboard" | "settings" | "shop";
   onTabConsumed?: () => void;
 }
 
@@ -62,7 +64,7 @@ const NEO_DOT: DotConfig = {
 };
 
 export const MainMenu: React.FC<MainMenuProps> = ({
-  unlockedDots, selectedDotId, onSelectDot,
+  unlockedDots, selectedDotId, onSelectDot, onUnlockDot,
   highScores, totalKills, totalPloints,
   onStartGame, onOpenShop,
   bigMode, onToggleBigMode,
@@ -82,7 +84,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   onSetExperimentalSettings,
   initialTab, onTabConsumed,
 }) => {
-  const [activeTab, setActiveTab] = useState<"menu" | "leaderboard" | "settings">("menu");
+  const [activeTab, setActiveTab] = useState<"menu" | "shop" | "leaderboard" | "settings">("menu");
   const [showContributors, setShowContributors] = useState(false);
   const [spamtonUnit, setSpamtonUnit] = useState<"minutes" | "seconds" | "hours">(() => {
     try {
@@ -100,7 +102,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   // Consume initialTab prop from parent (e.g. navigating back from shop)
   useEffect(() => {
     if (initialTab && initialTab !== "menu") {
-      setActiveTab(initialTab);
+      setActiveTab(initialTab as any);
       onTabConsumed?.();
     }
   }, [initialTab]);
@@ -112,13 +114,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     const NAV_ORDER = ["menu", "shop", "leaderboard", "settings"] as const;
     type NavItem = typeof NAV_ORDER[number];
 
-    const getCurrentNavItem = (): NavItem => {
-      if (activeTab === "menu") return "menu";
-      if (activeTab === "leaderboard") return "leaderboard";
-      if (activeTab === "settings") return "settings";
-      return "menu";
-    };
-
     const handler = (e: KeyboardEvent) => {
       // Don't intercept if contributor overlay is open or if focus is in an input
       if (showContributors) return;
@@ -128,19 +123,15 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         if (activeTab === "settings") return;
         e.preventDefault();
-        const current = getCurrentNavItem();
-        const idx = NAV_ORDER.indexOf(current);
+        const idx = NAV_ORDER.indexOf(activeTab as NavItem);
         const nextIdx = e.key === "ArrowLeft"
           ? Math.max(0, idx - 1)
           : Math.min(NAV_ORDER.length - 1, idx + 1);
         const next = NAV_ORDER[nextIdx];
-        if (next === current) return;
+        if (next === activeTab) return;
         audio.playClick();
         audio.maybePlayYawn(import.meta.env.BASE_URL);
-        if (next === "shop") {
-        } else {
-          setActiveTab(next as "menu" | "leaderboard" | "settings");
-        }
+        setActiveTab(next);
       }
     };
     window.addEventListener("keydown", handler);
@@ -351,8 +342,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           MAIN MENU
         </button>
         <button
-          onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); onOpenShop(); }}
-          className="px-6 py-2.5 text-xs uppercase font-black tracking-widest border border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333] transition-all cursor-pointer"
+          onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); setActiveTab("shop"); }}
+          className={`px-6 py-2.5 text-xs uppercase font-black tracking-widest border transition-all cursor-pointer ${activeTab === "shop" ? "border-neon-cyan/40 bg-zinc-950 text-neon-cyan" : "border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333]"}`}
         >
           DOT SHOP
         </button>
@@ -369,6 +360,15 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           SETTINGS
         </button>
       </div>
+
+      {/* Shop tab */}
+      {activeTab === "shop" && (
+        <ShopMenu
+          unlockedDots={unlockedDots}
+          totalPloints={totalPloints}
+          onUnlockDot={onUnlockDot}
+        />
+      )}
 
       {/* Settings tab */}
       {activeTab === "settings" && (
@@ -471,6 +471,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                           zIndex: -1,
                         }} />
                       )}
+                      <span
+                        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 text-[8px] text-zinc-400 whitespace-nowrap pointer-events-none"
+                        style={{ letterSpacing: "0.05em" }}
+                      >
+                        {dot.name.toUpperCase()}
+                      </span>
                       <span
                         className="w-3.5 h-3.5"
                         style={{
