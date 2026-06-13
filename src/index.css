@@ -29,6 +29,11 @@ body {
   overflow-x: hidden;
 }
 
+/* Remove browser focus outlines globally */
+*:focus {
+  outline: none !important;
+}
+
 /* Hide all scrollbars globally */
 * {
   scrollbar-width: none;

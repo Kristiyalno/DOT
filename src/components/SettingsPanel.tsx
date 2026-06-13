@@ -532,7 +532,15 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
       {/* Best time popup */}
       {showBestTimePopup && (
         <Popup title="Set Best Times" onClose={() => setShowBestTimePopup(false)}>
-          <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1" data-besttime="1">
+          <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1" data-besttime="1" onWheel={(e) => {
+                  const el = e.currentTarget;
+                  const atTop = el.scrollTop === 0;
+                  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight;
+                  if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
+                    e.preventDefault();
+                  }
+                  e.stopPropagation();
+                }}>
             {Object.values(Difficulty).flatMap((diff) => [diff, `${diff}_big`]).map((key) => (
               <div key={key} className="flex items-center gap-2">
                 <span className="text-[10px] text-zinc-400 uppercase tracking-widest w-36 shrink-0">
@@ -576,7 +584,15 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
       {/* Set kills popup */}
       {showKillsPopup && (
         <Popup title="Set Best Kills" onClose={() => setShowKillsPopup(false)}>
-          <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1" data-bestkill="1">
+          <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1" data-bestkill="1" onWheel={(e) => {
+                  const el = e.currentTarget;
+                  const atTop = el.scrollTop === 0;
+                  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight;
+                  if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
+                    e.preventDefault();
+                  }
+                  e.stopPropagation();
+                }}>
             {Object.values(Difficulty).flatMap((diff) => [diff, `${diff}_big`]).map((key) => (
               <div key={key} className="flex items-center gap-2">
                 <span className="text-[10px] text-zinc-400 uppercase tracking-widest w-36 shrink-0">
@@ -626,7 +642,15 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
           showSavePrompt={showCustomDiffSavePrompt}
           setShowSavePrompt={setShowCustomDiffSavePrompt}
         >
-          <div className="flex flex-col gap-2.5 max-h-96 overflow-y-auto pr-1" data-difffields="1">
+          <div className="flex flex-col gap-2.5 max-h-96 overflow-y-auto pr-1" data-difffields="1" onWheel={(e) => {
+                  const el = e.currentTarget;
+                  const atTop = el.scrollTop === 0;
+                  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight;
+                  if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
+                    e.preventDefault();
+                  }
+                  e.stopPropagation();
+                }}>
             <DiffField label="Name" value={editingCustomDiff.name} onChange={(v) => { setEditingCustomDiff((p) => ({ ...p, name: v.toUpperCase().slice(0, 20) })); setCustomDiffNameError(false); }} type="text" />
             {customDiffNameError && (
               <p className="text-[10px] text-neon-red font-bold uppercase tracking-widest -mt-1">
