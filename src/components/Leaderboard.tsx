@@ -241,7 +241,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
         {/* Table */}
         <div className="border border-[#222] overflow-hidden">
-          <div className="grid grid-cols-[3rem_1fr_7rem_6rem_9rem_9rem] text-[10px] text-zinc-500 uppercase tracking-widest font-black bg-[#0a0a0a] border-b border-[#222] px-5 py-3">
+          <div className="grid grid-cols-[3rem_1fr_9rem_6rem_9rem_9rem] text-[10px] text-zinc-500 uppercase tracking-widest font-black bg-[#0a0a0a] border-b border-[#222] px-5 py-3">
             <span>#</span>
             <span>Name</span>
             <span className="text-right">Score</span>
@@ -265,13 +265,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               return (
                 <div
                   key={entry.id || i}
-                  className={`grid grid-cols-[3rem_1fr_7rem_6rem_9rem_9rem] items-center px-5 py-3.5 border-b border-[#111] text-sm font-mono transition-colors ${
+                  className={`grid grid-cols-[3rem_1fr_9rem_6rem_9rem_9rem] items-center px-5 py-3.5 border-b border-[#111] text-sm font-mono transition-colors ${
                     isMe ? "bg-white/5" : "hover:bg-[#0a0a0a]"
                   }`}
                 >
                   <span className="text-zinc-500 font-black text-xs">{rank}</span>
                   <span
-                    className="font-black truncate"
+                    className="font-black truncate min-w-0 overflow-hidden block"
                     style={{ color: entry.color || "#ffffff" }}
                   >
                     {entry.name}
