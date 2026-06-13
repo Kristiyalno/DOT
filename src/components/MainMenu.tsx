@@ -300,7 +300,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-brutal-grid font-mono text-ink flex flex-col justify-between p-6 md:p-12 border-4 border-[#222] select-none">
+    <div className="min-h-screen bg-brutal-grid font-mono text-ink flex flex-col p-6 md:p-12 border-4 border-[#222] select-none">
 
       {/* Top Banner */}
       <div className="flex justify-between items-center pb-6 border-b border-[#333]">
@@ -337,25 +337,25 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       <div className="flex border border-[#222] bg-[#050505] p-1 gap-1 my-4">
         <button
           onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); setActiveTab("menu"); }}
-          className={`px-6 py-2.5 text-xs uppercase font-black tracking-widest border transition-all cursor-pointer ${activeTab === "menu" ? "border-neon-cyan/40 bg-zinc-950 text-neon-cyan" : "border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333]"}`}
+          className={`px-6 py-2.5 text-xs uppercase font-black tracking-widest border transition-all cursor-pointer outline-none ${activeTab === "menu" ? "border-neon-cyan/40 bg-zinc-950 text-neon-cyan" : "border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333]"}`}
         >
           MAIN MENU
         </button>
         <button
           onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); setActiveTab("shop"); }}
-          className={`px-6 py-2.5 text-xs uppercase font-black tracking-widest border transition-all cursor-pointer ${activeTab === "shop" ? "border-neon-cyan/40 bg-zinc-950 text-neon-cyan" : "border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333]"}`}
+          className={`px-6 py-2.5 text-xs uppercase font-black tracking-widest border transition-all cursor-pointer outline-none ${activeTab === "shop" ? "border-neon-cyan/40 bg-zinc-950 text-neon-cyan" : "border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333]"}`}
         >
           DOT SHOP
         </button>
         <button
           onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); setActiveTab("leaderboard"); }}
-          className={`px-6 py-2.5 text-xs uppercase font-black tracking-widest border transition-all cursor-pointer ${activeTab === "leaderboard" ? "border-neon-cyan/40 bg-zinc-950 text-neon-cyan" : "border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333]"}`}
+          className={`px-6 py-2.5 text-xs uppercase font-black tracking-widest border transition-all cursor-pointer outline-none ${activeTab === "leaderboard" ? "border-neon-cyan/40 bg-zinc-950 text-neon-cyan" : "border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333]"}`}
         >
           LEADERBOARD
         </button>
         <button
           onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); setActiveTab("settings"); }}
-          className={`px-6 py-2.5 text-xs uppercase font-black tracking-widest border transition-all cursor-pointer ${activeTab === "settings" ? "border-neon-cyan/40 bg-zinc-950 text-neon-cyan" : "border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333]"}`}
+          className={`px-6 py-2.5 text-xs uppercase font-black tracking-widest border transition-all cursor-pointer outline-none ${activeTab === "settings" ? "border-neon-cyan/40 bg-zinc-950 text-neon-cyan" : "border-transparent text-zinc-500 hover:text-white hover:bg-zinc-900 hover:border-[#333]"}`}
         >
           SETTINGS
         </button>
@@ -603,7 +603,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       )}
 
       {/* Footer */}
-      <div className="flex justify-between items-center border-t border-[#333] pt-6">
+      <div className="flex justify-between items-center border-t border-[#333] pt-6 mt-auto">
         <div className="flex items-center gap-3 text-zinc-500 text-xs">
           <Info className="w-4 h-4 text-neon-cyan shrink-0" />
           <p className="leading-snug font-mono text-[11px] text-zinc-400">
