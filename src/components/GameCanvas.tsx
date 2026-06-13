@@ -739,24 +739,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           const dx = targetX - enemy.x;
           const dy = targetY - enemy.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 120) {
-            enemy.vx += (dx / dist) * 0.28;
-            enemy.vy += (dy / dist) * 0.28;
-          } else if (dist > 5) {
-            enemy.vx += (dx / dist) * 0.15;
-            enemy.vy += (dy / dist) * 0.15;
+          if (dist > 5) {
+            enemy.vx += (dx / dist) * 0.35;
+            enemy.vy += (dy / dist) * 0.35;
           }
         } else if (enemy.type === "target_shooter") {
           // Approaches until close enough, then holds position and shoots
           const dx = targetX - enemy.x;
           const dy = targetY - enemy.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 160) {
-            enemy.vx += (dx / dist) * 0.42;
-            enemy.vy += (dy / dist) * 0.42;
-          } else if (dist > 80) {
-            enemy.vx += (dx / dist) * 0.22;
-            enemy.vy += (dy / dist) * 0.22;
+          if (dist > 80) {
+            enemy.vx += (dx / dist) * 0.38;
+            enemy.vy += (dy / dist) * 0.38;
           } else if (dist < 50) {
             enemy.vx -= (dx / dist) * 0.08;
             enemy.vy -= (dy / dist) * 0.08;
@@ -769,12 +763,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           const dx = targetX - enemy.x;
           const dy = targetY - enemy.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > 150) {
-            enemy.vx += (dx / dist) * 0.38;
-            enemy.vy += (dy / dist) * 0.38;
-          } else if (dist > 75) {
-            enemy.vx += (dx / dist) * 0.18;
-            enemy.vy += (dy / dist) * 0.18;
+          if (dist > 75) {
+            enemy.vx += (dx / dist) * 0.32;
+            enemy.vy += (dy / dist) * 0.32;
           } else if (dist < 45) {
             enemy.vx -= (dx / dist) * 0.05;
             enemy.vy -= (dy / dist) * 0.05;
@@ -792,26 +783,15 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
 
       // Apply drag to keep velocities stabilized (smoother sliding during Jolt knockbacks)
-      const isRanged = enemy.type === "shooter" || enemy.type === "bullet_hell" || enemy.type === "target_shooter";
-      const rangedDx = targetX - enemy.x;
-      const rangedDy = targetY - enemy.y;
-      const rangedDist = Math.sqrt(rangedDx * rangedDx + rangedDy * rangedDy);
-      // Ranged enemies far from player get less drag so their acceleration actually accumulates
-      const drag = (isRanged && rangedDist > 120) ? 0.994 : 0.98;
-      if (enemy.knockbackTimer !== undefined && enemy.knockbackTimer > 0) {
-        enemy.vx *= 0.98;
-        enemy.vy *= 0.98;
-      } else {
-        enemy.vx *= drag;
-        enemy.vy *= drag;
-      }
+      enemy.vx *= 0.98;
+      enemy.vy *= 0.98;
 
       // Update position with cap speed limits
-      let capSpeed = enemy.type === "swarmer" ? 320 : enemy.type === "fast" ? 240 : enemy.type === "shooter" ? 220 : 160;
+      let capSpeed = enemy.type === "swarmer" ? 320 : enemy.type === "fast" ? 240 : 160;
       if (enemy.type === "bullet_hell") {
-        capSpeed = 260;
+        capSpeed = 180;
       } else if (enemy.type === "target_shooter") {
-        capSpeed = 240;
+        capSpeed = 160;
       } else if (enemy.type === "tank") {
         capSpeed = 100;
       }
@@ -1686,9 +1666,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const dcy = centerY - y;
     const dcDist = Math.sqrt(dcx * dcx + dcy * dcy);
     // Use a strong initial push so they visibly enter the field right away
-    // Ranged enemies get a stronger entry push since their speed stat is low
-    const isRangedSpawn = type === "shooter" || type === "bullet_hell" || type === "target_shooter";
-    const entrySpeed = isRangedSpawn ? speed * 80 + 120 : speed * 80 + 30;
+    const entrySpeed = speed * 80 + 30;
     const wanderVx = (dcx / dcDist) * entrySpeed + (Math.random() - 0.5) * 8;
     const wanderVy = (dcy / dcDist) * entrySpeed + (Math.random() - 0.5) * 8;
 
