@@ -544,9 +544,22 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                   min="0"
                   defaultValue={stats.highScores[key] || 0}
                   onChange={(e) => setBestTimeEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const inputs = Array.from(
+                        (e.target as HTMLElement).closest(".flex.flex-col")?.querySelectorAll("input") || []
+                      );
+                      const idx = inputs.indexOf(e.target as HTMLInputElement);
+                      if (idx >= 0 && idx < inputs.length - 1) {
+                        (inputs[idx + 1] as HTMLInputElement).focus();
+                      } else {
+                        (e.target as HTMLInputElement).blur();
+                        handleSaveBestTimes();
+                      }
+                    }
+                  }}
                   className="flex-1 bg-[#0a0a0a] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
                 />
-                <span className="text-zinc-600 text-[10px]">s</span>
               </div>
             ))}
           </div>
@@ -574,9 +587,22 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                   min="0"
                   defaultValue={totalKills[key] || 0}
                   onChange={(e) => setKillEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const inputs = Array.from(
+                        (e.target as HTMLElement).closest(".flex.flex-col")?.querySelectorAll("input") || []
+                      );
+                      const idx = inputs.indexOf(e.target as HTMLInputElement);
+                      if (idx >= 0 && idx < inputs.length - 1) {
+                        (inputs[idx + 1] as HTMLInputElement).focus();
+                      } else {
+                        (e.target as HTMLInputElement).blur();
+                        handleSaveKills();
+                      }
+                    }
+                  }}
                   className="flex-1 bg-[#0a0a0a] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
                 />
-                <span className="text-zinc-600 text-[10px]">kills</span>
               </div>
             ))}
           </div>
@@ -767,7 +793,20 @@ const ExperimentalSlider: React.FC<{
         onChange={(e) => setDraft(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={commit}
-        onKeyDown={(e) => { if (e.key === "Enter") { audio.playClick(); (e.target as HTMLInputElement).blur(); } }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            audio.playClick();
+            commit();
+            const container = (e.target as HTMLElement).closest(".flex.flex-col");
+            const inputs = Array.from(container?.querySelectorAll("input") || []);
+            const idx = inputs.indexOf(e.target as HTMLInputElement);
+            if (idx >= 0 && idx < inputs.length - 1) {
+              (inputs[idx + 1] as HTMLInputElement).focus();
+            } else {
+              (e.target as HTMLInputElement).blur();
+            }
+          }
+        }}
         className="w-full bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
       />
     </div>
@@ -903,6 +942,18 @@ const DiffField: React.FC<{
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              const container = (e.target as HTMLElement).closest(".flex.flex-col");
+              const inputs = Array.from(container?.querySelectorAll("input") || []);
+              const idx = inputs.indexOf(e.target as HTMLInputElement);
+              if (idx >= 0 && idx < inputs.length - 1) {
+                (inputs[idx + 1] as HTMLInputElement).focus();
+              } else {
+                (e.target as HTMLInputElement).blur();
+              }
+            }
+          }}
           className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
         />
       </div>
