@@ -398,45 +398,53 @@ class AudioEngine {
 
     switch (type) {
       case "explosion": {
-        // Deep thud + noise burst
+        // Low-pitch boom — very deep sine, slow decay
+        const bo = ctx.createOscillator(); const bg = ctx.createGain();
+        bo.type = "sine";
+        bo.frequency.setValueAtTime(55, t);
+        bo.frequency.exponentialRampToValueAtTime(12, t + 0.45);
+        bg.gain.setValueAtTime(vol * 1.2, t);
+        bg.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+        bo.connect(bg); bg.connect(dest); bo.start(t); bo.stop(t + 0.55);
+        // Very low noise rumble underneath
         const noise = this.createNoiseBuffer();
         if (noise) {
-          const src = ctx.createBufferSource();
-          src.buffer = noise;
-          const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.setValueAtTime(500, t);
-          const g = ctx.createGain(); g.gain.setValueAtTime(vol * 0.6, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-          src.connect(f); f.connect(g); g.connect(dest); src.start(t); src.stop(t + 0.4);
+          const src = ctx.createBufferSource(); src.buffer = noise;
+          const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.setValueAtTime(120, t);
+          const g = ctx.createGain(); g.gain.setValueAtTime(vol * 0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+          src.connect(f); f.connect(g); g.connect(dest); src.start(t); src.stop(t + 0.45);
         }
-        const osc = ctx.createOscillator(); const og = ctx.createGain();
-        osc.type = "sine"; osc.frequency.setValueAtTime(80, t); osc.frequency.exponentialRampToValueAtTime(18, t + 0.3);
-        og.gain.setValueAtTime(vol * 0.8, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-        osc.connect(og); og.connect(dest); osc.start(t); osc.stop(t + 0.35);
         break;
       }
       case "jolt_whoosh": {
-        // Fast outward whoosh
-        const noise = this.createNoiseBuffer();
-        if (noise) {
-          const src = ctx.createBufferSource(); src.buffer = noise;
-          const f = ctx.createBiquadFilter(); f.type = "bandpass";
-          f.frequency.setValueAtTime(400, t); f.frequency.exponentialRampToValueAtTime(3000, t + 0.25);
-          f.Q.setValueAtTime(1.5, t);
-          const g = ctx.createGain(); g.gain.setValueAtTime(vol * 0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-          src.connect(f); f.connect(g); g.connect(dest); src.start(t); src.stop(t + 0.3);
-        }
+        // Magnetic repulsion — electromagnetic buzz that snaps outward
+        const o1 = ctx.createOscillator(); const g1 = ctx.createGain();
+        o1.type = "sawtooth";
+        o1.frequency.setValueAtTime(60, t); o1.frequency.exponentialRampToValueAtTime(180, t + 0.12);
+        o1.frequency.exponentialRampToValueAtTime(40, t + 0.22);
+        g1.gain.setValueAtTime(0, t); g1.gain.linearRampToValueAtTime(vol * 0.5, t + 0.04);
+        g1.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+        o1.connect(g1); g1.connect(dest); o1.start(t); o1.stop(t + 0.25);
+        // Sharp click transient at start
+        const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+        o2.type = "sine"; o2.frequency.setValueAtTime(800, t);
+        g2.gain.setValueAtTime(vol * 0.6, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+        o2.connect(g2); g2.connect(dest); o2.start(t); o2.stop(t + 0.05);
         break;
       }
       case "pull_whoosh": {
-        // Inward sucking whoosh — pitch descends
-        const noise = this.createNoiseBuffer();
-        if (noise) {
-          const src = ctx.createBufferSource(); src.buffer = noise;
-          const f = ctx.createBiquadFilter(); f.type = "bandpass";
-          f.frequency.setValueAtTime(2500, t); f.frequency.exponentialRampToValueAtTime(200, t + 0.3);
-          f.Q.setValueAtTime(1.2, t);
-          const g = ctx.createGain(); g.gain.setValueAtTime(vol * 0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-          src.connect(f); f.connect(g); g.connect(dest); src.start(t); src.stop(t + 0.38);
-        }
+        // Gravitational pull — descending EM hum, like something being sucked in
+        const o1 = ctx.createOscillator(); const g1 = ctx.createGain();
+        o1.type = "sawtooth";
+        o1.frequency.setValueAtTime(200, t); o1.frequency.exponentialRampToValueAtTime(45, t + 0.3);
+        g1.gain.setValueAtTime(vol * 0.55, t); g1.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        o1.connect(g1); g1.connect(dest); o1.start(t); o1.stop(t + 0.35);
+        // Harmonic layer
+        const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+        o2.type = "sine";
+        o2.frequency.setValueAtTime(400, t); o2.frequency.exponentialRampToValueAtTime(80, t + 0.28);
+        g2.gain.setValueAtTime(vol * 0.3, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+        o2.connect(g2); g2.connect(dest); o2.start(t); o2.stop(t + 0.32);
         break;
       }
       case "ghost_dissolve": {
@@ -483,18 +491,22 @@ class AudioEngine {
         break;
       }
       case "wraith_blast": {
-        // Dark void implosion
-        const noise = this.createNoiseBuffer();
-        if (noise) {
-          const src = ctx.createBufferSource(); src.buffer = noise;
-          const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.setValueAtTime(300, t);
-          const g = ctx.createGain(); g.gain.setValueAtTime(vol * 0.55, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-          src.connect(f); f.connect(g); g.connect(dest); src.start(t); src.stop(t + 0.3);
-        }
-        const osc = ctx.createOscillator(); const og = ctx.createGain();
-        osc.type = "sawtooth"; osc.frequency.setValueAtTime(120, t); osc.frequency.exponentialRampToValueAtTime(25, t + 0.2);
-        og.gain.setValueAtTime(vol * 0.4, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
-        osc.connect(og); og.connect(dest); osc.start(t); osc.stop(t + 0.25);
+        // Heavy thud — deep sine punch, no rasp
+        const o1 = ctx.createOscillator(); const g1 = ctx.createGain();
+        o1.type = "sine";
+        o1.frequency.setValueAtTime(80, t);
+        o1.frequency.exponentialRampToValueAtTime(22, t + 0.28);
+        g1.gain.setValueAtTime(vol * 1.1, t);
+        g1.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+        o1.connect(g1); g1.connect(dest); o1.start(t); o1.stop(t + 0.35);
+        // Sub layer for weight
+        const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+        o2.type = "sine";
+        o2.frequency.setValueAtTime(40, t);
+        o2.frequency.exponentialRampToValueAtTime(10, t + 0.22);
+        g2.gain.setValueAtTime(vol * 0.7, t);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        o2.connect(g2); g2.connect(dest); o2.start(t); o2.stop(t + 0.28);
         break;
       }
       case "glint_crit_echo": {

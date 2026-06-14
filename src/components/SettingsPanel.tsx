@@ -89,7 +89,19 @@ export interface ExperimentalSettings {
   comboPitchEnabled: boolean;
   extraSfxEnabled: boolean;
   extraSfxVolume: number;
+  sfxExplosion: boolean;
+  sfxJoltWhoosh: boolean;
+  sfxPullWhoosh: boolean;
+  sfxGhostDissolve: boolean;
+  sfxFreeze: boolean;
+  sfxKatsune: boolean;
+  sfxWraithNull: boolean;
+  sfxGlintEcho: boolean;
   extraVisualEnabled: boolean;
+  visualTrail: boolean;
+  visualLandingBurst: boolean;
+  visualKillRing: boolean;
+  visualSloRing: boolean;
 }
 
 export const defaultExperimentalSettings: ExperimentalSettings = {
@@ -100,7 +112,19 @@ export const defaultExperimentalSettings: ExperimentalSettings = {
   comboPitchEnabled: false,
   extraSfxEnabled: false,
   extraSfxVolume: 1.0,
+  sfxExplosion: true,
+  sfxJoltWhoosh: true,
+  sfxPullWhoosh: true,
+  sfxGhostDissolve: true,
+  sfxFreeze: true,
+  sfxKatsune: true,
+  sfxWraithNull: true,
+  sfxGlintEcho: true,
   extraVisualEnabled: false,
+  visualTrail: true,
+  visualLandingBurst: true,
+  visualKillRing: true,
+  visualSloRing: true,
 };
 
 export const SettingsPanel: React.FC<SettingsProps> = ({
@@ -278,6 +302,18 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
     </div>
   );
 
+  const sfxCheckbox = (label: string, key: keyof typeof experimentalSettings) => (
+    <div className="flex items-center justify-between gap-4 pl-2">
+      <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">{label}</span>
+      <button
+        onClick={() => { audio.playClick(); onSetExperimentalSettings({ ...experimentalSettings, [key]: !experimentalSettings[key] }); }}
+        className={`shrink-0 w-7 h-7 border-2 relative transition-all cursor-pointer flex items-center justify-center ${experimentalSettings[key] ? "border-neon-cyan bg-neon-cyan/20" : "border-[#333] bg-[#050505]"}`}
+      >
+        {experimentalSettings[key] && <div className="w-3.5 h-3.5 bg-neon-cyan" />}
+      </button>
+    </div>
+  );
+
   const volumeSlider = (label: string, value: number, onChange: (v: number) => void) => (
     <div className="flex flex-col gap-1.5">
       <div className="flex justify-between text-[10px] text-zinc-400 uppercase tracking-widest font-black">
@@ -355,11 +391,21 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
           onSetExperimentalSettings({ ...experimentalSettings, extraSfxEnabled: !experimentalSettings.extraSfxEnabled })
         )}
         {experimentalSettings.extraSfxEnabled && (
-          <ExperimentalSlider
-            label="Extra SFX Volume"
-            value={experimentalSettings.extraSfxVolume}
-            onChange={(v) => onSetExperimentalSettings({ ...experimentalSettings, extraSfxVolume: v })}
-          />
+          <>
+            <ExperimentalSlider
+              label="Extra SFX Volume"
+              value={experimentalSettings.extraSfxVolume}
+              onChange={(v) => onSetExperimentalSettings({ ...experimentalSettings, extraSfxVolume: v })}
+            />
+            {sfxCheckbox("Ploum Explosion", "sfxExplosion")}
+            {sfxCheckbox("Jolt Whoosh", "sfxJoltWhoosh")}
+            {sfxCheckbox("Ploum Pull Whoosh", "sfxPullWhoosh")}
+            {sfxCheckbox("Echo Ghost Dissolve", "sfxGhostDissolve")}
+            {sfxCheckbox("Neo Drop Freeze", "sfxFreeze")}
+            {sfxCheckbox("Kätsune Slash", "sfxKatsune")}
+            {sfxCheckbox("Wraith / Null Blast", "sfxWraithNull")}
+            {sfxCheckbox("Glint Crit Echo", "sfxGlintEcho")}
+          </>
         )}
         <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
           Adds impact, whoosh, and ambient sound effects to abilities and explosions.
@@ -367,8 +413,16 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         {toggleSlider("Extra Visual Effects", experimentalSettings.extraVisualEnabled, () =>
           onSetExperimentalSettings({ ...experimentalSettings, extraVisualEnabled: !experimentalSettings.extraVisualEnabled })
         )}
+        {experimentalSettings.extraVisualEnabled && (
+          <>
+            {sfxCheckbox("Teleport Trail Particles", "visualTrail")}
+            {sfxCheckbox("Landing Burst Particles", "visualLandingBurst")}
+            {sfxCheckbox("Kill Impact Ring", "visualKillRing")}
+            {sfxCheckbox("Slo Charge Ring", "visualSloRing")}
+          </>
+        )}
         <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
-          Adds particle trails, landing bursts, kill impact rings, slo glow pulse, and ability particle effects.
+          Adds particle trails, landing bursts, kill impact rings, and a slo charge ring.
         </p>
       </Section>
 

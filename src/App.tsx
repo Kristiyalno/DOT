@@ -447,7 +447,19 @@ export default function App() {
           comboPitchEnabled={experimentalSettings.comboPitchEnabled}
           extraSfxEnabled={experimentalSettings.extraSfxEnabled}
           extraSfxVolume={experimentalSettings.extraSfxVolume}
+          sfxExplosion={experimentalSettings.sfxExplosion}
+          sfxJoltWhoosh={experimentalSettings.sfxJoltWhoosh}
+          sfxPullWhoosh={experimentalSettings.sfxPullWhoosh}
+          sfxGhostDissolve={experimentalSettings.sfxGhostDissolve}
+          sfxFreeze={experimentalSettings.sfxFreeze}
+          sfxKatsune={experimentalSettings.sfxKatsune}
+          sfxWraithNull={experimentalSettings.sfxWraithNull}
+          sfxGlintEcho={experimentalSettings.sfxGlintEcho}
           extraVisualEnabled={experimentalSettings.extraVisualEnabled}
+          visualTrail={experimentalSettings.visualTrail}
+          visualLandingBurst={experimentalSettings.visualLandingBurst}
+          visualKillRing={experimentalSettings.visualKillRing}
+          visualSloRing={experimentalSettings.visualSloRing}
         />
       )}
 
