@@ -86,6 +86,9 @@ export default function App() {
   const [invincible, setInvincible] = useState<boolean>(() => {
     try { return localStorage.getItem("dot_invincible") === "1"; } catch { return false; }
   });
+  const [preventRightClick, setPreventRightClick] = useState<boolean>(() => {
+    try { const v = localStorage.getItem("dot_prevent_rightclick"); return v === null ? true : v === "1"; } catch { return true; }
+  });
   const [musicVolume, setMusicVolumeState] = useState<number>(() => {
     try { return parseFloat(localStorage.getItem("dot_music_vol") || "1"); } catch { return 1; }
   });
@@ -167,6 +170,12 @@ export default function App() {
 
   const totalKillsRef = useRef(totalKills);
   useEffect(() => { totalKillsRef.current = totalKills; }, [totalKills]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (preventRightClick) e.preventDefault(); };
+    window.addEventListener("contextmenu", handler);
+    return () => window.removeEventListener("contextmenu", handler);
+  }, [preventRightClick]);
 
   useEffect(() => {
     if (neoDropUnlocked) return;
@@ -395,6 +404,12 @@ export default function App() {
           sfxVolume={sfxVolume}
           onMusicVolume={handleMusicVolume}
           onSfxVolume={handleSfxVolume}
+          preventRightClick={preventRightClick}
+          onTogglePreventRightClick={() => setPreventRightClick((p) => {
+            const next = !p;
+            try { localStorage.setItem("dot_prevent_rightclick", next ? "1" : "0"); } catch {}
+            return next;
+          })}
           invincible={invincible}
           onToggleInvincible={() => setInvincible((p) => {
             const next = !p;

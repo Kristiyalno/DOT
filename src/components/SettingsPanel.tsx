@@ -43,6 +43,8 @@ interface SettingsProps {
   onSetStats: (s: PlayerStats) => void;
   onSaveStats: (s: PlayerStats) => void;
   onUnlockAll: () => void;
+  preventRightClick: boolean;
+  onTogglePreventRightClick: () => void;
   invincible: boolean;
   onToggleInvincible: () => void;
   spamtonRange: [number, number];
@@ -134,7 +136,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
   onMusicVolume, onSfxVolume,
   stats, onSetStats, onSaveStats,
   onUnlockAll,
-  invincible, onToggleInvincible,
+  preventRightClick, onTogglePreventRightClick, invincible, onToggleInvincible,
   spamtonRange, onSetSpamtonRange,
   spamtonUnit, onSetSpamtonUnit,
   customDifficulties, onSetCustomDifficulties,
@@ -432,6 +434,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
           <div className="flex flex-col gap-4">
             {/* Invincibility */}
             {toggleSlider("Invincibility", invincible, onToggleInvincible)}
+            {toggleSlider("Prevent Right Click", preventRightClick, onTogglePreventRightClick)}
 
             {/* Set Ploints */}
             <div className="flex flex-col gap-1.5">

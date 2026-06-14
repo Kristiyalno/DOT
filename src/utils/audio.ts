@@ -417,21 +417,32 @@ class AudioEngine {
         break;
       }
       case "jolt_whoosh": {
-        // Soft magnetic repulsion — gentle sine sweep, nothing harsh
+        // Magnetic repulsion — two sine layers, punchy attack, fast decay
         const o1 = ctx.createOscillator(); const g1 = ctx.createGain();
         o1.type = "sine";
-        o1.frequency.setValueAtTime(120, t); o1.frequency.exponentialRampToValueAtTime(60, t + 0.25);
-        g1.gain.setValueAtTime(vol * 0.18, t); g1.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-        o1.connect(g1); g1.connect(dest); o1.start(t); o1.stop(t + 0.3);
+        o1.frequency.setValueAtTime(200, t); o1.frequency.exponentialRampToValueAtTime(50, t + 0.18);
+        g1.gain.setValueAtTime(vol * 0.55, t); g1.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        o1.connect(g1); g1.connect(dest); o1.start(t); o1.stop(t + 0.22);
+        const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+        o2.type = "sine";
+        o2.frequency.setValueAtTime(90, t); o2.frequency.exponentialRampToValueAtTime(30, t + 0.15);
+        g2.gain.setValueAtTime(vol * 0.4, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        o2.connect(g2); g2.connect(dest); o2.start(t); o2.stop(t + 0.2);
         break;
       }
       case "pull_whoosh": {
-        // Soft gravitational pull — descending sine, very gentle
+        // Gravitational pull — descending sine whomp then a low boom to lead into explosion
         const o1 = ctx.createOscillator(); const g1 = ctx.createGain();
         o1.type = "sine";
-        o1.frequency.setValueAtTime(180, t); o1.frequency.exponentialRampToValueAtTime(55, t + 0.3);
-        g1.gain.setValueAtTime(vol * 0.16, t); g1.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
-        o1.connect(g1); g1.connect(dest); o1.start(t); o1.stop(t + 0.35);
+        o1.frequency.setValueAtTime(250, t); o1.frequency.exponentialRampToValueAtTime(40, t + 0.25);
+        g1.gain.setValueAtTime(vol * 0.5, t); g1.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+        o1.connect(g1); g1.connect(dest); o1.start(t); o1.stop(t + 0.3);
+        // Sub layer
+        const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+        o2.type = "sine";
+        o2.frequency.setValueAtTime(80, t); o2.frequency.exponentialRampToValueAtTime(20, t + 0.22);
+        g2.gain.setValueAtTime(vol * 0.35, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        o2.connect(g2); g2.connect(dest); o2.start(t); o2.stop(t + 0.28);
         break;
       }
       case "ghost_dissolve": {
