@@ -24,6 +24,10 @@ interface MainMenuProps {
   sfxVolume: number;
   onMusicVolume: (v: number) => void;
   onSfxVolume: (v: number) => void;
+  preventRightClick: boolean;
+  onTogglePreventRightClick: () => void;
+  touchMode: "default" | "on" | "off";
+  onSetTouchMode: (v: "default" | "on" | "off") => void;
   invincible: boolean;
   onToggleInvincible: () => void;
   spamtonRange: [number, number];
@@ -70,7 +74,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   bigMode, onToggleBigMode,
   isMuted, onToggleMute,
   musicVolume, sfxVolume, onMusicVolume, onSfxVolume,
-  invincible, onToggleInvincible,
+  preventRightClick, onTogglePreventRightClick, touchMode, onSetTouchMode, invincible, onToggleInvincible,
   spamtonRange, onSetSpamtonRange,
   customDifficulties, onSetCustomDifficulties,
   leaderboardName, leaderboardColor,
@@ -379,6 +383,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           onMusicVolume={onMusicVolume} onSfxVolume={onSfxVolume}
           stats={stats} onSetStats={onSetStats} onSaveStats={onSaveStats}
           onUnlockAll={onUnlockAll}
+          preventRightClick={preventRightClick} onTogglePreventRightClick={onTogglePreventRightClick}
+          touchMode={touchMode} onSetTouchMode={onSetTouchMode}
           invincible={invincible} onToggleInvincible={onToggleInvincible}
           spamtonRange={spamtonRange} onSetSpamtonRange={onSetSpamtonRange}
           spamtonUnit={spamtonUnit} onSetSpamtonUnit={handleSetSpamtonUnit}

@@ -86,8 +86,13 @@ export default function App() {
   const [invincible, setInvincible] = useState<boolean>(() => {
     try { return localStorage.getItem("dot_invincible") === "1"; } catch { return false; }
   });
+  // preventRightClick = true means "disable prevention" (allow right click)
+  // Default false = prevention is ON
   const [preventRightClick, setPreventRightClick] = useState<boolean>(() => {
-    try { const v = localStorage.getItem("dot_prevent_rightclick"); return v === null ? true : v === "1"; } catch { return true; }
+    try { const v = localStorage.getItem("dot_prevent_rightclick"); return v === "1"; } catch { return false; }
+  });
+  const [touchMode, setTouchMode] = useState<"default" | "on" | "off">(() => {
+    try { const v = localStorage.getItem("dot_touch_mode"); return (v === "on" || v === "off") ? v : "default"; } catch { return "default"; }
   });
   const [musicVolume, setMusicVolumeState] = useState<number>(() => {
     try { return parseFloat(localStorage.getItem("dot_music_vol") || "1"); } catch { return 1; }
@@ -172,7 +177,7 @@ export default function App() {
   useEffect(() => { totalKillsRef.current = totalKills; }, [totalKills]);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => { if (preventRightClick) e.preventDefault(); };
+    const handler = (e: MouseEvent) => { if (!preventRightClick) e.preventDefault(); };
     window.addEventListener("contextmenu", handler);
     return () => window.removeEventListener("contextmenu", handler);
   }, [preventRightClick]);
@@ -404,6 +409,8 @@ export default function App() {
           sfxVolume={sfxVolume}
           onMusicVolume={handleMusicVolume}
           onSfxVolume={handleSfxVolume}
+          touchMode={touchMode}
+          onSetTouchMode={(v) => { setTouchMode(v); try { localStorage.setItem("dot_touch_mode", v); } catch {} }}
           preventRightClick={preventRightClick}
           onTogglePreventRightClick={() => setPreventRightClick((p) => {
             const next = !p;
@@ -460,6 +467,7 @@ export default function App() {
           screenShakeEnabled={experimentalSettings.screenShakeEnabled}
           screenShakeIntensity={experimentalSettings.screenShakeIntensity}
           comboPitchEnabled={experimentalSettings.comboPitchEnabled}
+          touchMode={touchMode}
           extraSfxEnabled={experimentalSettings.extraSfxEnabled}
           extraSfxVolume={experimentalSettings.extraSfxVolume}
           sfxExplosion={experimentalSettings.sfxExplosion}

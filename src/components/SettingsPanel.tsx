@@ -45,6 +45,8 @@ interface SettingsProps {
   onUnlockAll: () => void;
   preventRightClick: boolean;
   onTogglePreventRightClick: () => void;
+  touchMode: "default" | "on" | "off";
+  onSetTouchMode: (v: "default" | "on" | "off") => void;
   invincible: boolean;
   onToggleInvincible: () => void;
   spamtonRange: [number, number];
@@ -136,7 +138,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
   onMusicVolume, onSfxVolume,
   stats, onSetStats, onSaveStats,
   onUnlockAll,
-  preventRightClick, onTogglePreventRightClick, invincible, onToggleInvincible,
+  preventRightClick, onTogglePreventRightClick, touchMode, onSetTouchMode, invincible, onToggleInvincible,
   spamtonRange, onSetSpamtonRange,
   spamtonUnit, onSetSpamtonUnit,
   customDifficulties, onSetCustomDifficulties,
@@ -434,7 +436,21 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
           <div className="flex flex-col gap-4">
             {/* Invincibility */}
             {toggleSlider("Invincibility", invincible, onToggleInvincible)}
-            {toggleSlider("Prevent Right Click", preventRightClick, onTogglePreventRightClick)}
+            {toggleSlider("Disable Right Click Prevention", preventRightClick, onTogglePreventRightClick)}
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-xs text-zinc-300 uppercase tracking-widest font-black">Touch Mode</span>
+              <div className="flex border border-[#333]">
+                {(["default", "on", "off"] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => { audio.playClick(); onSetTouchMode(opt); }}
+                    className={`px-3 py-1 text-[10px] uppercase font-black tracking-widest transition-all cursor-pointer ${touchMode === opt ? "bg-neon-cyan/20 text-neon-cyan border-neon-cyan/40" : "text-zinc-500 hover:text-white"}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Set Ploints */}
             <div className="flex flex-col gap-1.5">
