@@ -214,7 +214,7 @@ class AudioEngine {
 
   // SFX: Enemy hit / kill crunchy noise burst
   // pitchMult > 1.0 raises pitch for combo escalation
-  public playEnemyKill(isTank = false, pitchMult = 1.0) {
+  public playEnemyKill(isTank = false, pitchMult = 1.0, volumeMult = 1.0) {
     this.initCtx();
     if (!this.ctx || this.isMutedState) return;
 
@@ -231,7 +231,7 @@ class AudioEngine {
     noiseSource.buffer = noise;
 
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(isTank ? 0.45 : 0.35, this.ctx.currentTime);
+    gain.gain.setValueAtTime((isTank ? 0.45 : 0.35) * volumeMult, this.ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.17);
 
     noiseSource.connect(filter);
@@ -257,7 +257,7 @@ class AudioEngine {
       const baseNote = isTank ? 80 : 220;
       osc.frequency.setValueAtTime(baseNote * pitchMult, this.ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(isTank ? 30 : 60, this.ctx.currentTime + 0.22);
-      oscGain.gain.setValueAtTime(isTank ? 0.4 : 0.28, this.ctx.currentTime);
+      oscGain.gain.setValueAtTime((isTank ? 0.4 : 0.28) * volumeMult, this.ctx.currentTime);
       oscGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
       osc.connect(oscGain);
       if (this.sfxGainNode) {

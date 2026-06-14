@@ -237,7 +237,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         if (s.player.slo < 100) return;
         s.player.slo = Math.max(0, s.player.slo - 100);
         s.neoFreezeFlashAlpha = 0.7;
-        if (extraSfxEnabledRef.current) audio.playExtraSfx("freeze", extraSfxVolumeRef.current);
+        if (extraSfxEnabledRef.current) audio.playExtraSfx("freeze", extraSfxVolumeRef.current * 1.4);
         const freezeUntil = Date.now() + 2000;
         s.neoFreezeUntil = freezeUntil;
         s.enemies.forEach((enemy: any) => {
@@ -593,7 +593,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
       if (touchingEnemy) {
         createExplosionParticles(eg.x, eg.y, eg.color, 20);
-        if (extraSfxEnabledRef.current) audio.playExtraSfx("ghost_dissolve", extraSfxVolumeRef.current);
+        if (extraSfxEnabledRef.current) audio.playExtraSfx("ghost_dissolve", extraSfxVolumeRef.current * 1.4);
         s.shockwaves.push({
           x: eg.x,
           y: eg.y,
@@ -1116,7 +1116,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       s.comboResetTimer = 1500;
 
       const pitchMult = comboPitchEnabledRef.current ? 1.0 + Math.min(s.comboCount - 1, 8) * 0.12 : 1.0;
-      audio.playEnemyKill(enemy.type === "tank", pitchMult);
+      audio.playEnemyKill(enemy.type === "tank", pitchMult, extraSfxEnabledRef.current ? 0.12 : 1.0);
 
       if (killFlashEnabledRef.current) {
         s.killFlashAlpha = 0.55 * killFlashIntensityRef.current;
@@ -1127,7 +1127,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     } else {
       // Laser kill — plain sound, no effects
-      audio.playEnemyKill(enemy.type === "tank", 1.0);
+      audio.playEnemyKill(enemy.type === "tank", 1.0, extraSfxEnabledRef.current ? 0.12 : 1.0);
     }
 
     // Apply kill-based matrix slow motion only for real kills
@@ -1310,7 +1310,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if (selectedDot.id === "ploum") {
       // Backdraft pull: drag nearby enemies toward departure point before explosion
       const ploumPullRadius = Math.round(173 * BIG); // ~0.6x previous 289
-      if (extraSfxEnabledRef.current) audio.playExtraSfx("pull_whoosh", extraSfxVolumeRef.current);
+      if (extraSfxEnabledRef.current) audio.playExtraSfx("pull_whoosh", extraSfxVolumeRef.current * 1.4);
       // Pull-wave: ring contracts inward from maxRadius to center, pulling enemies as it passes
       s.shockwaves.push({
         x: startX,
@@ -1327,7 +1327,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       createExplosionParticles(startX, startY, selectedDot.color, 30);
     const xsfx = (type: Parameters<typeof audio.playExtraSfx>[0]) => {
-      if (extraSfxEnabledRef.current) audio.playExtraSfx(type, extraSfxVolumeRef.current);
+      if (extraSfxEnabledRef.current) audio.playExtraSfx(type, extraSfxVolumeRef.current * 1.4);
     };
       xsfx("explosion");
       s.shockwaves.push({
@@ -1404,6 +1404,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // 6. Dot abilities triggered at DESTINATION
     if (isNullAbility) {
+      if (extraSfxEnabledRef.current) audio.playExtraSfx("wraith_blast", extraSfxVolumeRef.current * 1.4);
       // Null AOE Blast instead of line damage
       s.shockwaves.push({
         x: clickX,
@@ -1417,7 +1418,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
       createExplosionParticles(clickX, clickY, "#18181b", 20);
     } else if (isWraithAbility) {
-      if (extraSfxEnabledRef.current) audio.playExtraSfx("wraith_blast", extraSfxVolumeRef.current);
+      if (extraSfxEnabledRef.current) audio.playExtraSfx("wraith_blast", extraSfxVolumeRef.current * 1.4);
       // Wraith Instant large blast
       s.shockwaves.push({
         x: clickX,
@@ -1430,7 +1431,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         killsProjectiles: false
       });
     } else if (selectedDot.id === "katsune") {
-      if (extraSfxEnabledRef.current) audio.playExtraSfx("katsune_slash", extraSfxVolumeRef.current);
+      if (extraSfxEnabledRef.current) audio.playExtraSfx("katsune_slash", extraSfxVolumeRef.current * 1.4);
       // Katsune shoots 2 directed waves from DEPARTURE point toward teleport direction
       const angle = Math.atan2(clickY - startY, clickX - startX);
       const leftAngle = angle - Math.PI / 10;
@@ -1501,7 +1502,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
     } else if (selectedDot.id === "jolt") {
       // Jolt: ring expands and pushes enemies as it reaches them
-      if (extraSfxEnabledRef.current) audio.playExtraSfx("jolt_whoosh", extraSfxVolumeRef.current);
+      if (extraSfxEnabledRef.current) audio.playExtraSfx("jolt_whoosh", extraSfxVolumeRef.current * 1.4);
       const knockRadius = Math.round(150 * BIG);
       s.shockwaves.push({
         x: clickX,
@@ -1521,7 +1522,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       if (crit) {
         s.glintCritCooldown = 3000;
         audio.playGlintCrit();
-        if (extraSfxEnabledRef.current) audio.playExtraSfx("glint_crit_echo", extraSfxVolumeRef.current);
+        if (extraSfxEnabledRef.current) audio.playExtraSfx("glint_crit_echo", extraSfxVolumeRef.current * 1.4);
         
         // Trigger massive screen-flash alpha
         s.glintFlashAlpha = 1.0;
@@ -2319,16 +2320,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.lineWidth = 2.0;
     ctx.stroke();
 
-    // Extra visual: slo charge glow pulse on player
-    if (extraVisualEnabledRef.current && s.player.slo >= 60) {
-      const sloFrac = (s.player.slo - 60) / 40;
-      const pulse = 0.18 + sloFrac * 0.35;
-      const hx = selectedDot.color.replace("#","");
-      const rr = parseInt(hx.slice(0,2),16), gg2 = parseInt(hx.slice(2,4),16), bb2 = parseInt(hx.slice(4,6),16);
+    // Extra visual: slo charge ring — light blue pulsing arc that thickens with slo
+    if (extraVisualEnabledRef.current && s.player.slo > 0) {
+      const sloFrac = s.player.slo / 100;
+      // Animated pulse: oscillates between 0.5 and 1.0 using current time
+      const anim = 0.65 + 0.35 * Math.sin(Date.now() / 180);
+      const alpha = sloFrac * 0.72 * anim;
+      const thickness = 1.5 + sloFrac * 5.0;
+      const ringR = s.player.radius + 5 + sloFrac * 4;
       ctx.beginPath();
-      ctx.arc(s.player.x, s.player.y, s.player.radius + 6 + sloFrac * 8, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(${rr},${gg2},${bb2},${pulse})`;
-      ctx.lineWidth = 2.5;
+      ctx.arc(s.player.x, s.player.y, ringR, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(34,211,238,${alpha})`; // neon-cyan = slo bar color
+      ctx.lineWidth = thickness;
       ctx.stroke();
     }
 
