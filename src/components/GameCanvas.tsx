@@ -35,6 +35,9 @@ interface GameCanvasProps {
   screenShakeEnabled?: boolean;
   screenShakeIntensity?: number;
   comboPitchEnabled?: boolean;
+  extraSfxEnabled?: boolean;
+  extraSfxVolume?: number;
+  extraVisualEnabled?: boolean;
 }
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
@@ -52,6 +55,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   screenShakeEnabled = false,
   screenShakeIntensity = 1.0,
   comboPitchEnabled = false,
+  extraSfxEnabled = false,
+  extraSfxVolume = 1.0,
+  extraVisualEnabled = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -75,11 +81,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const killCountRef = useRef(0);
   const comboPitchEnabledRef = useRef(comboPitchEnabled);
   const killFlashEnabledRef = useRef(killFlashEnabled);
+  const extraSfxEnabledRef = useRef(extraSfxEnabled);
+  const extraSfxVolumeRef = useRef(extraSfxVolume);
+  const extraVisualEnabledRef = useRef(extraVisualEnabled);
   const killFlashIntensityRef = useRef(killFlashIntensity);
   const screenShakeEnabledRef = useRef(screenShakeEnabled);
   const screenShakeIntensityRef = useRef(screenShakeIntensity);
   useEffect(() => { comboPitchEnabledRef.current = comboPitchEnabled; }, [comboPitchEnabled]);
   useEffect(() => { killFlashEnabledRef.current = killFlashEnabled; }, [killFlashEnabled]);
+  useEffect(() => { extraSfxEnabledRef.current = extraSfxEnabled; }, [extraSfxEnabled]);
+  useEffect(() => { extraSfxVolumeRef.current = extraSfxVolume; }, [extraSfxVolume]);
+  useEffect(() => { extraVisualEnabledRef.current = extraVisualEnabled; }, [extraVisualEnabled]);
   useEffect(() => { killFlashIntensityRef.current = killFlashIntensity; }, [killFlashIntensity]);
   useEffect(() => { screenShakeEnabledRef.current = screenShakeEnabled; }, [screenShakeEnabled]);
   useEffect(() => { screenShakeIntensityRef.current = screenShakeIntensity; }, [screenShakeIntensity]);
@@ -225,6 +237,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         if (s.player.slo < 100) return;
         s.player.slo = Math.max(0, s.player.slo - 100);
         s.neoFreezeFlashAlpha = 0.7;
+        if (extraSfxEnabledRef.current) audio.playExtraSfx("freeze", extraSfxVolumeRef.current);
         const freezeUntil = Date.now() + 2000;
         s.neoFreezeUntil = freezeUntil;
         s.enemies.forEach((enemy: any) => {
@@ -580,6 +593,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
       if (touchingEnemy) {
         createExplosionParticles(eg.x, eg.y, eg.color, 20);
+        if (extraSfxEnabledRef.current) audio.playExtraSfx("ghost_dissolve", extraSfxVolumeRef.current);
         s.shockwaves.push({
           x: eg.x,
           y: eg.y,
@@ -1074,6 +1088,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   };
 
   const triggerEnemyKillForce = (enemy: Enemy, source: string, killedByLine: boolean = false) => {
+    if (extraVisualEnabledRef.current) {
+      stateRef.current.shockwaves.push({
+        x: enemy.x, y: enemy.y,
+        radius: Math.round(3 * BIG),
+        maxRadius: Math.round(28 * BIG),
+        speed: 9,
+        color: (enemy as any).color || "#ffffff",
+        killsEnemies: false,
+        killsProjectiles: false,
+      } as any);
+    }
     const s = stateRef.current;
     // Explode into tiny retro square particles
     createExplosionParticles(enemy.x, enemy.y, enemy.color, 15);
@@ -1248,6 +1273,22 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const startX = s.player.x;
     const startY = s.player.y;
 
+    // Extra visual: landing burst at destination
+    if (extraVisualEnabledRef.current) {
+      const s2 = stateRef.current;
+      for (let i = 0; i < 10; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const spd = 1.0 + Math.random() * 3.0;
+        s2.particles.push({
+          x: clickX, y: clickY,
+          vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd,
+          color: selectedDot.color,
+          alpha: 0.8, decay: 0.05 + Math.random() * 0.04,
+          radius: (1.0 + Math.random() * 2.5) * BIG, shape: Math.random() > 0.5 ? "square" : "circle"
+        });
+      }
+    }
+
     // 1. Trigger Teleportation SFX
     audio.playTeleport();
 
@@ -1269,6 +1310,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if (selectedDot.id === "ploum") {
       // Backdraft pull: drag nearby enemies toward departure point before explosion
       const ploumPullRadius = Math.round(173 * BIG); // ~0.6x previous 289
+      if (extraSfxEnabledRef.current) audio.playExtraSfx("pull_whoosh", extraSfxVolumeRef.current);
       // Pull-wave: ring contracts inward from maxRadius to center, pulling enemies as it passes
       s.shockwaves.push({
         x: startX,
@@ -1284,6 +1326,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       } as any);
 
       createExplosionParticles(startX, startY, selectedDot.color, 30);
+    const xsfx = (type: Parameters<typeof audio.playExtraSfx>[0]) => {
+      if (extraSfxEnabledRef.current) audio.playExtraSfx(type, extraSfxVolumeRef.current);
+    };
+      xsfx("explosion");
       s.shockwaves.push({
         x: startX,
         y: startY,
@@ -1371,6 +1417,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
       createExplosionParticles(clickX, clickY, "#18181b", 20);
     } else if (isWraithAbility) {
+      if (extraSfxEnabledRef.current) audio.playExtraSfx("wraith_blast", extraSfxVolumeRef.current);
       // Wraith Instant large blast
       s.shockwaves.push({
         x: clickX,
@@ -1383,6 +1430,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         killsProjectiles: false
       });
     } else if (selectedDot.id === "katsune") {
+      if (extraSfxEnabledRef.current) audio.playExtraSfx("katsune_slash", extraSfxVolumeRef.current);
       // Katsune shoots 2 directed waves from DEPARTURE point toward teleport direction
       const angle = Math.atan2(clickY - startY, clickX - startX);
       const leftAngle = angle - Math.PI / 10;
@@ -1453,6 +1501,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
     } else if (selectedDot.id === "jolt") {
       // Jolt: ring expands and pushes enemies as it reaches them
+      if (extraSfxEnabledRef.current) audio.playExtraSfx("jolt_whoosh", extraSfxVolumeRef.current);
       const knockRadius = Math.round(150 * BIG);
       s.shockwaves.push({
         x: clickX,
@@ -1472,6 +1521,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       if (crit) {
         s.glintCritCooldown = 3000;
         audio.playGlintCrit();
+        if (extraSfxEnabledRef.current) audio.playExtraSfx("glint_crit_echo", extraSfxVolumeRef.current);
         
         // Trigger massive screen-flash alpha
         s.glintFlashAlpha = 1.0;
@@ -2268,6 +2318,19 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.strokeStyle = selectedDot.borderColor;
     ctx.lineWidth = 2.0;
     ctx.stroke();
+
+    // Extra visual: slo charge glow pulse on player
+    if (extraVisualEnabledRef.current && s.player.slo >= 60) {
+      const sloFrac = (s.player.slo - 60) / 40;
+      const pulse = 0.18 + sloFrac * 0.35;
+      const hx = selectedDot.color.replace("#","");
+      const rr = parseInt(hx.slice(0,2),16), gg2 = parseInt(hx.slice(2,4),16), bb2 = parseInt(hx.slice(4,6),16);
+      ctx.beginPath();
+      ctx.arc(s.player.x, s.player.y, s.player.radius + 6 + sloFrac * 8, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${rr},${gg2},${bb2},${pulse})`;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
 
     // Invincibility shield halo around player
     if (s.player.isInvincible) {

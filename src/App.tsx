@@ -112,7 +112,13 @@ export default function App() {
     } catch {}
     return [2, 3];
   });
-  const [experimentalSettings, setExperimentalSettings] = useState<ExperimentalSettings>(defaultExperimentalSettings);
+  const [experimentalSettings, setExperimentalSettings] = useState<ExperimentalSettings>(() => {
+    try {
+      const stored = localStorage.getItem("dot_experimental");
+      if (stored) return { ...defaultExperimentalSettings, ...JSON.parse(stored) };
+    } catch {}
+    return defaultExperimentalSettings;
+  });
   const [customDifficulties, setCustomDifficulties] = useState<CustomDifficulty[]>(() => {
     try {
       const saved = localStorage.getItem(CUSTOM_DIFF_KEY);
@@ -416,7 +422,10 @@ export default function App() {
           initialTab={menuTab}
           onTabConsumed={() => setMenuTab("menu")}
           experimentalSettings={experimentalSettings}
-          onSetExperimentalSettings={setExperimentalSettings}
+          onSetExperimentalSettings={(s) => {
+            setExperimentalSettings(s);
+            try { localStorage.setItem("dot_experimental", JSON.stringify(s)); } catch {}
+          }}
         />
       )}
 
@@ -436,6 +445,9 @@ export default function App() {
           screenShakeEnabled={experimentalSettings.screenShakeEnabled}
           screenShakeIntensity={experimentalSettings.screenShakeIntensity}
           comboPitchEnabled={experimentalSettings.comboPitchEnabled}
+          extraSfxEnabled={experimentalSettings.extraSfxEnabled}
+          extraSfxVolume={experimentalSettings.extraSfxVolume}
+          extraVisualEnabled={experimentalSettings.extraVisualEnabled}
         />
       )}
 

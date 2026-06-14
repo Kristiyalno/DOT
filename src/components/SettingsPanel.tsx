@@ -87,6 +87,9 @@ export interface ExperimentalSettings {
   screenShakeEnabled: boolean;
   screenShakeIntensity: number;
   comboPitchEnabled: boolean;
+  extraSfxEnabled: boolean;
+  extraSfxVolume: number;
+  extraVisualEnabled: boolean;
 }
 
 export const defaultExperimentalSettings: ExperimentalSettings = {
@@ -95,6 +98,9 @@ export const defaultExperimentalSettings: ExperimentalSettings = {
   screenShakeEnabled: false,
   screenShakeIntensity: 1.0,
   comboPitchEnabled: false,
+  extraSfxEnabled: false,
+  extraSfxVolume: 1.0,
+  extraVisualEnabled: false,
 };
 
 export const SettingsPanel: React.FC<SettingsProps> = ({
@@ -344,6 +350,25 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         )}
         <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
           Raises the kill sound pitch on consecutive kills within 1.5 seconds.
+        </p>
+        {toggleSlider("Extra Sound Effects", experimentalSettings.extraSfxEnabled, () =>
+          onSetExperimentalSettings({ ...experimentalSettings, extraSfxEnabled: !experimentalSettings.extraSfxEnabled })
+        )}
+        {experimentalSettings.extraSfxEnabled && (
+          <ExperimentalSlider
+            label="Extra SFX Volume"
+            value={experimentalSettings.extraSfxVolume}
+            onChange={(v) => onSetExperimentalSettings({ ...experimentalSettings, extraSfxVolume: v })}
+          />
+        )}
+        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
+          Adds impact, whoosh, and ambient sound effects to abilities and explosions.
+        </p>
+        {toggleSlider("Extra Visual Effects", experimentalSettings.extraVisualEnabled, () =>
+          onSetExperimentalSettings({ ...experimentalSettings, extraVisualEnabled: !experimentalSettings.extraVisualEnabled })
+        )}
+        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
+          Adds particle trails, landing bursts, kill impact rings, slo glow pulse, and ability particle effects.
         </p>
       </Section>
 

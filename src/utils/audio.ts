@@ -387,6 +387,130 @@ class AudioEngine {
     return buffer;
   }
 
+  // EXTRA SFX: impact/whoosh/ambient sounds for abilities
+  public playExtraSfx(type: "explosion" | "jolt_whoosh" | "pull_whoosh" | "ghost_dissolve" | "freeze" | "katsune_slash" | "wraith_blast" | "glint_crit_echo", volume: number) {
+    this.initCtx();
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    const dest = this.sfxGainNode || ctx.destination;
+    const t = ctx.currentTime;
+    const vol = Math.max(0, volume);
+
+    switch (type) {
+      case "explosion": {
+        // Deep thud + noise burst
+        const noise = this.createNoiseBuffer();
+        if (noise) {
+          const src = ctx.createBufferSource();
+          src.buffer = noise;
+          const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.setValueAtTime(500, t);
+          const g = ctx.createGain(); g.gain.setValueAtTime(vol * 0.6, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+          src.connect(f); f.connect(g); g.connect(dest); src.start(t); src.stop(t + 0.4);
+        }
+        const osc = ctx.createOscillator(); const og = ctx.createGain();
+        osc.type = "sine"; osc.frequency.setValueAtTime(80, t); osc.frequency.exponentialRampToValueAtTime(18, t + 0.3);
+        og.gain.setValueAtTime(vol * 0.8, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        osc.connect(og); og.connect(dest); osc.start(t); osc.stop(t + 0.35);
+        break;
+      }
+      case "jolt_whoosh": {
+        // Fast outward whoosh
+        const noise = this.createNoiseBuffer();
+        if (noise) {
+          const src = ctx.createBufferSource(); src.buffer = noise;
+          const f = ctx.createBiquadFilter(); f.type = "bandpass";
+          f.frequency.setValueAtTime(400, t); f.frequency.exponentialRampToValueAtTime(3000, t + 0.25);
+          f.Q.setValueAtTime(1.5, t);
+          const g = ctx.createGain(); g.gain.setValueAtTime(vol * 0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+          src.connect(f); f.connect(g); g.connect(dest); src.start(t); src.stop(t + 0.3);
+        }
+        break;
+      }
+      case "pull_whoosh": {
+        // Inward sucking whoosh — pitch descends
+        const noise = this.createNoiseBuffer();
+        if (noise) {
+          const src = ctx.createBufferSource(); src.buffer = noise;
+          const f = ctx.createBiquadFilter(); f.type = "bandpass";
+          f.frequency.setValueAtTime(2500, t); f.frequency.exponentialRampToValueAtTime(200, t + 0.3);
+          f.Q.setValueAtTime(1.2, t);
+          const g = ctx.createGain(); g.gain.setValueAtTime(vol * 0.45, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+          src.connect(f); f.connect(g); g.connect(dest); src.start(t); src.stop(t + 0.38);
+        }
+        break;
+      }
+      case "ghost_dissolve": {
+        // Teal shimmer dissolve
+        const osc = ctx.createOscillator(); const og = ctx.createGain();
+        osc.type = "sine"; osc.frequency.setValueAtTime(900, t); osc.frequency.exponentialRampToValueAtTime(200, t + 0.4);
+        og.gain.setValueAtTime(vol * 0.25, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+        osc.connect(og); og.connect(dest); osc.start(t); osc.stop(t + 0.45);
+        const osc2 = ctx.createOscillator(); const og2 = ctx.createGain();
+        osc2.type = "triangle"; osc2.frequency.setValueAtTime(1400, t); osc2.frequency.exponentialRampToValueAtTime(400, t + 0.3);
+        og2.gain.setValueAtTime(vol * 0.15, t); og2.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        osc2.connect(og2); og2.connect(dest); osc2.start(t); osc2.stop(t + 0.35);
+        break;
+      }
+      case "freeze": {
+        // Crystalline ice freeze — high descending shimmer
+        const noise = this.createNoiseBuffer();
+        if (noise) {
+          const src = ctx.createBufferSource(); src.buffer = noise;
+          const f = ctx.createBiquadFilter(); f.type = "highpass"; f.frequency.setValueAtTime(4000, t);
+          const g = ctx.createGain(); g.gain.setValueAtTime(vol * 0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+          src.connect(f); f.connect(g); g.connect(dest); src.start(t); src.stop(t + 0.55);
+        }
+        [1200, 1800, 2400].forEach((freq, i) => {
+          const o = ctx.createOscillator(); const g = ctx.createGain();
+          o.type = "sine"; o.frequency.setValueAtTime(freq, t + i * 0.04);
+          o.frequency.exponentialRampToValueAtTime(freq * 0.4, t + 0.5 + i * 0.04);
+          g.gain.setValueAtTime(vol * 0.12, t + i * 0.04); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5 + i * 0.04);
+          o.connect(g); g.connect(dest); o.start(t + i * 0.04); o.stop(t + 0.55 + i * 0.04);
+        });
+        break;
+      }
+      case "katsune_slash": {
+        // Sharp high-frequency slice
+        const noise = this.createNoiseBuffer();
+        if (noise) {
+          const src = ctx.createBufferSource(); src.buffer = noise;
+          const f = ctx.createBiquadFilter(); f.type = "bandpass";
+          f.frequency.setValueAtTime(6000, t); f.frequency.exponentialRampToValueAtTime(1000, t + 0.12);
+          f.Q.setValueAtTime(3.0, t);
+          const g = ctx.createGain(); g.gain.setValueAtTime(vol * 0.4, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+          src.connect(f); f.connect(g); g.connect(dest); src.start(t); src.stop(t + 0.18);
+        }
+        break;
+      }
+      case "wraith_blast": {
+        // Dark void implosion
+        const noise = this.createNoiseBuffer();
+        if (noise) {
+          const src = ctx.createBufferSource(); src.buffer = noise;
+          const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.setValueAtTime(300, t);
+          const g = ctx.createGain(); g.gain.setValueAtTime(vol * 0.55, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+          src.connect(f); f.connect(g); g.connect(dest); src.start(t); src.stop(t + 0.3);
+        }
+        const osc = ctx.createOscillator(); const og = ctx.createGain();
+        osc.type = "sawtooth"; osc.frequency.setValueAtTime(120, t); osc.frequency.exponentialRampToValueAtTime(25, t + 0.2);
+        og.gain.setValueAtTime(vol * 0.4, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+        osc.connect(og); og.connect(dest); osc.start(t); osc.stop(t + 0.25);
+        break;
+      }
+      case "glint_crit_echo": {
+        // Crystalline reverb echo after glint crit
+        [0, 0.1, 0.22].forEach((delay, i) => {
+          const o = ctx.createOscillator(); const g = ctx.createGain();
+          o.type = "sine"; o.frequency.setValueAtTime(2200 - i * 300, t + delay);
+          g.gain.setValueAtTime(vol * (0.18 - i * 0.05), t + delay);
+          g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.2);
+          o.connect(g); g.connect(dest); o.start(t + delay); o.stop(t + delay + 0.25);
+        });
+        break;
+      }
+    }
+  }
+
   // SFX: Neo Drop unlock — shake/fizz buildup, then big knock transformation
   public playNeoDropUnlock() {
     this.initCtx();
