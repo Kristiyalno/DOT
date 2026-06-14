@@ -285,7 +285,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         if (s.player.slo < 100) return;
         s.player.slo = Math.max(0, s.player.slo - 100);
         s.neoFreezeFlashAlpha = 0.7;
-        if (extraSfxEnabledRef.current && sfxFreezeRef.current) audio.playExtraSfx("freeze", extraSfxVolumeRef.current * 1.4);
+        if (extraSfxEnabledRef.current && sfxFreezeRef.current) audio.playExtraSfx("freeze", extraSfxVolumeRef.current);
         const freezeUntil = Date.now() + 2000;
         s.neoFreezeUntil = freezeUntil;
         s.enemies.forEach((enemy: any) => {
@@ -641,7 +641,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
       if (touchingEnemy) {
         createExplosionParticles(eg.x, eg.y, eg.color, 20);
-        if (extraSfxEnabledRef.current && sfxGhostDissolveRef.current) audio.playExtraSfx("ghost_dissolve", extraSfxVolumeRef.current * 1.4);
+        if (extraSfxEnabledRef.current && sfxGhostDissolveRef.current) audio.playExtraSfx("ghost_dissolve", extraSfxVolumeRef.current);
         s.shockwaves.push({
           x: eg.x,
           y: eg.y,
@@ -1358,7 +1358,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if (selectedDot.id === "ploum") {
       // Backdraft pull: drag nearby enemies toward departure point before explosion
       const ploumPullRadius = Math.round(173 * BIG); // ~0.6x previous 289
-      if (extraSfxEnabledRef.current && sfxPullWhooshRef.current) audio.playExtraSfx("pull_whoosh", extraSfxVolumeRef.current * 1.4);
+      if (extraSfxEnabledRef.current && sfxPullWhooshRef.current) audio.playExtraSfx("pull_whoosh", extraSfxVolumeRef.current);
       // Pull-wave: ring contracts inward from maxRadius to center, pulling enemies as it passes
       s.shockwaves.push({
         x: startX,
@@ -1386,7 +1386,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     };
     const xsfx = (type: Parameters<typeof audio.playExtraSfx>[0]) => {
       if (extraSfxEnabledRef.current && sfxFlagFor[type]?.current !== false)
-        audio.playExtraSfx(type, extraSfxVolumeRef.current * 1.4);
+        audio.playExtraSfx(type, extraSfxVolumeRef.current);
     };
       xsfx("explosion");
       s.shockwaves.push({
@@ -1486,7 +1486,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // 6. Dot abilities triggered at DESTINATION
     if (isNullAbility) {
-      if (extraSfxEnabledRef.current && sfxWraithNullRef.current) audio.playExtraSfx("wraith_blast", extraSfxVolumeRef.current * 1.4);
+      if (extraSfxEnabledRef.current && sfxWraithNullRef.current) audio.playExtraSfx("wraith_blast", extraSfxVolumeRef.current);
       // Null AOE Blast instead of line damage
       s.shockwaves.push({
         x: clickX,
@@ -1500,7 +1500,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
       createExplosionParticles(clickX, clickY, "#18181b", 20);
     } else if (isWraithAbility) {
-      if (extraSfxEnabledRef.current && sfxWraithNullRef.current) audio.playExtraSfx("wraith_blast", extraSfxVolumeRef.current * 1.4);
+      if (extraSfxEnabledRef.current && sfxWraithNullRef.current) audio.playExtraSfx("wraith_blast", extraSfxVolumeRef.current);
       // Wraith Instant large blast
       s.shockwaves.push({
         x: clickX,
@@ -1513,7 +1513,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         killsProjectiles: false
       });
     } else if (selectedDot.id === "katsune") {
-      if (extraSfxEnabledRef.current && sfxKatsuneRef.current) audio.playExtraSfx("katsune_slash", extraSfxVolumeRef.current * 1.4);
+      if (extraSfxEnabledRef.current && sfxKatsuneRef.current) audio.playExtraSfx("katsune_slash", extraSfxVolumeRef.current);
       // Katsune shoots 2 directed waves from DEPARTURE point toward teleport direction
       const angle = Math.atan2(clickY - startY, clickX - startX);
       const leftAngle = angle - Math.PI / 10;
@@ -1584,7 +1584,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
     } else if (selectedDot.id === "jolt") {
       // Jolt: ring expands and pushes enemies as it reaches them
-      if (extraSfxEnabledRef.current && sfxJoltWhooshRef.current) audio.playExtraSfx("jolt_whoosh", extraSfxVolumeRef.current * 1.4);
+      if (extraSfxEnabledRef.current && sfxJoltWhooshRef.current) audio.playExtraSfx("jolt_whoosh", extraSfxVolumeRef.current);
       const knockRadius = Math.round(150 * BIG);
       s.shockwaves.push({
         x: clickX,
@@ -1604,7 +1604,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       if (crit) {
         s.glintCritCooldown = 3000;
         audio.playGlintCrit();
-        if (extraSfxEnabledRef.current && sfxGlintEchoRef.current) audio.playExtraSfx("glint_crit_echo", extraSfxVolumeRef.current * 1.4);
+        if (extraSfxEnabledRef.current && sfxGlintEchoRef.current) audio.playExtraSfx("glint_crit_echo", extraSfxVolumeRef.current);
         
         // Trigger massive screen-flash alpha
         s.glintFlashAlpha = 1.0;

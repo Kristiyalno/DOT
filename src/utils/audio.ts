@@ -417,34 +417,21 @@ class AudioEngine {
         break;
       }
       case "jolt_whoosh": {
-        // Magnetic repulsion — electromagnetic buzz that snaps outward
+        // Soft magnetic repulsion — gentle sine sweep, nothing harsh
         const o1 = ctx.createOscillator(); const g1 = ctx.createGain();
-        o1.type = "sawtooth";
-        o1.frequency.setValueAtTime(60, t); o1.frequency.exponentialRampToValueAtTime(180, t + 0.12);
-        o1.frequency.exponentialRampToValueAtTime(40, t + 0.22);
-        g1.gain.setValueAtTime(0, t); g1.gain.linearRampToValueAtTime(vol * 0.5, t + 0.04);
-        g1.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
-        o1.connect(g1); g1.connect(dest); o1.start(t); o1.stop(t + 0.25);
-        // Sharp click transient at start
-        const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
-        o2.type = "sine"; o2.frequency.setValueAtTime(800, t);
-        g2.gain.setValueAtTime(vol * 0.6, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-        o2.connect(g2); g2.connect(dest); o2.start(t); o2.stop(t + 0.05);
+        o1.type = "sine";
+        o1.frequency.setValueAtTime(120, t); o1.frequency.exponentialRampToValueAtTime(60, t + 0.25);
+        g1.gain.setValueAtTime(vol * 0.18, t); g1.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+        o1.connect(g1); g1.connect(dest); o1.start(t); o1.stop(t + 0.3);
         break;
       }
       case "pull_whoosh": {
-        // Gravitational pull — descending EM hum, like something being sucked in
+        // Soft gravitational pull — descending sine, very gentle
         const o1 = ctx.createOscillator(); const g1 = ctx.createGain();
-        o1.type = "sawtooth";
-        o1.frequency.setValueAtTime(200, t); o1.frequency.exponentialRampToValueAtTime(45, t + 0.3);
-        g1.gain.setValueAtTime(vol * 0.55, t); g1.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        o1.type = "sine";
+        o1.frequency.setValueAtTime(180, t); o1.frequency.exponentialRampToValueAtTime(55, t + 0.3);
+        g1.gain.setValueAtTime(vol * 0.16, t); g1.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
         o1.connect(g1); g1.connect(dest); o1.start(t); o1.stop(t + 0.35);
-        // Harmonic layer
-        const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
-        o2.type = "sine";
-        o2.frequency.setValueAtTime(400, t); o2.frequency.exponentialRampToValueAtTime(80, t + 0.28);
-        g2.gain.setValueAtTime(vol * 0.3, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-        o2.connect(g2); g2.connect(dest); o2.start(t); o2.stop(t + 0.32);
         break;
       }
       case "ghost_dissolve": {
