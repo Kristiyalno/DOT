@@ -1337,12 +1337,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    const pos = lastTouchRef.current;
-    if (!pos) return;
-    // Synthesize a mouse event at the last touch position and fire the teleport
+    // Use changedTouches[0] — the authoritative position where the finger actually lifted
+    const touch = e.changedTouches[0];
+    if (!touch) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const synth = { clientX: pos.x + canvas.getBoundingClientRect().left, clientY: pos.y + canvas.getBoundingClientRect().top } as React.MouseEvent<HTMLCanvasElement>;
+    const rect = canvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    // Update mouse position to match release point before teleporting
+    stateRef.current.mouse.x = x;
+    stateRef.current.mouse.y = y;
+    const synth = { clientX: touch.clientX, clientY: touch.clientY } as React.MouseEvent<HTMLCanvasElement>;
     handleStageClick(synth);
     lastTouchRef.current = null;
   };
