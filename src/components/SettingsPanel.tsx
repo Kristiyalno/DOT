@@ -556,16 +556,10 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                 customDifficulties.map((cd, i) => (
                   <div key={i} className="flex items-center justify-between border border-[#222] bg-[#0a0a0a] px-3 py-2">
                     <span className="text-xs text-white font-black uppercase">{cd.name}</span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => { audio.playClick(); setEditingCustomIndex(i); setEditingCustomDiff({ ...cd }); setShowCustomDiffEditor(true); }}
-                        className="text-[10px] text-neon-cyan cursor-pointer hover:underline"
-                      >EDIT</button>
-                      <button
-                        onClick={() => handleDeleteCustomDiff(i)}
-                        className="text-[10px] text-neon-red cursor-pointer hover:underline"
-                      >DEL</button>
-                    </div>
+                    <CustomDiffRowButtons
+                      onEdit={() => { audio.playClick(); setEditingCustomIndex(i); setEditingCustomDiff({ ...cd }); setShowCustomDiffEditor(true); }}
+                      onDelete={() => handleDeleteCustomDiff(i)}
+                    />
                   </div>
                 ))
               )}
@@ -859,6 +853,31 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
               try { localStorage.removeItem(DEBUG_KEY); } catch {}
               setShowResetPopup(false);
             }} />
+            <ResetItem label="Kill Counts Per Difficulty" onReset={() => {
+              const fresh = { ...stats, killsByDifficulty: {} };
+              onSetStats(fresh); onSaveStats(fresh);
+            }} />
+            <ResetItem label="Experimental Settings" onReset={() => {
+              try { localStorage.removeItem("dot_experimental"); } catch {}
+              window.location.reload();
+            }} />
+            <ResetItem label="Invincibility Setting" onReset={() => {
+              try { localStorage.removeItem("dot_invincible"); } catch {}
+            }} />
+            <ResetItem label="Touchscreen Mode Setting" onReset={() => {
+              try { localStorage.removeItem("dot_touch_mode"); } catch {}
+            }} />
+            <ResetItem label="Right Click Prevention Setting" onReset={() => {
+              try { localStorage.removeItem("dot_prevent_rightclick"); } catch {}
+            }} />
+            <ResetItem label="Selected Dot" onReset={() => {
+              const fresh = { ...stats, selectedDot: "drop" };
+              onSetStats(fresh); onSaveStats(fresh);
+            }} />
+            <ResetItem label="Neo Drop Unlock" onReset={() => {
+              try { localStorage.removeItem("dot_neo_drop_unlocked"); } catch {}
+              onResetNeoDrop();
+            }} />
           </div>
         </Popup>
       )}
@@ -946,6 +965,31 @@ const Section: React.FC<{ title: string; accent?: string; children: React.ReactN
   </div>
 );
 
+const CustomDiffRowButtons: React.FC<{ onEdit: () => void; onDelete: () => void }> = ({ onEdit, onDelete }) => {
+  const [confirmingDelete, setConfirmingDelete] = React.useState(false);
+  return (
+    <div className="flex gap-2">
+      <button
+        onClick={onEdit}
+        className="px-3 py-1 text-[11px] font-black uppercase border border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan/10 cursor-pointer transition-all"
+      >EDIT</button>
+      <button
+        onClick={() => {
+          audio.playClick();
+          if (confirmingDelete) { onDelete(); setConfirmingDelete(false); }
+          else { setConfirmingDelete(true); }
+        }}
+        onBlur={() => setConfirmingDelete(false)}
+        className={`px-3 py-1 text-[11px] font-black uppercase border cursor-pointer transition-all ${
+          confirmingDelete
+            ? "border-neon-red bg-neon-red/10 text-neon-red"
+            : "border-zinc-600 text-zinc-400 hover:border-neon-red hover:text-neon-red"
+        }`}
+      >{confirmingDelete ? "CONFIRM" : "DELETE"}</button>
+    </div>
+  );
+};
+
 const Popup: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -961,10 +1005,10 @@ const Popup: React.FC<{ title: string; onClose: () => void; children: React.Reac
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-      <div className="bg-[#080808] border border-[#333] w-full max-w-md mx-4 p-6 flex flex-col gap-3">
-        <div className="flex items-center justify-between border-b border-[#222] pb-2">
-          <span className="text-xs font-black uppercase tracking-widest text-white">{title}</span>
-          <button onClick={() => { audio.playClick(); onClose(); }} className="text-zinc-500 hover:text-white cursor-pointer text-sm">✕</button>
+      <div className="bg-[#080808] border border-[#333] w-full max-w-2xl mx-4 p-8 flex flex-col gap-5">
+        <div className="flex items-center justify-between border-b border-[#222] pb-3">
+          <span className="text-sm font-black uppercase tracking-widest text-white">{title}</span>
+          <button onClick={() => { audio.playClick(); onClose(); }} className="text-zinc-500 hover:text-white cursor-pointer text-lg px-2">✕</button>
         </div>
         {children}
       </div>
@@ -996,10 +1040,10 @@ const CustomDiffPopup: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-      <div className="bg-[#080808] border border-[#333] w-full max-w-md mx-4 p-6 flex flex-col gap-3">
-        <div className="flex items-center justify-between border-b border-[#222] pb-2">
-          <span className="text-xs font-black uppercase tracking-widest text-white">{title}</span>
-          <button onClick={() => { audio.playClick(); setShowSavePrompt(true); }} className="text-zinc-500 hover:text-white cursor-pointer text-sm">✕</button>
+      <div className="bg-[#080808] border border-[#333] w-full max-w-2xl mx-4 p-8 flex flex-col gap-5">
+        <div className="flex items-center justify-between border-b border-[#222] pb-3">
+          <span className="text-sm font-black uppercase tracking-widest text-white">{title}</span>
+          <button onClick={() => { audio.playClick(); setShowSavePrompt(true); }} className="text-zinc-500 hover:text-white cursor-pointer text-lg px-2">✕</button>
         </div>
         {showSavePrompt ? (
           <div className="flex flex-col gap-3 py-2">
@@ -1031,17 +1075,29 @@ const CustomDiffPopup: React.FC<{
   );
 };
 
-const ResetItem: React.FC<{ label: string; onReset: () => void }> = ({ label, onReset }) => (
-  <div className="flex items-center justify-between border border-[#1a1a1a] px-3 py-2">
-    <span className="text-[11px] text-zinc-300 uppercase tracking-widest">{label}</span>
-    <button
-      onClick={() => { audio.playClick(); onReset(); }}
-      className="text-[10px] font-black uppercase text-neon-red hover:underline cursor-pointer"
-    >
-      RESET
-    </button>
-  </div>
-);
+const ResetItem: React.FC<{ label: string; onReset: () => void }> = ({ label, onReset }) => {
+  const [confirming, setConfirming] = React.useState(false);
+  return (
+    <div className="flex items-center justify-between border border-[#222] px-4 py-3 gap-4">
+      <span className="text-xs text-zinc-200 uppercase tracking-widest font-black">{label}</span>
+      <button
+        onClick={() => {
+          audio.playClick();
+          if (confirming) { onReset(); setConfirming(false); }
+          else { setConfirming(true); }
+        }}
+        onBlur={() => setConfirming(false)}
+        className={`px-4 py-1.5 text-xs font-black uppercase border cursor-pointer transition-all shrink-0 ${
+          confirming
+            ? "border-neon-red bg-neon-red/10 text-neon-red"
+            : "border-zinc-600 text-zinc-400 hover:border-zinc-400 hover:text-white"
+        }`}
+      >
+        {confirming ? "CONFIRM" : "RESET"}
+      </button>
+    </div>
+  );
+};
 
 const DiffField: React.FC<{
   label: string;

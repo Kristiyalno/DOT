@@ -307,7 +307,7 @@ class AudioEngine {
   }
 
   // SFX: Menu click sound (little retro square/triangle sound)
-  public playClick() {
+  public playClick(pitchMult = 1.0) {
     this.initCtx();
     if (!this.ctx || this.isMutedState) return;
 
@@ -315,8 +315,8 @@ class AudioEngine {
     const gain = this.ctx.createGain();
 
     osc.type = "triangle";
-    osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
-    osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.05); // E5
+    osc.frequency.setValueAtTime(523.25 * pitchMult, this.ctx.currentTime); // C5
+    osc.frequency.setValueAtTime(659.25 * pitchMult, this.ctx.currentTime + 0.05); // E5
 
     gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);

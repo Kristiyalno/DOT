@@ -21,7 +21,6 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
 
 
   const handleDotSelect = (dot: DotConfig) => {
-    audio.playClick();
     const now = Date.now();
     const qc = quickClickRef.current;
     const isUnlocked = unlockedDots.includes(dot.id);
@@ -33,6 +32,9 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
         qc.dotId = dot.id;
       }
       qc.lastTime = now;
+      // Escalating pitch on each quick-click so user knows it's registering
+      const pitchMult = 1.0 + (qc.count - 1) * 0.18;
+      audio.playClick(pitchMult);
       if (qc.count >= 4) {
         qc.count = 0;
         // Instant buy on 4th click
@@ -47,6 +49,7 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
         }
       }
     }
+    if (isUnlocked) audio.playClick();
     setSelectedShopDot(dot);
     setShowConfirm(false);
   };
