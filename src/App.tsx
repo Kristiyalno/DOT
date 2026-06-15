@@ -4,7 +4,7 @@ import { MainMenu } from "./components/MainMenu";
 import { GameCanvas } from "./components/GameCanvas";
 import { DeathScreen } from "./components/DeathScreen";
 import { audio } from "./utils/audio";
-import { CustomDifficulty, ExperimentalSettings, defaultExperimentalSettings } from "./components/SettingsPanel";
+import { CustomDifficulty, ExperimentalSettings, defaultExperimentalSettings, AccessibilitySettings, defaultAccessibilitySettings } from "./components/SettingsPanel";
 import { getDeviceId } from "./utils/firebase";
 
 const STORAGE_KEY = "dot_game_quantum_vessel_config_v2";
@@ -119,6 +119,13 @@ export default function App() {
       }
     } catch {}
     return [2, 3];
+  });
+  const [accessibilitySettings, setAccessibilitySettings] = useState<AccessibilitySettings>(() => {
+    try {
+      const stored = localStorage.getItem("dot_accessibility");
+      if (stored) return { ...defaultAccessibilitySettings, ...JSON.parse(stored) };
+    } catch {}
+    return defaultAccessibilitySettings;
   });
   const [experimentalSettings, setExperimentalSettings] = useState<ExperimentalSettings>(() => {
     try {
@@ -349,7 +356,7 @@ export default function App() {
       : selectedDotConfig;
 
   return (
-    <div className="w-full h-full bg-black text-white" style={{ minHeight: "100vh", WebkitUserSelect: "none", userSelect: "none" }}>
+    <div className={`w-full h-full bg-black text-white${accessibilitySettings.highContrast ? " high-contrast" : ""}`} style={{ minHeight: "100vh", WebkitUserSelect: "none", userSelect: "none" }}>
       {showNamePrompt && (
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85"
@@ -444,6 +451,11 @@ export default function App() {
           initialTab={menuTab}
           onTabConsumed={() => setMenuTab("menu")}
           experimentalSettings={experimentalSettings}
+          accessibilitySettings={accessibilitySettings}
+          onSetAccessibilitySettings={(s) => {
+            setAccessibilitySettings(s);
+            try { localStorage.setItem("dot_accessibility", JSON.stringify(s)); } catch {}
+          }}
           onSetExperimentalSettings={(s) => {
             setExperimentalSettings(s);
             try { localStorage.setItem("dot_experimental", JSON.stringify(s)); } catch {}

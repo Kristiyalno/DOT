@@ -119,6 +119,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   isTouchActiveRef.current = isTouchActive;
   const lastTouchRef = useRef<{ x: number; y: number } | null>(null);
   const mouseHoldingRef = useRef(false);
+  const suppressNextMouseRef = useRef(false);
 
   const extraSfxEnabledRef = useRef(extraSfxEnabled);
   const extraSfxVolumeRef = useRef(extraSfxVolume);
@@ -1348,12 +1349,19 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Update mouse position to match release point before teleporting
     stateRef.current.mouse.x = x;
     stateRef.current.mouse.y = y;
-    const synth = { clientX: touch.clientX, clientY: touch.clientY } as React.MouseEvent<HTMLCanvasElement>;
+    const synth = { clientX: touch.clientX, clientY: touch.clientY, _fromTouch: true } as any;
+    suppressNextMouseRef.current = true;
     handleStageClick(synth);
     lastTouchRef.current = null;
   };
 
   const handleStageClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Swallow synthesized mouse events that browsers fire after touch events
+    if (suppressNextMouseRef.current && !(e as any)._fromTouch) {
+      suppressNextMouseRef.current = false;
+      return;
+    }
+    suppressNextMouseRef.current = false;
     const s = stateRef.current;
     if (s.gameOverTriggered) return;
 
@@ -2315,21 +2323,35 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     });
 
-    // DRAW INCOMING PROJECTILES
+    // DRAW INCOMING PROJECTILES as laser beams
     s.projectiles.forEach((proj) => {
+      const speed = Math.sqrt(proj.vx * proj.vx + proj.vy * proj.vy) || 1;
+      const nx = proj.vx / speed;
+      const ny = proj.vy / speed;
+      const beamLen = 18 + speed * 3;
+      const tx = proj.x - nx * beamLen;
+      const ty = proj.y - ny * beamLen;
+      // Glow layer
+      ctx.save();
+      ctx.strokeStyle = proj.color;
+      ctx.lineWidth = 5;
+      ctx.shadowColor = proj.color;
+      ctx.shadowBlur = 10;
+      ctx.globalAlpha = 0.45;
       ctx.beginPath();
-      ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
-      ctx.fillStyle = proj.color;
-      ctx.fill();
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 1;
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(proj.x, proj.y);
       ctx.stroke();
-
-      // tail particle effect
+      // Core bright line
+      ctx.globalAlpha = 1.0;
+      ctx.shadowBlur = 4;
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "#ffffff";
       ctx.beginPath();
-      ctx.arc(proj.x - proj.vx * 3, proj.y - proj.vy * 3, proj.radius * 0.7, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(249, 115, 22, 0.4)";
-      ctx.fill();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(proj.x, proj.y);
+      ctx.stroke();
+      ctx.restore();
     });
 
     // DRAW ALL ENEMIES

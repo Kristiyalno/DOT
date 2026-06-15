@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Difficulty, DotConfig, DOTS_DATABASE, NEO_DROP_ID, PlayerStats } from "../types";
 import { audio } from "../utils/audio";
 import { Volume2, VolumeX, Trophy, Info } from "lucide-react";
-import { SettingsPanel, CustomDifficulty, ExperimentalSettings } from "./SettingsPanel";
+import { SettingsPanel, CustomDifficulty, ExperimentalSettings, AccessibilitySettings } from "./SettingsPanel";
 import { Leaderboard } from "./Leaderboard";
 import { Contributors } from "./Contributors";
 import { ShopMenu } from "./ShopMenu";
@@ -52,6 +52,8 @@ interface MainMenuProps {
   onSetTotalKills: (k: Record<string, number>) => void;
   experimentalSettings: ExperimentalSettings;
   onSetExperimentalSettings: (s: ExperimentalSettings) => void;
+  accessibilitySettings: AccessibilitySettings;
+  onSetAccessibilitySettings: (s: AccessibilitySettings) => void;
   onUnlockDot: (dotId: string, cost: number) => void;
   initialTab?: "menu" | "leaderboard" | "settings" | "shop";
   onTabConsumed?: () => void;
@@ -86,6 +88,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   onSetTotalKills,
   experimentalSettings,
   onSetExperimentalSettings,
+  accessibilitySettings,
+  onSetAccessibilitySettings,
   initialTab, onTabConsumed,
 }) => {
   const [activeTab, setActiveTab] = useState<"menu" | "shop" | "leaderboard" | "settings">("menu");
@@ -145,6 +149,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   // Neo Drop animation state
   const [neoGlow, setNeoGlow] = useState(false);
   const [neoShake, setNeoShake] = useState(false);  // shake phase before knock
+  const [neoTransformed, setNeoTransformed] = useState(false); // true after knock fires
   const [neoSurge, setNeoSurge] = useState(false);  // full-screen surge overlay
   useEffect(() => {
     if (!neoDropAnimating) return;
@@ -156,13 +161,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     // Phase 2: knock + transform (2.5s)
     const tKnock = setTimeout(() => {
       setNeoShake(false);
+      setNeoTransformed(true);
       setNeoSurge(true);
       setNeoGlow(true);
     }, 2500);
     // Phase 3: surge fades (2.5 + 1.2s)
     const tSurge = setTimeout(() => setNeoSurge(false), 3700);
     // Done (2.5 + 4.5s total)
-    const tDone = setTimeout(() => { setNeoGlow(false); onNeoDropAnimDone(); }, 7000);
+    const tDone = setTimeout(() => { setNeoGlow(false); setNeoTransformed(false); onNeoDropAnimDone(); }, 7000);
     return () => { clearTimeout(tKnock); clearTimeout(tSurge); clearTimeout(tDone); };
   }, [neoDropAnimating]);
 
@@ -398,6 +404,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           onSetTotalKills={onSetTotalKills}
           experimentalSettings={experimentalSettings}
           onSetExperimentalSettings={onSetExperimentalSettings}
+          accessibilitySettings={accessibilitySettings}
+          onSetAccessibilitySettings={onSetAccessibilitySettings}
         />
       )}
 
@@ -470,7 +478,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                         <span style={{
                           position: "absolute",
                           inset: "-12px",
-                          borderRadius: "4px",
+
                           boxShadow: `0 0 30px 12px ${dot.color}`,
                           animation: "neoGlow 0.35s ease-in-out infinite alternate",
                           pointerEvents: "none",
@@ -480,8 +488,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       <span
                         className="w-3.5 h-3.5"
                         style={{
-                          backgroundColor: dot.color,
-                          boxShadow: glowAnim ? `0 0 16px ${dot.color}` : `0 0 8px ${dot.color}`,
+                          backgroundColor: (neoShake && isNeo && !neoTransformed) ? "#22d3ee" : dot.color,
+                          boxShadow: glowAnim ? `0 0 16px ${dot.color}` : `0 0 8px ${(neoShake && isNeo && !neoTransformed) ? "#22d3ee" : dot.color}`,
+                          transition: "background-color 0.3s, box-shadow 0.3s",
                         }}
                       />
 
@@ -647,7 +656,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       {/* Contributors panel */}
       {showContributors && <Contributors onClose={() => setShowContributors(false)} />}
     {/* Neo Drop unlock surge overlay */}
-      {neoSurge && (
+      {neoSurge && !accessibilitySettings.reduceFlashing && (
         <div
           style={{
             position: "fixed",

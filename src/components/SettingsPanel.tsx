@@ -85,6 +85,16 @@ const defaultCustomDiff: CustomDifficulty = {
   permanent: false,
 };
 
+export interface AccessibilitySettings {
+  highContrast: boolean;
+  reduceFlashing: boolean;
+}
+
+export const defaultAccessibilitySettings: AccessibilitySettings = {
+  highContrast: false,
+  reduceFlashing: false,
+};
+
 export interface ExperimentalSettings {
   killFlashEnabled: boolean;
   killFlashIntensity: number;
@@ -148,6 +158,8 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
   isFullscreen, onToggleFullscreen,
   totalKills, onSetTotalKills,
   experimentalSettings, onSetExperimentalSettings,
+  accessibilitySettings,
+  onSetAccessibilitySettings,
 }) => {
   const [debugEnabled, setDebugEnabled] = useState<boolean>(() => {
     try { return localStorage.getItem(DEBUG_KEY) === "1"; } catch { return false; }
@@ -427,6 +439,22 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         )}
         <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
           Adds particle trails, landing bursts, kill impact rings, and a slo charge ring.
+        </p>
+      </Section>
+
+      {/* Accessibility */}
+      <Section title="Accessibility">
+        {toggleSlider("Higher Contrast", accessibilitySettings.highContrast, () =>
+          onSetAccessibilitySettings({ ...accessibilitySettings, highContrast: !accessibilitySettings.highContrast })
+        )}
+        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
+          Makes menu text brighter and more legible.
+        </p>
+        {toggleSlider("Reduce Flashing", accessibilitySettings.reduceFlashing, () =>
+          onSetAccessibilitySettings({ ...accessibilitySettings, reduceFlashing: !accessibilitySettings.reduceFlashing })
+        )}
+        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
+          Removes kill flash, glint flash, neo freeze flash, and the Neo Drop unlock overlay. Also dims teleport lines and lasers.
         </p>
       </Section>
 
@@ -817,7 +845,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
       {/* Reset specific popup */}
       {showResetPopup && (
         <Popup title="Reset Specific Data" onClose={() => setShowResetPopup(false)}>
-          <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-1" onWheel={(e) => { const el = e.currentTarget; const atTop = el.scrollTop === 0; const atBot = el.scrollTop + el.clientHeight >= el.scrollHeight; if ((atTop && e.deltaY < 0) || (atBot && e.deltaY > 0)) e.preventDefault(); e.stopPropagation(); }}>
             <ResetItem label="All High Scores" onReset={() => {
               const fresh = { ...stats, highScores: { ...stats.highScores } };
               Object.values(Difficulty).forEach((d) => { fresh.highScores[d] = 0; });
@@ -1077,23 +1105,33 @@ const CustomDiffPopup: React.FC<{
 
 const ResetItem: React.FC<{ label: string; onReset: () => void }> = ({ label, onReset }) => {
   const [confirming, setConfirming] = React.useState(false);
+  const [done, setDone] = React.useState(false);
   return (
-    <div className="flex items-center justify-between border border-[#222] px-4 py-3 gap-4">
-      <span className="text-xs text-zinc-200 uppercase tracking-widest font-black">{label}</span>
+    <div className="flex items-center justify-between border border-[#222] px-3 py-2.5 gap-2">
+      <span className="text-[10px] text-zinc-200 uppercase tracking-widest font-black leading-tight">{label}</span>
       <button
         onClick={() => {
-          audio.playClick();
-          if (confirming) { onReset(); setConfirming(false); }
-          else { setConfirming(true); }
+          if (done) return;
+          audio.playClick(confirming ? 1.4 : 1.0);
+          if (confirming) {
+            onReset();
+            setConfirming(false);
+            setDone(true);
+            setTimeout(() => setDone(false), 1800);
+          } else {
+            setConfirming(true);
+          }
         }}
-        onBlur={() => setConfirming(false)}
-        className={`px-4 py-1.5 text-xs font-black uppercase border cursor-pointer transition-all shrink-0 ${
-          confirming
+        onBlur={() => { if (!done) setConfirming(false); }}
+        className={`px-3 py-1 text-[10px] font-black uppercase border cursor-pointer transition-all shrink-0 ${
+          done
+            ? "border-green-500 bg-green-500/10 text-green-400"
+            : confirming
             ? "border-neon-red bg-neon-red/10 text-neon-red"
             : "border-zinc-600 text-zinc-400 hover:border-zinc-400 hover:text-white"
         }`}
       >
-        {confirming ? "CONFIRM" : "RESET"}
+        {done ? "✓" : confirming ? "CONFIRM" : "RESET"}
       </button>
     </div>
   );
