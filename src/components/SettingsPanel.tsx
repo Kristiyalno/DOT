@@ -438,7 +438,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             {toggleSlider("Invincibility", invincible, onToggleInvincible)}
             {toggleSlider("Disable Right Click Prevention", preventRightClick, onTogglePreventRightClick)}
             <div className="flex items-center justify-between gap-4">
-              <span className="text-xs text-zinc-300 uppercase tracking-widest font-black">Touch Mode</span>
+              <span className="text-xs text-zinc-300 uppercase tracking-widest font-black">Touchscreen Mode</span>
               <div className="flex border border-[#333]">
                 {(["default", "on", "off"] as const).map((opt) => (
                   <button

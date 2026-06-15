@@ -107,11 +107,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const killCountRef = useRef(0);
   const comboPitchEnabledRef = useRef(comboPitchEnabled);
   const killFlashEnabledRef = useRef(killFlashEnabled);
-  // Touch mode detection
-  const isTouchActive = touchMode === "on" || (touchMode === "default" && typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0));
-  const isTouchActiveRef = useRef(isTouchActive);
-  useEffect(() => { isTouchActiveRef.current = touchMode === "on" || (touchMode === "default" && ("ontouchstart" in window || navigator.maxTouchPoints > 0)); }, [touchMode]);
+  // Touch mode detection — reactive ref so forced mode works on desktop too
+  const isTouchActiveRef = useRef(false);
+  useEffect(() => {
+    const isRealTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    isTouchActiveRef.current = touchMode === "on" || (touchMode === "default" && isRealTouch);
+  }, [touchMode]);
+  // Also set immediately (not just after effect) so initial render is correct
+  const isRealTouchNow = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+  const isTouchActive = touchMode === "on" || (touchMode === "default" && isRealTouchNow);
+  isTouchActiveRef.current = isTouchActive;
   const lastTouchRef = useRef<{ x: number; y: number } | null>(null);
+  const mouseHoldingRef = useRef(false);
 
   const extraSfxEnabledRef = useRef(extraSfxEnabled);
   const extraSfxVolumeRef = useRef(extraSfxVolume);
@@ -1263,6 +1270,44 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   };
 
   // Mouse teleport calculation & damage line segments
+  // Mouse equivalents for forced touch mode on non-touch devices
+  const handleMouseDownTouch = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isTouchActiveRef.current) return;
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas || stateRef.current.gameOverTriggered) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    lastTouchRef.current = { x, y };
+    mouseHoldingRef.current = true;
+    stateRef.current.mouse.x = x;
+    stateRef.current.mouse.y = y;
+  };
+
+  const handleMouseMoveTouch = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    // Always update mouse for preview
+    stateRef.current.mouse.x = x;
+    stateRef.current.mouse.y = y;
+    if (isTouchActiveRef.current) {
+      lastTouchRef.current = { x, y };
+    }
+  };
+
+  const handleMouseUpTouch = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isTouchActiveRef.current || !mouseHoldingRef.current) return;
+    mouseHoldingRef.current = false;
+    const pos = lastTouchRef.current;
+    if (!pos) return;
+    handleStageClick(e);
+    lastTouchRef.current = null;
+  };
+
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     const canvas = canvasRef.current;
@@ -2640,8 +2685,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           <canvas
             ref={canvasRef}
             id="game-canvas"
-            onMouseMove={isTouchActive ? undefined : trackMouseMove}
-            onMouseDown={isTouchActive ? undefined : handleStageClick}
+            onMouseMove={handleMouseMoveTouch}
+            onMouseDown={isTouchActive ? handleMouseDownTouch : handleStageClick}
+            onMouseUp={isTouchActive ? handleMouseUpTouch : undefined}
             onTouchStart={isTouchActive ? handleTouchStart : undefined}
             onTouchMove={isTouchActive ? handleTouchMove : undefined}
             onTouchEnd={isTouchActive ? handleTouchEnd : undefined}
@@ -2711,8 +2757,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       <canvas
         ref={canvasRef}
         id="game-canvas"
-        onMouseMove={trackMouseMove}
-        onMouseDown={isTouchActive ? undefined : handleStageClick}
+        onMouseMove={handleMouseMoveTouch}
+        onMouseDown={isTouchActive ? handleMouseDownTouch : handleStageClick}
+        onMouseUp={isTouchActive ? handleMouseUpTouch : undefined}
         onTouchStart={isTouchActive ? handleTouchStart : undefined}
         onTouchMove={isTouchActive ? handleTouchMove : undefined}
         onTouchEnd={isTouchActive ? handleTouchEnd : undefined}
