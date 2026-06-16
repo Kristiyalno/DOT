@@ -1278,6 +1278,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   // Mouse equivalents for forced touch mode on non-touch devices
   const handleMouseDownTouch = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isTouchActiveRef.current) return;
+    // Suppress synthesized mousedown fired by browser after touchend
+    if (suppressNextMouseRef.current) {
+      suppressNextMouseRef.current = false;
+      return;
+    }
     e.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas || stateRef.current.gameOverTriggered) return;
@@ -1353,19 +1358,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Update mouse position to match release point before teleporting
     stateRef.current.mouse.x = x;
     stateRef.current.mouse.y = y;
-    const synth = { clientX: touch.clientX, clientY: touch.clientY, _fromTouch: true } as any;
-    suppressNextMouseRef.current = true;
-    handleStageClick(synth);
     lastTouchRef.current = null;
+    // Suppress the synthesized mousedown/mouseup the browser fires after touchend
+    suppressNextMouseRef.current = true;
+    handleStageClick({ clientX: touch.clientX, clientY: touch.clientY } as any);
   };
 
   const handleStageClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    // Swallow synthesized mouse events that browsers fire after touch events
-    if (suppressNextMouseRef.current && !(e as any)._fromTouch) {
-      suppressNextMouseRef.current = false;
-      return;
-    }
-    suppressNextMouseRef.current = false;
     const s = stateRef.current;
     if (s.gameOverTriggered) return;
 
