@@ -310,13 +310,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   };
 
   return (
-    <div
-      className="min-h-screen bg-brutal-grid font-mono text-ink flex flex-col p-6 md:p-12 border-4 border-[#222] select-none"
-      style={accessibilitySettings.highContrast ? ({
-        "--contrast-level": accessibilitySettings.contrastLevel,
-        filter: `invert(${Math.max(0, -accessibilitySettings.contrastLevel)}) contrast(${Math.max(0.001, Math.abs(accessibilitySettings.contrastLevel))})`,
-      } as React.CSSProperties) : undefined}
-    >
+    <div className="min-h-screen bg-brutal-grid font-mono text-ink flex flex-col p-6 md:p-12 border-4 border-[#222] select-none">
 
       {/* Top Banner */}
       <div className="flex justify-between items-center pb-6 border-b border-[#333]">

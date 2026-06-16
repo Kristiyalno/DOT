@@ -372,6 +372,10 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             label="Contrast Level"
             value={accessibilitySettings.contrastLevel}
             onChange={(v) => onSetAccessibilitySettings({ ...accessibilitySettings, contrastLevel: v })}
+            min={debugEnabled ? undefined : 0.3}
+            max={debugEnabled ? undefined : 3}
+            inputMin={debugEnabled ? undefined : 0.3}
+            inputMax={debugEnabled ? undefined : 3}
           />
         )}
         {toggleSlider("Reduce Flashing", accessibilitySettings.reduceFlashing, () =>
