@@ -29,9 +29,11 @@ body {
   overflow-x: hidden;
 }
 
-/* Accessibility: Custom Contrast — 1.0 = no change, >1 = more contrast, 0-1 = less contrast */
+/* Accessibility: Custom Contrast
+   1.0 = no change, >1 = more contrast, 0-1 = less contrast, negatives = inverted + contrast */
 .high-contrast * {
-  filter: contrast(max(0, var(--contrast-level, 1)));
+  filter: invert(clamp(0, calc(var(--contrast-level, 1) * -1), 1))
+          contrast(max(0.001, var(--contrast-level, 1)));
 }
 .high-contrast canvas {
   filter: none !important;
