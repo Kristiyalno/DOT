@@ -29,14 +29,10 @@ body {
   overflow-x: hidden;
 }
 
-/* Accessibility: Custom Contrast
-   1.0 = no change, >1 = more contrast, 0-1 = less contrast, negatives = inverted + contrast */
-.high-contrast * {
+/* Accessibility: Custom Contrast — applied only to .contrast-target to avoid stacking context issues */
+.contrast-target {
   filter: invert(clamp(0, calc(var(--contrast-level, 1) * -1), 1))
           contrast(max(0.001, var(--contrast-level, 1)));
-}
-.high-contrast canvas {
-  filter: none !important;
 }
 
 /* Accessibility: Larger Text — uses --text-scale CSS var (default 1.0) */
