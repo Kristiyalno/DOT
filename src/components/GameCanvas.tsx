@@ -466,7 +466,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
 
     // Neo Drop freeze flash decay
-    if (!reduceFlashingRef.current && s.neoFreezeFlashAlpha > 0) {
+    if (s.neoFreezeFlashAlpha > 0) {
       s.neoFreezeFlashAlpha = Math.max(0, s.neoFreezeFlashAlpha - 0.015 * (deltaReal / 16.67));
     }
     setHudFreezeReady(s.player.slo >= 100);
@@ -2619,7 +2619,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     }
 
     // NEO DROP FREEZE FLASH
-    if (s.neoFreezeFlashAlpha > 0) {
+    if (!reduceFlashingRef.current && s.neoFreezeFlashAlpha > 0) {
       ctx.fillStyle = `rgba(192, 132, 252, ${s.neoFreezeFlashAlpha * 0.35})`;
       ctx.fillRect(0, 0, s.width, s.height);
     }

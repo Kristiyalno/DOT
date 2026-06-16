@@ -87,14 +87,18 @@ const defaultCustomDiff: CustomDifficulty = {
 
 export interface AccessibilitySettings {
   highContrast: boolean;
+  contrastLevel: number; // 1.0 = default boost, higher = more
   reduceFlashing: boolean;
   largerText: boolean;
+  textScale: number; // 1.0 = default boost, higher = more
 }
 
 export const defaultAccessibilitySettings: AccessibilitySettings = {
   highContrast: false,
+  contrastLevel: 1.0,
   reduceFlashing: false,
   largerText: false,
+  textScale: 1.0,
 };
 
 export interface ExperimentalSettings {
@@ -363,6 +367,13 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         {toggleSlider("Higher Contrast", accessibilitySettings.highContrast, () =>
           onSetAccessibilitySettings({ ...accessibilitySettings, highContrast: !accessibilitySettings.highContrast })
         )}
+        {accessibilitySettings.highContrast && (
+          <ExperimentalSlider
+            label="Contrast Level"
+            value={accessibilitySettings.contrastLevel}
+            onChange={(v) => onSetAccessibilitySettings({ ...accessibilitySettings, contrastLevel: v })}
+          />
+        )}
         <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
           Makes menu text brighter and more legible.
         </p>
@@ -374,6 +385,13 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         </p>
         {toggleSlider("Larger Text", accessibilitySettings.largerText, () =>
           onSetAccessibilitySettings({ ...accessibilitySettings, largerText: !accessibilitySettings.largerText })
+        )}
+        {accessibilitySettings.largerText && (
+          <ExperimentalSlider
+            label="Text Scale"
+            value={accessibilitySettings.textScale}
+            onChange={(v) => onSetAccessibilitySettings({ ...accessibilitySettings, textScale: v })}
+          />
         )}
         <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
           Increases text size across all menus.
