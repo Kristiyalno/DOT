@@ -98,7 +98,7 @@ export const defaultAccessibilitySettings: AccessibilitySettings = {
   contrastLevel: 1.0,
   reduceFlashing: false,
   largerText: false,
-  textScale: 1.0,
+  textScale: 1.25,
 };
 
 export interface ExperimentalSettings {
@@ -364,38 +364,36 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
 
       {/* Accessibility */}
       <Section title="Accessibility">
-        {toggleSlider("Higher Contrast", accessibilitySettings.highContrast, () =>
+        {toggleSlider("Custom Contrast", accessibilitySettings.highContrast, () =>
           onSetAccessibilitySettings({ ...accessibilitySettings, highContrast: !accessibilitySettings.highContrast })
         )}
         {accessibilitySettings.highContrast && (
-          <ExperimentalSlider
+          <SettingsSlider
             label="Contrast Level"
             value={accessibilitySettings.contrastLevel}
             onChange={(v) => onSetAccessibilitySettings({ ...accessibilitySettings, contrastLevel: v })}
           />
         )}
-        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
-          Makes menu text brighter and more legible.
-        </p>
         {toggleSlider("Reduce Flashing", accessibilitySettings.reduceFlashing, () =>
           onSetAccessibilitySettings({ ...accessibilitySettings, reduceFlashing: !accessibilitySettings.reduceFlashing })
         )}
         <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
           Removes kill flash, glint flash, neo freeze flash, and Neo Drop unlock overlay. Also dims teleport lines and lasers.
         </p>
-        {toggleSlider("Larger Text", accessibilitySettings.largerText, () =>
+        {toggleSlider("Text Scaling", accessibilitySettings.largerText, () =>
           onSetAccessibilitySettings({ ...accessibilitySettings, largerText: !accessibilitySettings.largerText })
         )}
         {accessibilitySettings.largerText && (
-          <ExperimentalSlider
+          <SettingsSlider
             label="Text Scale"
             value={accessibilitySettings.textScale}
             onChange={(v) => onSetAccessibilitySettings({ ...accessibilitySettings, textScale: v })}
+            min={debugEnabled ? undefined : 0.25}
+            max={debugEnabled ? undefined : 6}
+            inputMin={debugEnabled ? undefined : 0.25}
+            inputMax={debugEnabled ? undefined : 6}
           />
         )}
-        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
-          Increases text size across all menus.
-        </p>
       </Section>
 
       {/* Experimental */}
@@ -407,7 +405,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
           onSetExperimentalSettings({ ...experimentalSettings, killFlashEnabled: !experimentalSettings.killFlashEnabled })
         )}
         {experimentalSettings.killFlashEnabled && (
-          <ExperimentalSlider
+          <SettingsSlider
             label="Flash Intensity"
             value={experimentalSettings.killFlashIntensity}
             onChange={(v) => onSetExperimentalSettings({ ...experimentalSettings, killFlashIntensity: v })}
@@ -417,7 +415,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
           onSetExperimentalSettings({ ...experimentalSettings, screenShakeEnabled: !experimentalSettings.screenShakeEnabled })
         )}
         {experimentalSettings.screenShakeEnabled && (
-          <ExperimentalSlider
+          <SettingsSlider
             label="Shake Intensity"
             value={experimentalSettings.screenShakeIntensity}
             onChange={(v) => onSetExperimentalSettings({ ...experimentalSettings, screenShakeIntensity: v })}
@@ -434,7 +432,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         )}
         {experimentalSettings.extraSfxEnabled && (
           <>
-            <ExperimentalSlider
+            <SettingsSlider
               label="Extra SFX Volume"
               value={experimentalSettings.extraSfxVolume}
               onChange={(v) => onSetExperimentalSettings({ ...experimentalSettings, extraSfxVolume: v })}
@@ -991,11 +989,15 @@ const VolumeSlider: React.FC<{
   );
 };
 
-const ExperimentalSlider: React.FC<{
+const SettingsSlider: React.FC<{
   label: string;
   value: number;
   onChange: (v: number) => void;
-}> = ({ label, value, onChange }) => {
+  min?: number;
+  max?: number;
+  inputMin?: number;
+  inputMax?: number;
+}> = ({ label, value, onChange, min = 0, max = 3, inputMin, inputMax }) => {
   const [draft, setDraft] = React.useState(String(parseFloat(value.toFixed(2))));
   const [focused, setFocused] = React.useState(false);
 
@@ -1007,8 +1009,12 @@ const ExperimentalSlider: React.FC<{
     setFocused(false);
     const parsed = parseFloat(draft);
     if (!isNaN(parsed)) {
-      onChange(parsed);
-      setDraft(String(parsed));
+      // Clamp to inputMin/inputMax if provided
+      const clamped = inputMin !== undefined || inputMax !== undefined
+        ? Math.min(inputMax ?? Infinity, Math.max(inputMin ?? -Infinity, parsed))
+        : parsed;
+      onChange(clamped);
+      setDraft(String(parseFloat(clamped.toFixed(2))));
     } else {
       setDraft(String(parseFloat(value.toFixed(2))));
     }
@@ -1022,10 +1028,10 @@ const ExperimentalSlider: React.FC<{
       </div>
       <input
         type="range"
-        min={0}
-        max={3}
+        min={min}
+        max={max}
         step={0.01}
-        value={Math.min(value, 3)}
+        value={Math.min(Math.max(value, min), max)}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
           onChange(v);
@@ -1036,6 +1042,8 @@ const ExperimentalSlider: React.FC<{
       <input
         type="number"
         step={0.01}
+        min={inputMin}
+        max={inputMax}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onFocus={() => setFocused(true)}

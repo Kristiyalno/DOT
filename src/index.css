@@ -29,20 +29,15 @@ body {
   overflow-x: hidden;
 }
 
-/* Accessibility: High Contrast — uses --contrast-level CSS var (default 1.0) */
-.high-contrast {
-  --cl: var(--contrast-level, 1);
+/* Accessibility: High Contrast — uses --contrast-level CSS var
+   1.0 = no change, >1 = more contrast, <1 = less contrast, 0 = grey, negatives = inverted */
+.high-contrast * {
+  filter: contrast(max(0, var(--contrast-level, 1))) brightness(calc(0.6 + var(--contrast-level, 1) * 0.4));
 }
-.high-contrast .text-zinc-500 { color: color-mix(in srgb, #d4d4d8 calc(var(--cl) * 100%), #a1a1aa) !important; }
-.high-contrast .text-zinc-400 { color: color-mix(in srgb, #ffffff calc(var(--cl) * 80%), #d4d4d8) !important; }
-.high-contrast .text-zinc-600 { color: color-mix(in srgb, #d4d4d8 calc(var(--cl) * 70%), #71717a) !important; }
-.high-contrast .text-zinc-300 { color: color-mix(in srgb, #ffffff calc(var(--cl) * 90%), #e4e4e7) !important; }
-.high-contrast .text-zinc-200 { color: #ffffff !important; }
-.high-contrast .border-\[\#222\] { border-color: color-mix(in srgb, #666 calc(var(--cl) * 100%), #222) !important; }
-.high-contrast .border-\[\#333\] { border-color: color-mix(in srgb, #777 calc(var(--cl) * 100%), #333) !important; }
-.high-contrast .border-\[\#1a1a1a\] { border-color: color-mix(in srgb, #555 calc(var(--cl) * 100%), #1a1a1a) !important; }
-.high-contrast .bg-\[\#0a0a0a\] { background-color: color-mix(in srgb, #222 calc(var(--cl) * 80%), #0a0a0a) !important; }
-.high-contrast .bg-\[\#080808\] { background-color: color-mix(in srgb, #1e1e1e calc(var(--cl) * 80%), #080808) !important; }
+/* Don't filter the canvas itself or it'll affect gameplay visuals */
+.high-contrast canvas {
+  filter: none !important;
+}
 
 /* Accessibility: Larger Text — uses --text-scale CSS var (default 1.0) */
 .larger-text {
