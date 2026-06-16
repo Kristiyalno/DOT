@@ -376,6 +376,8 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             max={1.43}
             inputMin={debugEnabled ? undefined : 0}
             inputMax={debugEnabled ? undefined : 1.43}
+            prefix="+"
+            suffix=""
           />
         )}
         <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
@@ -1008,7 +1010,9 @@ const SettingsSlider: React.FC<{
   max?: number;
   inputMin?: number;
   inputMax?: number;
-}> = ({ label, value, onChange, min = 0, max = 3, inputMin, inputMax }) => {
+  suffix?: string;
+  prefix?: string;
+}> = ({ label, value, onChange, min = 0, max = 3, inputMin, inputMax, suffix = "x", prefix = "" }) => {
   const [draft, setDraft] = React.useState(String(parseFloat(value.toFixed(2))));
   const [focused, setFocused] = React.useState(false);
 
@@ -1035,7 +1039,7 @@ const SettingsSlider: React.FC<{
     <div className="flex flex-col gap-1.5">
       <div className="flex justify-between text-[10px] text-zinc-400 uppercase tracking-widest font-black">
         <span>{label}</span>
-        <span className="text-white">{parseFloat(value.toFixed(2))}x</span>
+        <span className="text-white">{prefix}{parseFloat(value.toFixed(2))}{suffix}</span>
       </div>
       <input
         type="range"
