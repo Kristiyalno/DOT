@@ -332,45 +332,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
     </div>
   );
 
-  const VolumeSlider = ({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) => {
-    const [draft, setDraft] = React.useState(String(Math.round(value * 100)));
-    const [focused, setFocused] = React.useState(false);
-    React.useEffect(() => {
-      if (!focused) setDraft(String(Math.round(value * 100)));
-    }, [value, focused]);
-    const commit = () => {
-      setFocused(false);
-      const parsed = parseFloat(draft);
-      if (!isNaN(parsed)) {
-        const clamped = Math.min(100, Math.max(0, parsed));
-        onChange(clamped / 100);
-        setDraft(String(Math.round(clamped)));
-      } else {
-        setDraft(String(Math.round(value * 100)));
-      }
-    };
-    return (
-      <div className="flex flex-col gap-1.5">
-        <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">{label}</span>
-        <div className="flex gap-2 items-center">
-          <input type="range" min={0} max={1} step={0.01} value={value}
-            onChange={(e) => { const v = parseFloat(e.target.value); onChange(v); if (!focused) setDraft(String(Math.round(v * 100))); }}
-            className="flex-1 h-1.5 accent-neon-cyan cursor-pointer"
-          />
-          <input type="number" min={0} max={100} step={1} value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={commit}
-            onKeyDown={(e) => { if (e.key === "Enter") { audio.playClick(); commit(); (e.target as HTMLInputElement).blur(); } }}
-            className="w-16 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono text-center focus:border-neon-cyan outline-none"
-          />
-          <span className="text-[10px] text-zinc-500">%</span>
-        </div>
-      </div>
-    );
-  };
-  const volumeSlider = (label: string, value: number, onChange: (v: number) => void) =>
-    <VolumeSlider label={label} value={value} onChange={onChange} />;
+
 
   return (
     <div
@@ -392,8 +354,8 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
       {/* Audio */}
       <Section title="Audio">
         {toggleSlider("All Audio", !isMuted, () => { onToggleMute(); audio.playClick(); })}
-        {volumeSlider("Music Volume", musicVolume, onMusicVolume)}
-        {volumeSlider("SFX Volume", sfxVolume, onSfxVolume)}
+        <VolumeSlider label="Music Volume" value={musicVolume} onChange={onMusicVolume} />
+        <VolumeSlider label="SFX Volume" value={sfxVolume} onChange={onSfxVolume} />
       </Section>
 
       {/* Accessibility */}
@@ -945,6 +907,72 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
 
 // Slider + number input combo for experimental settings.
 // Slider goes 0–3 for convenience; type any value in the input. No hard limits enforced.
+const VolumeSlider: React.FC<{
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}> = ({ label, value, onChange }) => {
+  const pct = Math.round(value * 100);
+  const [draft, setDraft] = React.useState(String(pct));
+  const [focused, setFocused] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!focused) setDraft(String(Math.round(value * 100)));
+  }, [value, focused]);
+
+  const commit = () => {
+    setFocused(false);
+    const parsed = parseFloat(draft);
+    if (!isNaN(parsed)) {
+      const clamped = Math.min(100, Math.max(0, parsed));
+      onChange(clamped / 100);
+      setDraft(String(Math.round(clamped)));
+    } else {
+      setDraft(String(Math.round(value * 100)));
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex justify-between text-[10px] text-zinc-400 uppercase tracking-widest font-black">
+        <span>{label}</span>
+        <span className="text-white">{Math.round(value * 100)}%</span>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.01}
+        value={value}
+        onChange={(e) => {
+          const v = parseFloat(e.target.value);
+          onChange(v);
+          setDraft(String(Math.round(v * 100)));
+        }}
+        className="w-full h-1.5 accent-neon-cyan cursor-pointer"
+      />
+      <input
+        type="number"
+        min={0}
+        max={100}
+        step={1}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            audio.playClick();
+            commit();
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        className="w-full bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
+      />
+    </div>
+  );
+};
+
 const ExperimentalSlider: React.FC<{
   label: string;
   value: number;
@@ -1111,7 +1139,7 @@ const CustomDiffPopup: React.FC<{
         ) : (
           <>
             <div className="flex items-center justify-between border-b border-[#222] pb-2 mb-1">
-              <span className="text-xs font-black uppercase tracking-widest text-white">{title}</span>
+              <span className="text-xs font-black uppercase tracking-widest text-white">CUSTOM DIFFICULTY EDITOR</span>
               <button onClick={() => { audio.playClick(); setShowSavePrompt(true); }} className="text-zinc-500 hover:text-white cursor-pointer text-sm px-1.5 py-0.5 border border-transparent hover:border-zinc-600 transition-all">✕</button>
             </div>
             {children}
