@@ -2327,7 +2327,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         // Active Firing Stage!
         if (laser.type === "line") {
           // Huge red white-middle beam
-          ctx.strokeStyle = "rgba(239, 68, 68, 0.35)";
+          ctx.strokeStyle = reduceFlashingRef.current ? "rgba(239, 68, 68, 0.5)" : "rgba(239, 68, 68, 0.35)";
           ctx.lineWidth = reduceFlashingRef.current ? 3 * BIG : (30 + Math.sin(Date.now() / 10) * 8) * BIG;
           ctx.beginPath();
           ctx.moveTo(laser.x1 || 0, laser.y1 || 0);

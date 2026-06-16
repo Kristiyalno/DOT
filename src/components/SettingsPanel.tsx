@@ -89,12 +89,14 @@ export interface AccessibilitySettings {
   reduceFlashing: boolean;
   largerText: boolean;
   textScale: number; // 1.0 = default boost, higher = more
+  customContrast: number; // 1.0 = default, higher = more contrast
 }
 
 export const defaultAccessibilitySettings: AccessibilitySettings = {
   reduceFlashing: false,
   largerText: false,
   textScale: 1.25,
+  customContrast: 1.0,
 };
 
 export interface ExperimentalSettings {
@@ -360,6 +362,18 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
 
       {/* Accessibility */}
       <Section title="Accessibility">
+        <SettingsSlider
+          label="Custom Contrast"
+          value={accessibilitySettings.customContrast}
+          onChange={(v) => onSetAccessibilitySettings({ ...accessibilitySettings, customContrast: v })}
+          min={0.25}
+          max={4}
+          inputMin={0.25}
+          inputMax={4}
+        />
+        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
+          Adjusts the contrast of the entire game. 1.0 is the default.
+        </p>
         {toggleSlider("Reduce Flashing", accessibilitySettings.reduceFlashing, () =>
           onSetAccessibilitySettings({ ...accessibilitySettings, reduceFlashing: !accessibilitySettings.reduceFlashing })
         )}
@@ -899,6 +913,10 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             <ResetItem label="Neo Drop Unlock" onReset={() => {
               try { localStorage.removeItem("dot_neo_drop_unlocked"); } catch {}
               onResetNeoDrop();
+            }} />
+            <ResetItem label="Accessibility Settings" onReset={() => {
+              onSetAccessibilitySettings(defaultAccessibilitySettings);
+              try { localStorage.removeItem("dot_accessibility"); } catch {}
             }} />
           </div>
         </Popup>
