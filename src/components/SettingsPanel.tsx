@@ -913,7 +913,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
               try { localStorage.removeItem("dot_touch_mode"); } catch {}
             }} />
             <ResetItem label="Right Click Prevention Setting" onReset={() => {
-              try { localStorage.removeItem("dot_prevent_rightclick"); } catch {}
+              try { localStorage.removeItem("dot_disable_rightclick_prevention"); } catch {}
             }} />
             <ResetItem label="Selected Dot" onReset={() => {
               const fresh = { ...stats, selectedDot: "drop" };

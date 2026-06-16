@@ -7,7 +7,8 @@ import { audio } from "./utils/audio";
 import { CustomDifficulty, ExperimentalSettings, defaultExperimentalSettings, AccessibilitySettings, defaultAccessibilitySettings } from "./components/SettingsPanel";
 import { getDeviceId } from "./utils/firebase";
 
-const STORAGE_KEY = "dot_game_quantum_vessel_config_v2";
+const STORAGE_KEY = "dot_game_stats";
+const STORAGE_KEY_LEGACY = "dot_game_quantum_vessel_config_v2";
 const CUSTOM_DIFF_KEY = "dot_custom_difficulties";
 
 const defaultStats: PlayerStats = {
@@ -89,7 +90,14 @@ export default function App() {
   // preventRightClick = true means "disable prevention" (allow right click)
   // Default false = prevention is ON
   const [preventRightClick, setPreventRightClick] = useState<boolean>(() => {
-    try { const v = localStorage.getItem("dot_prevent_rightclick"); return v === "1"; } catch { return false; }
+    try {
+        // Migrate from old key name
+        if (localStorage.getItem("dot_prevent_rightclick") !== null && localStorage.getItem("dot_disable_rightclick_prevention") === null) {
+          localStorage.setItem("dot_disable_rightclick_prevention", localStorage.getItem("dot_prevent_rightclick")!);
+          localStorage.removeItem("dot_prevent_rightclick");
+        }
+        return localStorage.getItem("dot_disable_rightclick_prevention") === "1";
+      } catch { return false; }
   });
   const [touchMode, setTouchMode] = useState<"default" | "on" | "off">(() => {
     try { const v = localStorage.getItem("dot_touch_mode"); return (v === "on" || v === "off") ? v : "default"; } catch { return "default"; }
@@ -160,6 +168,14 @@ export default function App() {
   // Load from localStorage
   useEffect(() => {
     try {
+      // Migrate from old key name if needed
+      if (!localStorage.getItem(STORAGE_KEY)) {
+        const legacy = localStorage.getItem(STORAGE_KEY_LEGACY);
+        if (legacy) {
+          localStorage.setItem(STORAGE_KEY, legacy);
+          localStorage.removeItem(STORAGE_KEY_LEGACY);
+        }
+      }
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -305,7 +321,7 @@ export default function App() {
     setSessionKills(kills);
 
     // Scores are tracked per difficulty + bigMode separately
-    const baseDiffKey = currentCustomDiff ? currentCustomDiff.name : currentDifficulty;
+    const baseDiffKey = currentCustomDiff ? `custom:${currentCustomDiff.name}` : currentDifficulty;
     const diffKey = bigMode ? `${baseDiffKey}_big` : baseDiffKey;
 
     const oldBestKills = totalKills[diffKey] || 0;
@@ -421,7 +437,7 @@ export default function App() {
           preventRightClick={preventRightClick}
           onTogglePreventRightClick={() => setPreventRightClick((p) => {
             const next = !p;
-            try { localStorage.setItem("dot_prevent_rightclick", next ? "1" : "0"); } catch {}
+            try { localStorage.setItem("dot_disable_rightclick_prevention", next ? "1" : "0"); } catch {}
             return next;
           })}
           invincible={invincible}
