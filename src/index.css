@@ -29,12 +29,10 @@ body {
   overflow-x: hidden;
 }
 
-/* Accessibility: High Contrast — uses --contrast-level CSS var
-   1.0 = no change, >1 = more contrast, <1 = less contrast, 0 = grey, negatives = inverted */
+/* Accessibility: Custom Contrast — 1.0 = no change, >1 = more contrast, 0-1 = less contrast */
 .high-contrast * {
-  filter: contrast(max(0, var(--contrast-level, 1))) brightness(calc(0.6 + var(--contrast-level, 1) * 0.4));
+  filter: contrast(max(0, var(--contrast-level, 1)));
 }
-/* Don't filter the canvas itself or it'll affect gameplay visuals */
 .high-contrast canvas {
   filter: none !important;
 }
