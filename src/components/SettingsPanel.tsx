@@ -374,7 +374,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             onChange={(v) => onSetAccessibilitySettings({ ...accessibilitySettings, customContrast: v })}
             min={0}
             max={1.43}
-            inputMin={0}
+            inputMin={debugEnabled ? undefined : 0}
             inputMax={debugEnabled ? undefined : 1.43}
           />
         )}
