@@ -372,10 +372,10 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             label="Contrast Level"
             value={accessibilitySettings.customContrast}
             onChange={(v) => onSetAccessibilitySettings({ ...accessibilitySettings, customContrast: v })}
-            min={debugEnabled ? undefined : 0}
-            max={debugEnabled ? undefined : 1}
-            inputMin={debugEnabled ? undefined : 0}
-            inputMax={debugEnabled ? undefined : 1}
+            min={0}
+            max={1.43}
+            inputMin={0}
+            inputMax={debugEnabled ? undefined : 1.43}
           />
         )}
         <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
