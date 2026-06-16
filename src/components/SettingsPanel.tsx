@@ -86,16 +86,12 @@ const defaultCustomDiff: CustomDifficulty = {
 };
 
 export interface AccessibilitySettings {
-  highContrast: boolean;
-  contrastLevel: number; // 1.0 = default boost, higher = more
   reduceFlashing: boolean;
   largerText: boolean;
   textScale: number; // 1.0 = default boost, higher = more
 }
 
 export const defaultAccessibilitySettings: AccessibilitySettings = {
-  highContrast: false,
-  contrastLevel: 1.0,
   reduceFlashing: false,
   largerText: false,
   textScale: 1.25,
@@ -364,20 +360,6 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
 
       {/* Accessibility */}
       <Section title="Accessibility">
-        {toggleSlider("Custom Contrast", accessibilitySettings.highContrast, () =>
-          onSetAccessibilitySettings({ ...accessibilitySettings, highContrast: !accessibilitySettings.highContrast })
-        )}
-        {accessibilitySettings.highContrast && (
-          <SettingsSlider
-            label="Contrast Level"
-            value={accessibilitySettings.contrastLevel}
-            onChange={(v) => onSetAccessibilitySettings({ ...accessibilitySettings, contrastLevel: v })}
-            min={debugEnabled ? undefined : 0.3}
-            max={debugEnabled ? undefined : 3}
-            inputMin={debugEnabled ? undefined : 0.3}
-            inputMax={debugEnabled ? undefined : 3}
-          />
-        )}
         {toggleSlider("Reduce Flashing", accessibilitySettings.reduceFlashing, () =>
           onSetAccessibilitySettings({ ...accessibilitySettings, reduceFlashing: !accessibilitySettings.reduceFlashing })
         )}

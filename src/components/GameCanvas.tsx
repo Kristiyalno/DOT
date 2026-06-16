@@ -2253,51 +2253,81 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // DRAW LASERS
     s.lasers.forEach((laser) => {
       if (!laser.isActive) {
-        // Warning Blink Stage
+        // Warning Stage
         const blink = Math.floor(Date.now() / 110) % 2 === 0;
         if (laser.type === "line") {
-          ctx.strokeStyle = laser.color;
-          ctx.lineWidth = blink ? 1.5 : 0.3;
-          ctx.beginPath();
-          ctx.moveTo(laser.x1 || 0, laser.y1 || 0);
-          ctx.lineTo(laser.x2 || 0, laser.y2 || 0);
-          ctx.stroke();
-
-          // Laser borders warning tags
-          if (blink) {
-            ctx.fillStyle = "rgba(239, 68, 68, 0.25)";
+          if (reduceFlashingRef.current) {
+            ctx.strokeStyle = `rgba(239, 68, 68, ${(0.15 + 0.6 * Math.abs(Math.sin(Date.now() / 400))).toFixed(3)})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(laser.x1 || 0, laser.y1 || 0);
+            ctx.lineTo(laser.x2 || 0, laser.y2 || 0);
+            ctx.stroke();
+            const tagAlpha = (0.08 + 0.2 * Math.abs(Math.sin(Date.now() / 400))).toFixed(3);
+            ctx.fillStyle = `rgba(239, 68, 68, ${tagAlpha})`;
             ctx.fillRect((laser.x1 || 0) - 25, (laser.y1 || 0) - 25, 50, 50);
             ctx.fillRect((laser.x2 || 0) - 25, (laser.y2 || 0) - 25, 50, 50);
+          } else {
+            ctx.strokeStyle = laser.color;
+            ctx.lineWidth = blink ? 1.5 : 0.3;
+            ctx.beginPath();
+            ctx.moveTo(laser.x1 || 0, laser.y1 || 0);
+            ctx.lineTo(laser.x2 || 0, laser.y2 || 0);
+            ctx.stroke();
+            if (blink) {
+              ctx.fillStyle = "rgba(239, 68, 68, 0.25)";
+              ctx.fillRect((laser.x1 || 0) - 25, (laser.y1 || 0) - 25, 50, 50);
+              ctx.fillRect((laser.x2 || 0) - 25, (laser.y2 || 0) - 25, 50, 50);
+            }
           }
         } else if (laser.type === "wave") {
-          // Wave warning blink at the exact center coordinates
-          if (blink) {
+          if (reduceFlashingRef.current) {
+            const wAlpha = (0.15 + 0.55 * Math.abs(Math.sin(Date.now() / 400))).toFixed(3);
             ctx.beginPath();
             ctx.arc(laser.x || 0, laser.y || 0, 48, 0, Math.PI * 2);
-            ctx.strokeStyle = "#22c55e"; // Green wave laser warning color
+            ctx.strokeStyle = `rgba(34, 197, 94, ${wAlpha})`;
             ctx.lineWidth = 3;
             ctx.stroke();
-
-            // Center radar cross
             ctx.beginPath();
             ctx.moveTo((laser.x || 0) - 40, laser.y || 0); ctx.lineTo((laser.x || 0) + 40, laser.y || 0);
             ctx.moveTo(laser.x || 0, (laser.y || 0) - 40); ctx.lineTo(laser.x || 0, (laser.y || 0) + 40);
             ctx.lineWidth = 1;
             ctx.stroke();
-
-            // text "WARNING"
-            ctx.fillStyle = "#22c55e";
+            ctx.fillStyle = `rgba(34, 197, 94, ${wAlpha})`;
             ctx.font = "800 12px 'JetBrains Mono', monospace";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText("SONIC WAVE LAUNCH", laser.x || 0, (laser.y || 0) - 62);
+          } else {
+            // Wave warning blink at the exact center coordinates
+            if (blink) {
+              ctx.beginPath();
+              ctx.arc(laser.x || 0, laser.y || 0, 48, 0, Math.PI * 2);
+              ctx.strokeStyle = "#22c55e"; // Green wave laser warning color
+              ctx.lineWidth = 3;
+              ctx.stroke();
+
+              // Center radar cross
+              ctx.beginPath();
+              ctx.moveTo((laser.x || 0) - 40, laser.y || 0); ctx.lineTo((laser.x || 0) + 40, laser.y || 0);
+              ctx.moveTo(laser.x || 0, (laser.y || 0) - 40); ctx.lineTo(laser.x || 0, (laser.y || 0) + 40);
+              ctx.lineWidth = 1;
+              ctx.stroke();
+
+              // text "WARNING"
+              ctx.fillStyle = "#22c55e";
+              ctx.font = "800 12px 'JetBrains Mono', monospace";
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText("SONIC WAVE LAUNCH", laser.x || 0, (laser.y || 0) - 62);
+            }
           }
         }
       } else {
         // Active Firing Stage!
         if (laser.type === "line") {
           // Huge red white-middle beam
-          ctx.strokeStyle = reduceFlashingRef.current ? "rgba(239, 68, 68, 0.12)" : "rgba(239, 68, 68, 0.35)";
+          ctx.strokeStyle = reduceFlashingRef.current ? "rgba(239, 68, 68, 0.25)" : "rgba(239, 68, 68, 0.35)";
           ctx.lineWidth = reduceFlashingRef.current ? 3 * BIG : (30 + Math.sin(Date.now() / 10) * 8) * BIG;
           ctx.beginPath();
           ctx.moveTo(laser.x1 || 0, laser.y1 || 0);
