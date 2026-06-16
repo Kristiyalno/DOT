@@ -465,7 +465,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       }`}
                       style={
                         glowAnim
-                          ? { border: `2px solid ${dot.color}`, transform: "scale(1.18)", position: "relative", zIndex: 10 }
+                          ? { border: `2px solid ${dot.color}`, transform: "scale(1.18)", position: "relative", zIndex: 10, boxShadow: `0 0 28px 8px ${dot.color}`, animation: "neoGlow 0.35s ease-in-out infinite alternate" }
                           : neoShake && isNeo
                           ? { animation: "neoShakeCard 0.12s ease-in-out infinite alternate", border: `2px solid ${dot.color}`, position: "relative", zIndex: 10 }
                           : isUnlocked && isSelected
@@ -474,17 +474,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       }
 
                     >
-                      {glowAnim && (
-                        <span style={{
-                          position: "absolute",
-                          inset: "-12px",
 
-                          boxShadow: `0 0 30px 12px ${dot.color}`,
-                          animation: "neoGlow 0.35s ease-in-out infinite alternate",
-                          pointerEvents: "none",
-                          zIndex: -1,
-                        }} />
-                      )}
                       <span
                         className="w-3.5 h-3.5"
                         style={{

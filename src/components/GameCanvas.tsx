@@ -35,6 +35,7 @@ interface GameCanvasProps {
   screenShakeEnabled?: boolean;
   screenShakeIntensity?: number;
   comboPitchEnabled?: boolean;
+  reduceFlashing?: boolean;
   touchMode?: "default" | "on" | "off";
   extraSfxEnabled?: boolean;
   extraSfxVolume?: number;
@@ -68,6 +69,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   screenShakeEnabled = false,
   screenShakeIntensity = 1.0,
   comboPitchEnabled = false,
+  reduceFlashing = false,
   touchMode = "default",
   extraSfxEnabled = false,
   extraSfxVolume = 1.0,
@@ -108,6 +110,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const comboPitchEnabledRef = useRef(comboPitchEnabled);
   const killFlashEnabledRef = useRef(killFlashEnabled);
   // Touch mode detection — reactive ref so forced mode works on desktop too
+  const reduceFlashingRef = useRef(reduceFlashing);
+  useEffect(() => { reduceFlashingRef.current = reduceFlashing; }, [reduceFlashing]);
   const isTouchActiveRef = useRef(false);
   useEffect(() => {
     const isRealTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
@@ -462,7 +466,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
 
     // Neo Drop freeze flash decay
-    if (s.neoFreezeFlashAlpha > 0) {
+    if (!reduceFlashingRef.current && s.neoFreezeFlashAlpha > 0) {
       s.neoFreezeFlashAlpha = Math.max(0, s.neoFreezeFlashAlpha - 0.015 * (deltaReal / 16.67));
     }
     setHudFreezeReady(s.player.slo >= 100);
@@ -493,12 +497,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     s.projectiles.forEach((proj) => {
       const ddx = proj.x - s.player.x;
       const ddy = proj.y - s.player.y;
-      if (Math.sqrt(ddx * ddx + ddy * ddy) < (proj.radius + s.player.radius) / BIG + 35) {
+      if (Math.sqrt(ddx * ddx + ddy * ddy) < proj.radius + s.player.radius + 8 * BIG) {
         isDotNearDanger = true;
       }
       const cdx = proj.x - s.mouse.x;
       const cdy = proj.y - s.mouse.y;
-      if (Math.sqrt(cdx * cdx + cdy * cdy) < (proj.radius + s.player.radius) / BIG + 50) {
+      if (Math.sqrt(cdx * cdx + cdy * cdy) < proj.radius + s.player.radius + 20 * BIG) {
         isCursorNearDanger = true;
       }
     });
@@ -661,7 +665,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         s.shockwaves.push({
           x: eg.x,
           y: eg.y,
-          radius: Math.round(5 * BIG),
+          radius: Math.round(3 * BIG),
           maxRadius: Math.round(60 * BIG),
           speed: 10,
           color: eg.color,
@@ -2293,31 +2297,32 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         // Active Firing Stage!
         if (laser.type === "line") {
           // Huge red white-middle beam
-          ctx.strokeStyle = "rgba(239, 68, 68, 0.35)";
-          ctx.lineWidth = (30 + Math.sin(Date.now() / 10) * 8) * BIG;
+          ctx.strokeStyle = reduceFlashingRef.current ? "rgba(239, 68, 68, 0.12)" : "rgba(239, 68, 68, 0.35)";
+          ctx.lineWidth = reduceFlashingRef.current ? 3 * BIG : (30 + Math.sin(Date.now() / 10) * 8) * BIG;
           ctx.beginPath();
           ctx.moveTo(laser.x1 || 0, laser.y1 || 0);
           ctx.lineTo(laser.x2 || 0, laser.y2 || 0);
           ctx.stroke();
-
-          ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 6;
-          ctx.stroke();
+          if (!reduceFlashingRef.current) {
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 6;
+            ctx.stroke();
+          }
         } else if (laser.type === "wave") {
           // Expanding Green wave ring
           if (laser.radius !== undefined) {
             ctx.beginPath();
             ctx.arc(laser.x || 0, laser.y || 0, laser.radius, 0, Math.PI * 2);
-            ctx.strokeStyle = "#22c55e"; // bright neon green wave
-            ctx.lineWidth = 5 + Math.sin(Date.now() / 20) * 2; // thin, not BIG-scaled
+            ctx.strokeStyle = reduceFlashingRef.current ? "rgba(34,197,94,0.3)" : "#22c55e";
+            ctx.lineWidth = reduceFlashingRef.current ? 2 : 5 + Math.sin(Date.now() / 20) * 2;
             ctx.stroke();
-
-            // Inner flare
-            ctx.beginPath();
-            ctx.arc(laser.x || 0, laser.y || 0, laser.radius, 0, Math.PI * 2);
-            ctx.strokeStyle = "#ffffff";
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+            if (!reduceFlashingRef.current) {
+              ctx.beginPath();
+              ctx.arc(laser.x || 0, laser.y || 0, laser.radius, 0, Math.PI * 2);
+              ctx.strokeStyle = "#ffffff";
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+            }
           }
         }
       }
@@ -2328,24 +2333,24 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const speed = Math.sqrt(proj.vx * proj.vx + proj.vy * proj.vy) || 1;
       const nx = proj.vx / speed;
       const ny = proj.vy / speed;
-      const beamLen = 18 + speed * 3;
+      const beamLen = (8 + speed * 1.5) * BIG; // shorter, scales with BIG
       const tx = proj.x - nx * beamLen;
       const ty = proj.y - ny * beamLen;
-      // Glow layer
       ctx.save();
+      // Glow layer
       ctx.strokeStyle = proj.color;
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 3.5 * BIG;
       ctx.shadowColor = proj.color;
-      ctx.shadowBlur = 10;
-      ctx.globalAlpha = 0.45;
+      ctx.shadowBlur = 6 * BIG;
+      ctx.globalAlpha = 0.5;
       ctx.beginPath();
       ctx.moveTo(tx, ty);
       ctx.lineTo(proj.x, proj.y);
       ctx.stroke();
       // Core bright line
       ctx.globalAlpha = 1.0;
-      ctx.shadowBlur = 4;
-      ctx.lineWidth = 1.5;
+      ctx.shadowBlur = 2;
+      ctx.lineWidth = 1.2 * BIG;
       ctx.strokeStyle = "#ffffff";
       ctx.beginPath();
       ctx.moveTo(tx, ty);
@@ -2491,25 +2496,26 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // DRAW TELEPORT LASER LINE FLASH
     if ((s as any).teleportLine) {
       const tl = (s as any).teleportLine;
+      const rf = reduceFlashingRef.current;
       ctx.save();
-      ctx.globalAlpha = tl.alpha;
-      // Outer glow
+      ctx.globalAlpha = tl.alpha * (rf ? 0.3 : 1.0);
       ctx.strokeStyle = tl.color;
-      ctx.lineWidth = 4 * BIG;
+      ctx.lineWidth = (rf ? 1.5 : 4) * BIG;
       ctx.shadowColor = tl.color;
-      ctx.shadowBlur = 12 * BIG;
+      ctx.shadowBlur = rf ? 0 : 12 * BIG;
       ctx.beginPath();
       ctx.moveTo(tl.x1, tl.y1);
       ctx.lineTo(tl.x2, tl.y2);
       ctx.stroke();
-      // Bright white core
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 1.5 * BIG;
-      ctx.shadowBlur = 0;
-      ctx.beginPath();
-      ctx.moveTo(tl.x1, tl.y1);
-      ctx.lineTo(tl.x2, tl.y2);
-      ctx.stroke();
+      if (!rf) {
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5 * BIG;
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.moveTo(tl.x1, tl.y1);
+        ctx.lineTo(tl.x2, tl.y2);
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
@@ -2601,13 +2607,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     }
 
     // KILL FLASH
-    if (killFlashEnabledRef.current && s.killFlashAlpha > 0) {
+    if (killFlashEnabledRef.current && !reduceFlashingRef.current && s.killFlashAlpha > 0) {
       ctx.fillStyle = `rgba(255, 255, 255, ${s.killFlashAlpha})`;
       ctx.fillRect(0, 0, s.width, s.height);
     }
 
     // DRAW GLINT HIT FULL-SCREEN FLASH
-    if (s.glintFlashAlpha && s.glintFlashAlpha > 0) {
+    if (!reduceFlashingRef.current && s.glintFlashAlpha && s.glintFlashAlpha > 0) {
       ctx.fillStyle = `rgba(255, 255, 255, ${s.glintFlashAlpha * 0.75})`;
       ctx.fillRect(0, 0, s.width, s.height);
     }

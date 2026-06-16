@@ -356,7 +356,7 @@ export default function App() {
       : selectedDotConfig;
 
   return (
-    <div className={`w-full h-full bg-black text-white${accessibilitySettings.highContrast ? " high-contrast" : ""}`} style={{ minHeight: "100vh", WebkitUserSelect: "none", userSelect: "none" }}>
+    <div className={`w-full h-full bg-black text-white${accessibilitySettings.highContrast ? " high-contrast" : ""}${accessibilitySettings.largerText ? " larger-text" : ""}`} style={{ minHeight: "100vh", WebkitUserSelect: "none", userSelect: "none" }}>
       {showNamePrompt && (
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85"

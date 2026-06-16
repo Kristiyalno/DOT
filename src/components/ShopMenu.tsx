@@ -77,9 +77,6 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left column: List of available upgrade dots */}
         <div className="lg:col-span-7 flex flex-col gap-4 max-h-[55vh] overflow-y-auto pr-2 no-scrollbar">
-          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
-            Available Dots Database
-          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {DOTS_DATABASE.map((dot) => {
               const isUnlocked = unlockedDots.includes(dot.id);

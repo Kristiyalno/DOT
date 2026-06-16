@@ -29,6 +29,26 @@ body {
   overflow-x: hidden;
 }
 
+/* Accessibility: High Contrast */
+.high-contrast .text-zinc-500 { color: #d4d4d8 !important; }
+.high-contrast .text-zinc-400 { color: #e4e4e7 !important; }
+.high-contrast .text-zinc-600 { color: #a1a1aa !important; }
+.high-contrast .text-zinc-300 { color: #f4f4f5 !important; }
+.high-contrast .text-zinc-200 { color: #ffffff !important; }
+.high-contrast .border-\[\#222\] { border-color: #444 !important; }
+.high-contrast .border-\[\#333\] { border-color: #555 !important; }
+.high-contrast .border-\[\#1a1a1a\] { border-color: #3a3a3a !important; }
+.high-contrast .bg-\[\#0a0a0a\] { background-color: #1a1a1a !important; }
+.high-contrast .bg-\[\#080808\] { background-color: #161616 !important; }
+
+/* Accessibility: Larger Text */
+.larger-text .text-xs { font-size: 0.85rem !important; line-height: 1.4 !important; }
+.larger-text .text-\[10px\] { font-size: 0.8rem !important; }
+.larger-text .text-\[11px\] { font-size: 0.82rem !important; }
+.larger-text .text-\[9px\] { font-size: 0.75rem !important; }
+.larger-text .text-sm { font-size: 1rem !important; }
+.larger-text .text-base { font-size: 1.1rem !important; }
+
 /* Remove browser focus outlines globally */
 *:focus {
   outline: none !important;

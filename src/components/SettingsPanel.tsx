@@ -88,11 +88,13 @@ const defaultCustomDiff: CustomDifficulty = {
 export interface AccessibilitySettings {
   highContrast: boolean;
   reduceFlashing: boolean;
+  largerText: boolean;
 }
 
 export const defaultAccessibilitySettings: AccessibilitySettings = {
   highContrast: false,
   reduceFlashing: false,
+  largerText: false,
 };
 
 export interface ExperimentalSettings {
@@ -330,23 +332,45 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
     </div>
   );
 
-  const volumeSlider = (label: string, value: number, onChange: (v: number) => void) => (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex justify-between text-[10px] text-zinc-400 uppercase tracking-widest font-black">
-        <span>{label}</span>
-        <span className="text-white">{Math.round(value * 100)}%</span>
+  const VolumeSlider = ({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) => {
+    const [draft, setDraft] = React.useState(String(Math.round(value * 100)));
+    const [focused, setFocused] = React.useState(false);
+    React.useEffect(() => {
+      if (!focused) setDraft(String(Math.round(value * 100)));
+    }, [value, focused]);
+    const commit = () => {
+      setFocused(false);
+      const parsed = parseFloat(draft);
+      if (!isNaN(parsed)) {
+        const clamped = Math.min(100, Math.max(0, parsed));
+        onChange(clamped / 100);
+        setDraft(String(Math.round(clamped)));
+      } else {
+        setDraft(String(Math.round(value * 100)));
+      }
+    };
+    return (
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">{label}</span>
+        <div className="flex gap-2 items-center">
+          <input type="range" min={0} max={1} step={0.01} value={value}
+            onChange={(e) => { const v = parseFloat(e.target.value); onChange(v); if (!focused) setDraft(String(Math.round(v * 100))); }}
+            className="flex-1 h-1.5 accent-neon-cyan cursor-pointer"
+          />
+          <input type="number" min={0} max={100} step={1} value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={commit}
+            onKeyDown={(e) => { if (e.key === "Enter") { audio.playClick(); commit(); (e.target as HTMLInputElement).blur(); } }}
+            className="w-16 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono text-center focus:border-neon-cyan outline-none"
+          />
+          <span className="text-[10px] text-zinc-500">%</span>
+        </div>
       </div>
-      <input
-        type="range"
-        min={0}
-        max={1}
-        step={0.01}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full h-1.5 accent-neon-cyan cursor-pointer"
-      />
-    </div>
-  );
+    );
+  };
+  const volumeSlider = (label: string, value: number, onChange: (v: number) => void) =>
+    <VolumeSlider label={label} value={value} onChange={onChange} />;
 
   return (
     <div
@@ -370,6 +394,28 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         {toggleSlider("All Audio", !isMuted, () => { onToggleMute(); audio.playClick(); })}
         {volumeSlider("Music Volume", musicVolume, onMusicVolume)}
         {volumeSlider("SFX Volume", sfxVolume, onSfxVolume)}
+      </Section>
+
+      {/* Accessibility */}
+      <Section title="Accessibility">
+        {toggleSlider("Higher Contrast", accessibilitySettings.highContrast, () =>
+          onSetAccessibilitySettings({ ...accessibilitySettings, highContrast: !accessibilitySettings.highContrast })
+        )}
+        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
+          Makes menu text brighter and more legible.
+        </p>
+        {toggleSlider("Reduce Flashing", accessibilitySettings.reduceFlashing, () =>
+          onSetAccessibilitySettings({ ...accessibilitySettings, reduceFlashing: !accessibilitySettings.reduceFlashing })
+        )}
+        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
+          Removes kill flash, glint flash, neo freeze flash, and Neo Drop unlock overlay. Also dims teleport lines and lasers.
+        </p>
+        {toggleSlider("Larger Text", accessibilitySettings.largerText, () =>
+          onSetAccessibilitySettings({ ...accessibilitySettings, largerText: !accessibilitySettings.largerText })
+        )}
+        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
+          Increases text size across all menus.
+        </p>
       </Section>
 
       {/* Experimental */}
@@ -439,22 +485,6 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         )}
         <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
           Adds particle trails, landing bursts, kill impact rings, and a slo charge ring.
-        </p>
-      </Section>
-
-      {/* Accessibility */}
-      <Section title="Accessibility">
-        {toggleSlider("Higher Contrast", accessibilitySettings.highContrast, () =>
-          onSetAccessibilitySettings({ ...accessibilitySettings, highContrast: !accessibilitySettings.highContrast })
-        )}
-        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
-          Makes menu text brighter and more legible.
-        </p>
-        {toggleSlider("Reduce Flashing", accessibilitySettings.reduceFlashing, () =>
-          onSetAccessibilitySettings({ ...accessibilitySettings, reduceFlashing: !accessibilitySettings.reduceFlashing })
-        )}
-        <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
-          Removes kill flash, glint flash, neo freeze flash, and the Neo Drop unlock overlay. Also dims teleport lines and lasers.
         </p>
       </Section>
 
@@ -652,7 +682,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
       {/* Best time popup */}
       {showBestTimePopup && (
         <Popup title="Set Best Times" onClose={() => setShowBestTimePopup(false)}>
-          <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1" data-besttime="1" onWheel={(e) => {
+          <div className="flex flex-col gap-2 max-h-[65vh] overflow-y-auto pr-1" data-besttime="1" onWheel={(e) => {
                   const el = e.currentTarget;
                   const atTop = el.scrollTop === 0;
                   const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight;
@@ -704,7 +734,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
       {/* Set kills popup */}
       {showKillsPopup && (
         <Popup title="Set Best Kills" onClose={() => setShowKillsPopup(false)}>
-          <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1" data-bestkill="1" onWheel={(e) => {
+          <div className="flex flex-col gap-2 max-h-[65vh] overflow-y-auto pr-1" data-bestkill="1" onWheel={(e) => {
                   const el = e.currentTarget;
                   const atTop = el.scrollTop === 0;
                   const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight;
@@ -1034,9 +1064,9 @@ const Popup: React.FC<{ title: string; onClose: () => void; children: React.Reac
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
       <div className="bg-[#080808] border border-[#333] w-full max-w-2xl mx-4 p-8 flex flex-col gap-5">
-        <div className="flex items-center justify-between border-b border-[#222] pb-3">
-          <span className="text-sm font-black uppercase tracking-widest text-white">{title}</span>
-          <button onClick={() => { audio.playClick(); onClose(); }} className="text-zinc-500 hover:text-white cursor-pointer text-lg px-2">✕</button>
+        <div className="flex items-center justify-between border-b border-[#222] pb-2">
+          <span className="text-xs font-black uppercase tracking-widest text-white">{title}</span>
+          <button onClick={() => { audio.playClick(); onClose(); }} className="text-zinc-500 hover:text-white cursor-pointer text-sm px-1.5 py-0.5 border border-transparent hover:border-zinc-600 transition-all">✕</button>
         </div>
         {children}
       </div>
@@ -1069,35 +1099,24 @@ const CustomDiffPopup: React.FC<{
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
       <div className="bg-[#080808] border border-[#333] w-full max-w-2xl mx-4 p-8 flex flex-col gap-5">
-        <div className="flex items-center justify-between border-b border-[#222] pb-3">
-          <span className="text-sm font-black uppercase tracking-widest text-white">{title}</span>
-          <button onClick={() => { audio.playClick(); setShowSavePrompt(true); }} className="text-zinc-500 hover:text-white cursor-pointer text-lg px-2">✕</button>
-        </div>
         {showSavePrompt ? (
-          <div className="flex flex-col gap-3 py-2">
-            <p className="text-xs text-zinc-300 uppercase tracking-widest">Save before closing?</p>
+          <div className="flex flex-col gap-3">
+            <p className="text-xs font-black text-white uppercase tracking-widest">Save before closing?</p>
             <div className="flex gap-2">
-              <button
-                onClick={() => { onSave(); }}
-                className="flex-1 py-2 text-xs font-black uppercase border border-neon-green text-neon-green hover:bg-neon-green/10 cursor-pointer transition-all"
-              >
-                SAVE
-              </button>
-              <button
-                onClick={() => { audio.playClick(); onClose(); }}
-                className="flex-1 py-2 text-xs font-black uppercase border border-zinc-600 text-zinc-400 hover:text-white cursor-pointer transition-all"
-              >
-                DISCARD
-              </button>
-              <button
-                onClick={() => { audio.playClick(); setShowSavePrompt(false); }}
-                className="px-4 py-2 text-xs font-black uppercase border border-zinc-700 text-zinc-500 hover:text-white cursor-pointer transition-all"
-              >
-                CANCEL
-              </button>
+              <button onClick={() => { onSave(); }} className="flex-1 py-2 text-xs font-black uppercase border border-neon-green text-neon-green hover:bg-neon-green/10 cursor-pointer transition-all">SAVE</button>
+              <button onClick={() => { audio.playClick(); onClose(); }} className="flex-1 py-2 text-xs font-black uppercase border border-zinc-600 text-zinc-400 hover:text-white cursor-pointer transition-all">DISCARD</button>
+              <button onClick={() => { audio.playClick(); setShowSavePrompt(false); }} className="px-3 py-2 text-xs font-black uppercase border border-zinc-700 text-zinc-500 hover:text-white cursor-pointer transition-all">CANCEL</button>
             </div>
           </div>
-        ) : children}
+        ) : (
+          <>
+            <div className="flex items-center justify-between border-b border-[#222] pb-2 mb-1">
+              <span className="text-xs font-black uppercase tracking-widest text-white">{title}</span>
+              <button onClick={() => { audio.playClick(); setShowSavePrompt(true); }} className="text-zinc-500 hover:text-white cursor-pointer text-sm px-1.5 py-0.5 border border-transparent hover:border-zinc-600 transition-all">✕</button>
+            </div>
+            {children}
+          </>
+        )}
       </div>
     </div>
   );
@@ -1572,7 +1591,7 @@ const SpamtonRangeField: React.FC<{
           ))}
         </div>
       </div>
-      <p className="text-[9px] text-zinc-600">Resets on page reload. Default: 2 to 3 minutes.</p>
+      <p className="text-[9px] text-zinc-600">Default: 2 to 3 minutes.</p>
     </div>
   );
 };
