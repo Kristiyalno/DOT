@@ -98,7 +98,7 @@ export const defaultAccessibilitySettings: AccessibilitySettings = {
   largerText: false,
   textScale: 1.25,
   customContrastEnabled: false,
-  customContrast: 1.0,
+  customContrast: 0.5,
 };
 
 export interface ExperimentalSettings {
@@ -372,10 +372,14 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             label="Contrast Level"
             value={accessibilitySettings.customContrast}
             onChange={(v) => onSetAccessibilitySettings({ ...accessibilitySettings, customContrast: v })}
+            min={debugEnabled ? undefined : 0}
+            max={debugEnabled ? undefined : 1}
+            inputMin={debugEnabled ? undefined : 0}
+            inputMax={debugEnabled ? undefined : 1}
           />
         )}
         <p className="text-[10px] text-zinc-500 leading-relaxed -mt-1">
-          Adjusts the contrast of the entire game. 1.0 is default.
+          Brightens dim UI elements for readability. 0 is no effect, 1 is maximum.
         </p>
         {toggleSlider("Reduce Flashing", accessibilitySettings.reduceFlashing, () =>
           onSetAccessibilitySettings({ ...accessibilitySettings, reduceFlashing: !accessibilitySettings.reduceFlashing })
