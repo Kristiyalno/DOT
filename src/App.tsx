@@ -321,7 +321,7 @@ export default function App() {
     setSessionKills(kills);
 
     // Scores are tracked per difficulty + bigMode separately
-    const baseDiffKey = currentCustomDiff ? `custom:${currentCustomDiff.name}` : currentDifficulty;
+    const baseDiffKey = currentCustomDiff ? `custom:${currentCustomDiff.scoreKey ?? currentCustomDiff.name}` : currentDifficulty;
     const diffKey = bigMode ? `${baseDiffKey}_big` : baseDiffKey;
 
     const oldBestKills = totalKills[diffKey] || 0;

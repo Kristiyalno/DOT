@@ -15,6 +15,7 @@ const SPAMTON_RANGE_KEY = "dot_spamton_range";
 
 export interface CustomDifficulty {
   name: string;
+  scoreKey?: string;
   shields: number;
   enemySpeedMult: number;
   spawnRateBase: number;
@@ -280,14 +281,21 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
     setCustomDiffNameError(false);
     const next = [...customDifficulties];
     if (editingCustomIndex !== null) {
-      next[editingCustomIndex] = editingCustomDiff;
+      // Preserve existing scoreKey when editing
+      const existing = next[editingCustomIndex];
+      next[editingCustomIndex] = {
+        ...editingCustomDiff,
+        scoreKey: existing.scoreKey ?? existing.name,
+      };
     } else {
-      next.push(editingCustomDiff);
+      next.push({
+        ...editingCustomDiff,
+        scoreKey: Date.now().toString(36),
+      });
     }
     onSetCustomDifficulties(next);
-    if (editingCustomDiff.permanent) {
-      try { localStorage.setItem(CUSTOM_DIFF_KEY, JSON.stringify(next.filter((d) => d.permanent))); } catch {}
-    }
+    // Always write so un-marking permanent is reflected immediately
+    try { localStorage.setItem(CUSTOM_DIFF_KEY, JSON.stringify(next.filter((d) => d.permanent))); } catch {}
     setShowCustomDiffSavePrompt(false);
     setShowCustomDiffEditor(false);
     setEditingCustomIndex(null);
@@ -864,8 +872,9 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
         <Popup title="Reset Specific Data" onClose={() => setShowResetPopup(false)}>
           <div className="grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-1" onWheel={(e) => { const el = e.currentTarget; const atTop = el.scrollTop === 0; const atBot = el.scrollTop + el.clientHeight >= el.scrollHeight; if ((atTop && e.deltaY < 0) || (atBot && e.deltaY > 0)) e.preventDefault(); e.stopPropagation(); }}>
             <ResetItem label="All High Scores" onReset={() => {
-              const fresh = { ...stats, highScores: { ...stats.highScores } };
-              Object.values(Difficulty).forEach((d) => { fresh.highScores[d] = 0; });
+              const freshScores: Record<string, number> = {};
+              Object.values(Difficulty).forEach((d) => { freshScores[d] = 0; });
+              const fresh = { ...stats, highScores: freshScores };
               onSetStats(fresh); onSaveStats(fresh);
             }} />
             <ResetItem label="Total Ploints" onReset={() => {
@@ -899,7 +908,8 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
               setShowResetPopup(false);
             }} />
             <ResetItem label="Kill Counts Per Difficulty" onReset={() => {
-              const fresh = { ...stats, killsByDifficulty: {} };
+              onSetTotalKills({});
+              const fresh = { ...stats };
               onSetStats(fresh); onSaveStats(fresh);
             }} />
             <ResetItem label="Experimental Settings" onReset={() => {
@@ -908,12 +918,15 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             }} />
             <ResetItem label="Invincibility Setting" onReset={() => {
               try { localStorage.removeItem("dot_invincible"); } catch {}
+              if (invincible) onToggleInvincible();
             }} />
             <ResetItem label="Touchscreen Mode Setting" onReset={() => {
               try { localStorage.removeItem("dot_touch_mode"); } catch {}
+              if (touchMode !== "default") onSetTouchMode("default");
             }} />
             <ResetItem label="Right Click Prevention Setting" onReset={() => {
               try { localStorage.removeItem("dot_disable_rightclick_prevention"); } catch {}
+              if (preventRightClick) onTogglePreventRightClick();
             }} />
             <ResetItem label="Selected Dot" onReset={() => {
               const fresh = { ...stats, selectedDot: "drop" };

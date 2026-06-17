@@ -76,16 +76,29 @@ export async function getLeaderboardPage(
     );
 
     const allSnap = await getDocs(baseQuery);
-    const activeDocs = allSnap.docs.filter((d) => d.data().deleted !== true);
+    const allDocs = allSnap.docs;
 
-    const total = activeDocs.length;
+    const total = allDocs.length;
     const start = pageIndex * PAGE_SIZE;
-    const pageSlice = activeDocs.slice(start, start + PAGE_SIZE);
+    const pageSlice = allDocs.slice(start, start + PAGE_SIZE);
 
-    const entries: LeaderboardEntry[] = pageSlice.map((d) => ({
-      id: d.id,
-      ...(d.data() as Omit<LeaderboardEntry, "id">),
-    }));
+    const entries: LeaderboardEntry[] = pageSlice.map((d) => {
+      const data = d.data() as Omit<LeaderboardEntry, "id">;
+      if (data.deleted) {
+        return {
+          id: d.id,
+          name: "[DELETED]",
+          color: "#ef4444",
+          score: data.score,
+          category: data.category,
+          difficulty: data.difficulty,
+          bigMode: data.bigMode,
+          deviceId: "",
+          deleted: true,
+        };
+      }
+      return { id: d.id, ...data };
+    });
 
     return { entries, total };
   } catch (error) {
