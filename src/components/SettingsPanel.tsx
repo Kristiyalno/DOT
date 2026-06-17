@@ -588,6 +588,18 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
 
             {/* Leaderboard identity */}
             <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44 font-black">Force Leaderboard Name</span>
+                <input
+                  type="text"
+                  defaultValue={leaderboardName ?? ""}
+                  onChange={(e) => onSetLeaderboardName(e.target.value || null)}
+                  className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
               <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">Leaderboard Color</span>
               <ColorPickerField color={leaderboardColor} onChange={onSetLeaderboardColor} />
             </div>

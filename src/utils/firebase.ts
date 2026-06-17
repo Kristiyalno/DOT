@@ -46,7 +46,7 @@ export interface LeaderboardEntry {
 export function getDeviceId(): string {
   let id = localStorage.getItem("dot_game_device_id");
   if (!id) {
-    id = "dev_" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    id = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
     localStorage.setItem("dot_game_device_id", id);
   }
   return id;
@@ -87,7 +87,7 @@ export async function getLeaderboardPage(
       if (data.deleted) {
         return {
           id: d.id,
-          name: "[DELETED]",
+          name: `[deleted_user_${data.deviceId}]`,
           color: "#ef4444",
           score: data.score,
           category: data.category,
