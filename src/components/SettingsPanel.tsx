@@ -587,17 +587,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             </div>
 
             {/* Leaderboard identity */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44 font-black">Force Leaderboard Name</span>
-                <input
-                  type="text"
-                  defaultValue={leaderboardName ?? ""}
-                  onChange={(e) => onSetLeaderboardName(e.target.value || null)}
-                  className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
-                />
-              </div>
-            </div>
+            <LeaderboardNameField value={leaderboardName} onChange={onSetLeaderboardName} />
 
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-black">Leaderboard Color</span>
@@ -1246,6 +1236,44 @@ const ResetItem: React.FC<{ label: string; onReset: () => void }> = ({ label, on
       >
         {done ? "✓" : confirming ? "CONFIRM" : "RESET"}
       </button>
+    </div>
+  );
+};
+
+const LeaderboardNameField: React.FC<{
+  value: string | null;
+  onChange: (v: string | null) => void;
+}> = ({ value, onChange }) => {
+  const [draft, setDraft] = React.useState(value ?? "");
+  const [focused, setFocused] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!focused) setDraft(value ?? "");
+  }, [value, focused]);
+
+  const commit = () => {
+    setFocused(false);
+    onChange(draft.trim() || null);
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44 font-black">Force Leaderboard Name</span>
+      <input
+        type="text"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            audio.playClick();
+            commit();
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
+      />
     </div>
   );
 };
