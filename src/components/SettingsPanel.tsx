@@ -643,7 +643,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                   else { handleResetAll(); }
                 }}
                 onBlur={() => setWipeStage(0)}
-                className={`px-4 py-1.5 text-xs font-black uppercase border cursor-pointer transition-all shrink-0 ${
+                className={`w-24 py-1.5 text-xs font-black uppercase border cursor-pointer transition-all shrink-0 text-center ${
                   wipeStage === 0 ? "border-neon-red text-neon-red hover:bg-neon-red/10"
                   : wipeStage === 1 ? "border-orange-400 text-orange-400 hover:bg-orange-400/10"
                   : "border-white text-white hover:bg-white/10 animate-pulse"
@@ -1120,7 +1120,7 @@ const CustomDiffRowButtons: React.FC<{ onEdit: () => void; onDelete: () => void 
           else { setConfirmingDelete(true); }
         }}
         onBlur={() => setConfirmingDelete(false)}
-        className={`px-3 py-1 text-[11px] font-black uppercase border cursor-pointer transition-all ${
+        className={`w-20 py-1 text-[11px] font-black uppercase border cursor-pointer transition-all text-center ${
           confirmingDelete
             ? "border-neon-red bg-neon-red/10 text-neon-red"
             : "border-zinc-600 text-zinc-400 hover:border-neon-red hover:text-neon-red"
@@ -1224,7 +1224,7 @@ const ResetItem: React.FC<{ label: string; onReset: () => void }> = ({ label, on
           }
         }}
         onBlur={() => { if (!done) setConfirming(false); }}
-        className={`px-3 py-1 text-[10px] font-black uppercase border cursor-pointer transition-all shrink-0 ${
+        className={`w-20 py-1 text-[10px] font-black uppercase border cursor-pointer transition-all shrink-0 text-center ${
           done
             ? "border-green-500 bg-green-500/10 text-green-400"
             : confirming
