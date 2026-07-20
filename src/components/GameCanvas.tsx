@@ -753,7 +753,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           const distance = Math.sqrt(dx * dx + dy * dy);
           const hit = distance <= sw.radius + proj.radius + 12;
           if (hit) {
-            createExplosionParticles(proj.x, proj.y, "#6366f1", 6);
+            createExplosionParticles(proj.x, proj.y, "#38bdf8", 6);
           }
           return !hit;
         });
@@ -1679,7 +1679,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const prismCrit = Math.random() < 0.10 && s.prismCritCooldown <= 0;
       if (prismCrit) {
         s.prismCritCooldown = 5000;
-        createExplosionParticles(clickX, clickY, "#6366f1", 40);
+        createExplosionParticles(clickX, clickY, "#38bdf8", 40);
       }
       s.shockwaves.push({
         x: clickX,
@@ -1687,7 +1687,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         radius: Math.round(5 * BIG),
         maxRadius: Math.round(180 * BIG), // Generous defensive sweep
         speed: 7,
-        color: prismCrit ? "#ffffff" : "#6366f1",
+        color: prismCrit ? "#ffffff" : "#38bdf8",
         killsEnemies: prismCrit,
         killsProjectiles: true
       });

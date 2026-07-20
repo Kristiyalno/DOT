@@ -48,8 +48,8 @@ export const DOTS_DATABASE: DotConfig[] = [
     id: "echo",
     name: "Echo",
     cost: 30,
-    color: "#14b8a6", // Teal-500 (Faded Teal)
-    borderColor: "#99f6e4",
+    color: "#10b981", // Emerald-500 (moved off teal, which sat too close to Prism's aqua)
+    borderColor: "#a7f3d0",
     description: "Leaves a residual holographic copy that attracts nearby enemies.",
     specialAbility: "Leaves a copy at your previous position that draws nearby enemy attention for 6 real seconds before dissolving."
   },
@@ -75,7 +75,7 @@ export const DOTS_DATABASE: DotConfig[] = [
     id: "prism",
     name: "Prism",
     cost: 75,
-    color: "#6366f1", // Indigo-500 — moved off cyan-adjacent sky blue so it reads apart from Echo's teal
+    color: "#38bdf8", // Sky-400 / Rainbow Shift effect
     borderColor: "#cbd5e1",
     description: "Refracts energy into small defensive kinetic waves.",
     specialAbility: "Fires a wave from your destination that destroys incoming projectiles (does not kill enemies)."
