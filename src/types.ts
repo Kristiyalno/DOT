@@ -75,7 +75,7 @@ export const DOTS_DATABASE: DotConfig[] = [
     id: "prism",
     name: "Prism",
     cost: 75,
-    color: "#38bdf8", // Sky-400 / Rainbow Shift effect
+    color: "#6366f1", // Indigo-500 — moved off cyan-adjacent sky blue so it reads apart from Echo's teal
     borderColor: "#cbd5e1",
     description: "Refracts energy into small defensive kinetic waves.",
     specialAbility: "Fires a wave from your destination that destroys incoming projectiles (does not kill enemies)."
@@ -102,7 +102,7 @@ export const DOTS_DATABASE: DotConfig[] = [
     id: "vex",
     name: "Vex",
     cost: 150,
-    color: "#dc2626", // Red-600 (Deep Red)
+    color: "#7f1d1d", // Red-900 (Dark Maroon) — much darker/more distinct from Katsune's rose
     borderColor: "#fee2e2",
     description: "Sears the floor at its destination, punishing oncoming pursuers.",
     specialAbility: "Leaves a lingering, highly volatile damage zone at the destination point for a short duration."

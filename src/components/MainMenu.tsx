@@ -426,7 +426,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 my-auto py-6">
 
           {/* Left: Branding + Dot Selection */}
-          <div className="lg:col-span-5 flex flex-col justify-center gap-6">
+          <div className="lg:col-span-5 flex flex-col justify-start gap-6">
             <div className="space-y-1">
               <h1 style={{ fontFamily: "var(--font-mono)", fontSize: "72px", fontWeight: 900, letterSpacing: "12px", textShadow: "0 0 15px rgba(255,255,255,0.7)" }} className="text-white">
                 DOT
@@ -498,7 +498,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                   <span className="w-2.5 h-2.5" style={{ backgroundColor: currentSelectedDot.color, boxShadow: `0 0 6px ${currentSelectedDot.color}` }} />
                   ACTIVE DOT: {currentSelectedDot.name.toUpperCase()}
                 </div>
-                <p className="text-[11px] text-zinc-400 leading-relaxed mt-1.5">{currentSelectedDot.specialAbility}</p>
+                <p className="text-[11px] text-zinc-400 leading-relaxed mt-1.5 min-h-[4.2em]">{currentSelectedDot.specialAbility}</p>
               </div>
 
             </div>

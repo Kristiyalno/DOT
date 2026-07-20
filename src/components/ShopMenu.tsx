@@ -100,12 +100,12 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
                     style={{ backgroundColor: dot.color }}
                   ></div>
 
-                  <div className="flex justify-between items-start pl-2">
-                    <div>
-                      <h3 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
-                        {dot.name}
+                  <div className="flex justify-between items-start pl-2 gap-2">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold text-white tracking-wide flex items-center gap-2 min-w-0">
+                        <span className="truncate">{dot.name}</span>
                         <span
-                          className="inline-block w-2.5 h-2.5 rounded-none ring-1 ring-[#333]"
+                          className="inline-block w-2.5 h-2.5 rounded-none ring-1 ring-[#333] flex-shrink-0"
                           style={{
                             backgroundColor: dot.color,
                             boxShadow: `0 0 6px ${dot.color}`
@@ -116,12 +116,12 @@ export const ShopMenu: React.FC<ShopMenuProps> = ({
                     </div>
 
                     {isUnlocked ? (
-                      <span className="text-[10px] bg-emerald-950/40 border border-emerald-500 text-emerald-400 px-2 py-0.5 rounded-none tracking-wider uppercase font-bold">
+                      <span className="text-[10px] bg-emerald-950/40 border border-emerald-500 text-emerald-400 px-2 py-0.5 rounded-none tracking-wider uppercase font-bold flex-shrink-0 whitespace-nowrap">
                         Decrypted
                       </span>
                     ) : (
                       <span
-                        className={`text-[10px] border px-2 py-0.5 rounded-none tracking-wider uppercase font-black flex items-center gap-1 ${
+                        className={`text-[10px] border px-2 py-0.5 rounded-none tracking-wider uppercase font-black flex items-center gap-1 flex-shrink-0 whitespace-nowrap ${
                           isAffordable
                             ? "bg-yellow-950/40 border-yellow-500 text-yellow-400"
                             : "bg-zinc-900 border-[#222] text-zinc-500"
