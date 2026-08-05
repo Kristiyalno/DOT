@@ -219,6 +219,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     comboResetTimer: 0,
     glintCritCooldown: 0,
     prismCritCooldown: 0,
+    glintHoverPos: null as null | { x: number; y: number },
+    glintHoverStart: 0,
+    glintHoverArmed: false,
     ploumResidues: [] as Array<{ x: number; y: number; duration: number; maxDuration: number; radius: number }>,
     ploumPulls: [] as Array<{ x: number; y: number; endTime: number; radius: number }>,
   });
@@ -1265,6 +1268,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const s = stateRef.current;
     if (s.gameOverTriggered) return;
     s.gameOverTriggered = true;
+    s.glintHoverPos = null;
+    s.glintHoverStart = 0;
+    s.glintHoverArmed = false;
     audio.playGameOver();
 
     // Create massive game over firework particles
@@ -1708,8 +1714,21 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         _hitEnemies: new Set(),
       } as any);
     } else if (selectedDot.id === "glint") {
-      // 5% hyper critical trigger — 3 real-second cooldown between crits
-      const crit = Math.random() < 0.05 && s.glintCritCooldown <= 0;
+      // Crit triggers when: hover-armed (held still 1.2s then released) OR random 5% fallback
+      // Either path is gated by the 3s cooldown
+      let hoveredCrit = false;
+      if (s.glintHoverArmed && s.glintHoverPos !== null) {
+        const hdx = clickX - s.glintHoverPos.x;
+        const hdy = clickY - s.glintHoverPos.y;
+        if (Math.sqrt(hdx * hdx + hdy * hdy) <= 25) {
+          hoveredCrit = true;
+        }
+      }
+      // Reset hover state on every click regardless
+      s.glintHoverPos = null;
+      s.glintHoverStart = 0;
+      s.glintHoverArmed = false;
+      const crit = (hoveredCrit || Math.random() < 0.05) && s.glintCritCooldown <= 0;
       if (crit) {
         s.glintCritCooldown = 3000;
         audio.playGlintCrit();
@@ -1768,6 +1787,30 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const rect = canvas.getBoundingClientRect();
     s.mouse.x = e.clientX - rect.left;
     s.mouse.y = e.clientY - rect.top;
+
+    // Glint hover-arm tracking: arm a guaranteed crit when the cursor rests in one spot
+    if (selectedDot.id === "glint") {
+      const mx = s.mouse.x;
+      const my = s.mouse.y;
+      if (s.glintHoverPos === null) {
+        s.glintHoverPos = { x: mx, y: my };
+        s.glintHoverStart = Date.now();
+        s.glintHoverArmed = false;
+      } else {
+        const dx = mx - s.glintHoverPos.x;
+        const dy = my - s.glintHoverPos.y;
+        const moved = Math.sqrt(dx * dx + dy * dy);
+        if (moved > 15) {
+          // Reset the hover timer on significant movement
+          s.glintHoverPos = { x: mx, y: my };
+          s.glintHoverStart = Date.now();
+          s.glintHoverArmed = false;
+        } else if (!s.glintHoverArmed && Date.now() - s.glintHoverStart >= 1200) {
+          // Been still long enough — arm the crit
+          s.glintHoverArmed = true;
+        }
+      }
+    }
   };
 
   // Process spawners based on game timer and difficulty criteria
@@ -2618,6 +2661,30 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.strokeStyle = `rgba(${selectedDot.id === "null" ? "244, 63, 94, 0.35" : "34, 211, 238, 0.35"})`;
     ctx.lineWidth = 1;
     ctx.stroke();
+
+    // Glint hover charge indicator — arc fills clockwise as the hover charges, pulses white when armed
+    if (selectedDot.id === "glint" && s.glintHoverPos !== null && s.glintCritCooldown <= 0) {
+      const elapsed = Date.now() - s.glintHoverStart;
+      const chargeRingR = s.player.radius + 14;
+      if (s.glintHoverArmed) {
+        // Fully charged — pulsing white full ring
+        const pulse = 0.55 + 0.35 * Math.abs(Math.sin(Date.now() / 130));
+        ctx.beginPath();
+        ctx.arc(s.mouse.x, s.mouse.y, chargeRingR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${pulse})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else {
+        // Charging — partial arc proportional to progress
+        const progress = Math.min(1, elapsed / 1200);
+        const endAngle = -Math.PI / 2 + progress * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(s.mouse.x, s.mouse.y, chargeRingR, -Math.PI / 2, endAngle);
+        ctx.strokeStyle = "rgba(248, 250, 252, 0.5)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
 
     // RENDER DEPLOYING NOTIFICATION OVERLAY
     if (!s.hasMoved) {

@@ -41,6 +41,8 @@ export interface LeaderboardEntry {
   deviceId: string;
   timestamp?: any;
   deleted?: boolean;
+  dotId?: string;
+  dotColor?: string;
 }
 
 export function getDeviceId(): string {
@@ -151,7 +153,9 @@ export async function submitScore(
   score: number,
   category: LeaderboardCategory,
   difficulty: string,
-  bigMode: boolean
+  bigMode: boolean,
+  dotId?: string,
+  dotColor?: string
 ): Promise<void> {
   try {
     const deviceId = getDeviceId();
@@ -177,6 +181,8 @@ export async function submitScore(
       deviceId,
       timestamp: serverTimestamp(),
       deleted: false,
+      ...(dotId ? { dotId } : {}),
+      ...(dotColor ? { dotColor } : {}),
     });
   } catch (error) {
     console.error("Submission failed: ", error);
