@@ -2652,37 +2652,95 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Glint hover charge indicator — arc fills clockwise as the hover charges, pulses white when armed
+    // Glint hover charge indicator
     if (selectedDot.id === "glint" && s.glintHoverPos !== null && s.glintCritCooldown <= 0) {
       const elapsed = Date.now() - s.glintHoverStart;
       const ax = s.glintHoverPos.x;
       const ay = s.glintHoverPos.y;
-      const chargeRingR = s.player.radius + 14;
+      const now = Date.now();
+      // Parse dot color into r,g,b for use in rgba()
+      const dc = selectedDot.color;
+      const dr = parseInt(dc.slice(1, 3), 16);
+      const dg = parseInt(dc.slice(3, 5), 16);
+      const db = parseInt(dc.slice(5, 7), 16);
+      const progress = Math.min(1, elapsed / 600);
+
       if (s.glintHoverArmed) {
-        // Fully charged — pulsing white full ring at anchor
-        const pulse = 0.55 + 0.35 * Math.abs(Math.sin(Date.now() / 130));
+        // ARMED — intense pulsing energy at anchor, cursor blazes white
+
+        // Radial glow behind anchor
+        const armPulse = 0.5 + 0.5 * Math.abs(Math.sin(now / 120));
+        const grd = ctx.createRadialGradient(ax, ay, 0, ax, ay, 48);
+        grd.addColorStop(0, `rgba(${dr}, ${dg}, ${db}, ${0.18 * armPulse})`);
+        grd.addColorStop(1, `rgba(${dr}, ${dg}, ${db}, 0)`);
         ctx.beginPath();
-        ctx.arc(ax, ay, chargeRingR, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${pulse})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        // Small filled dot at anchor center
-        ctx.beginPath();
-        ctx.arc(ax, ay, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
+        ctx.arc(ax, ay, 48, 0, Math.PI * 2);
+        ctx.fillStyle = grd;
         ctx.fill();
+
+        // Three concentric pulsing rings expanding outward from anchor
+        for (let i = 0; i < 3; i++) {
+          const phase = ((now / 400) + i * 0.33) % 1;
+          const r = 6 + phase * 36;
+          const alpha = (1 - phase) * 0.7 * armPulse;
+          ctx.beginPath();
+          ctx.arc(ax, ay, r, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+
+        // Solid bright ring at anchor
+        ctx.beginPath();
+        ctx.arc(ax, ay, s.player.radius + 14, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 + 0.3 * armPulse})`;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // Override cursor to blaze white — draw on top of default cursor
+        ctx.beginPath();
+        ctx.arc(s.mouse.x, s.mouse.y, s.player.radius + 2, 0, Math.PI * 2);
+        const cursorGlow = ctx.createRadialGradient(s.mouse.x, s.mouse.y, 0, s.mouse.x, s.mouse.y, s.player.radius + 10);
+        cursorGlow.addColorStop(0, `rgba(255,255,255,${0.6 * armPulse})`);
+        cursorGlow.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = cursorGlow;
+        ctx.fill();
+
       } else if (elapsed > 80) {
-        // Charging — partial arc from top, proportional to progress
-        const progress = Math.min(1, elapsed / 600);
+        // CHARGING — rings contract inward toward anchor as charge builds
+
+        // Faint radial glow growing with progress
+        const grd = ctx.createRadialGradient(ax, ay, 0, ax, ay, 40);
+        grd.addColorStop(0, `rgba(${dr}, ${dg}, ${db}, ${0.08 * progress})`);
+        grd.addColorStop(1, `rgba(${dr}, ${dg}, ${db}, 0)`);
+        ctx.beginPath();
+        ctx.arc(ax, ay, 40, 0, Math.PI * 2);
+        ctx.fillStyle = grd;
+        ctx.fill();
+
+        // Two rings that contract inward as progress increases
+        for (let i = 0; i < 2; i++) {
+          const baseR = 38 - i * 12;
+          const r = baseR * (1 - progress * 0.55);
+          const alpha = progress * (0.3 + i * 0.15);
+          ctx.beginPath();
+          ctx.arc(ax, ay, Math.max(r, 4), 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+
+        // Fill arc — thicker and brighter than before
         const endAngle = -Math.PI / 2 + progress * Math.PI * 2;
         ctx.beginPath();
-        ctx.arc(ax, ay, chargeRingR, -Math.PI / 2, endAngle);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.25 + progress * 0.35})`;
-        ctx.lineWidth = 1.5;
+        ctx.arc(ax, ay, s.player.radius + 14, -Math.PI / 2, endAngle);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.35 + progress * 0.5})`;
+        ctx.lineWidth = 2;
         ctx.stroke();
-        // Faint background ring so the arc has context
+
+        // Dim track ring
         ctx.beginPath();
-        ctx.arc(ax, ay, chargeRingR, 0, Math.PI * 2);
+        ctx.arc(ax, ay, s.player.radius + 14, 0, Math.PI * 2);
         ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
         ctx.lineWidth = 1;
         ctx.stroke();
