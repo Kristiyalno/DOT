@@ -187,6 +187,8 @@ export default function App() {
           selectedDot: typeof parsed.selectedDot === "string" ? parsed.selectedDot : "drop",
           totalPloints: typeof parsed.totalPloints === "number" ? parsed.totalPloints : 0,
           highScores: mergedHighScores,
+          highScoreDots: parsed.highScoreDots || {},
+          highScoreKillsDots: parsed.highScoreKillsDots || {},
         });
         if (parsed.totalKills) setTotalKills(parsed.totalKills);
         if (typeof parsed.neoDropUnlocked === "boolean") setNeoDropUnlocked(parsed.neoDropUnlocked);
@@ -324,10 +326,11 @@ export default function App() {
     const baseDiffKey = currentCustomDiff ? `custom:${currentCustomDiff.scoreKey ?? currentCustomDiff.name}` : currentDifficulty;
     const diffKey = bigMode ? `${baseDiffKey}_big` : baseDiffKey;
 
+    const usedDotId = stats.selectedDot;
     const oldBestKills = totalKills[diffKey] || 0;
     setPrevBestKills(oldBestKills);
-
-    const updatedKills = { ...totalKills, [diffKey]: Math.max(oldBestKills, kills) };
+    const isNewKillsRecord = kills > oldBestKills;
+    const updatedKills = { ...totalKills, [diffKey]: Math.max(totalKills[diffKey] || 0, kills) };
     setTotalKills(updatedKills);
 
     // Capture the old high score BEFORE updating stats, so DeathScreen can
@@ -339,7 +342,19 @@ export default function App() {
       const prevMax = prev.highScores[diffKey] || 0;
       const isNewHigh = finalSeconds > prevMax;
       const updatedHighScores = { ...prev.highScores, [diffKey]: isNewHigh ? finalSeconds : prevMax };
-      const updated = { ...prev, totalPloints: prev.totalPloints + finalGains, highScores: updatedHighScores };
+      const updatedHighScoreDots = isNewHigh
+        ? { ...(prev.highScoreDots || {}), [diffKey]: usedDotId }
+        : (prev.highScoreDots || {});
+      const updatedHighScoreKillsDots = isNewKillsRecord
+        ? { ...(prev.highScoreKillsDots || {}), [diffKey]: usedDotId }
+        : (prev.highScoreKillsDots || {});
+      const updated = {
+        ...prev,
+        totalPloints: prev.totalPloints + finalGains,
+        highScores: updatedHighScores,
+        highScoreDots: updatedHighScoreDots,
+        highScoreKillsDots: updatedHighScoreKillsDots,
+      };
       saveStats(updated, updatedKills);
       return updated;
     });

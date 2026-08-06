@@ -410,23 +410,18 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       )}
 
       {/* Leaderboard tab */}
-      {activeTab === "leaderboard" && (() => {
-        const lbDotConfig =
-          (selectedDotId === NEO_DROP_ID ? NEO_DOT : DOTS_DATABASE.find((d) => d.id === selectedDotId)) ||
-          DOTS_DATABASE[0];
-        return (
-          <Leaderboard
-            highScores={highScores}
-            totalKills={totalKills}
-            bigMode={bigMode}
-            leaderboardName={leaderboardName}
-            leaderboardColor={leaderboardColor}
-            onNeedName={onNeedName}
-            selectedDotId={lbDotConfig.id}
-            selectedDotColor={lbDotConfig.color}
-          />
-        );
-      })()}
+      {activeTab === "leaderboard" && (
+        <Leaderboard
+          highScores={highScores}
+          totalKills={totalKills}
+          bigMode={bigMode}
+          leaderboardName={leaderboardName}
+          leaderboardColor={leaderboardColor}
+          onNeedName={onNeedName}
+          highScoreDots={stats.highScoreDots || {}}
+          highScoreKillsDots={stats.highScoreKillsDots || {}}
+        />
+      )}
 
       {/* Main Menu tab */}
       {activeTab === "menu" && (

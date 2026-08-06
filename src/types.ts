@@ -123,6 +123,8 @@ export interface PlayerStats {
   selectedDot: string;
   totalPloints: number;
   highScores: Record<Difficulty, number>; // Difficulty -> survived time (seconds)
+  highScoreDots?: Record<string, string>; // diffKey -> dotId used when that score was set
+  highScoreKillsDots?: Record<string, string>; // diffKey -> dotId used when that kills record was set
 }
 
 export interface Enemy {

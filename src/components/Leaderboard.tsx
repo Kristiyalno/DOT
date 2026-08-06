@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Difficulty } from "../types";
+import { Difficulty, DOTS_DATABASE, NEO_DROP_ID } from "../types";
 import {
   db,
   getLeaderboardPage,
@@ -12,6 +12,14 @@ import {
 } from "../utils/firebase";
 import { audio } from "../utils/audio";
 
+const NEO_DOT_COLOR = "#c084fc";
+
+function getDotColor(dotId: string | undefined): string | undefined {
+  if (!dotId) return undefined;
+  if (dotId === NEO_DROP_ID) return NEO_DOT_COLOR;
+  return DOTS_DATABASE.find((d) => d.id === dotId)?.color;
+}
+
 interface LeaderboardProps {
   highScores: Record<string, number>;
   totalKills: Record<string, number>;
@@ -19,8 +27,8 @@ interface LeaderboardProps {
   leaderboardName: string | null;
   leaderboardColor: string;
   onNeedName: () => void;
-  selectedDotId?: string;
-  selectedDotColor?: string;
+  highScoreDots?: Record<string, string>;
+  highScoreKillsDots?: Record<string, string>;
 }
 
 const DIFFICULTY_NAMES: Record<string, string> = {
@@ -54,8 +62,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   leaderboardName,
   leaderboardColor,
   onNeedName,
-  selectedDotId,
-  selectedDotColor,
+  highScoreDots = {},
+  highScoreKillsDots = {},
 }) => {
   const [category, setCategory] = useState<LeaderboardCategory>("time");
   const [difficulty, setDifficulty] = useState<string>(Difficulty.Medium);
@@ -116,6 +124,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
       await deleteExistingScore(deviceId, category, difficulty, lbBigMode);
       
       // FIX: Parameters are passed individually, matching firebase.ts perfectly!
+      const submitDotId = category === "time" ? highScoreDots[scoreKey] : highScoreKillsDots[scoreKey];
+      const submitDotColor = getDotColor(submitDotId);
       await submitScore(
         leaderboardName,
         leaderboardColor,
@@ -123,8 +133,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
         category,
         difficulty,
         lbBigMode,
-        selectedDotId,
-        selectedDotColor
+        submitDotId,
+        submitDotColor
       );
       
       setSubmitted(true);
@@ -270,7 +280,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             entries.map((entry, i) => {
               const rank = page * PAGE_SIZE + i + 1;
               const isMe = entry.deviceId === deviceId;
-              const dotCircleColor = entry.dotColor || (entry.dotId ? "#ffffff" : "#3f3f46");
+              const dotColor = entry.dotColor || (entry.dotId ? "#ffffff" : undefined);
               return (
                 <div
                   key={entry.id || i}
@@ -280,18 +290,21 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                 >
                   <span className="text-zinc-500 font-black text-xs">{rank}</span>
                   <span className="flex items-center">
-                    <span
-                      title={entry.dotId || ""}
-                      style={{
-                        display: "inline-block",
-                        width: "10px",
-                        height: "10px",
-                        borderRadius: "50%",
-                        backgroundColor: dotCircleColor,
-                        flexShrink: 0,
-                        opacity: entry.dotId ? 1 : 0.25,
-                      }}
-                    />
+                    {dotColor ? (
+                      <span
+                        title={entry.dotId || ""}
+                        style={{
+                          display: "inline-block",
+                          width: "10px",
+                          height: "10px",
+                          backgroundColor: dotColor,
+                          boxShadow: `0 0 6px ${dotColor}`,
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : (
+                      <span style={{ display: "inline-block", width: "10px", height: "10px" }} />
+                    )}
                   </span>
                   <span
                     className="font-black truncate min-w-0 overflow-hidden block whitespace-nowrap"

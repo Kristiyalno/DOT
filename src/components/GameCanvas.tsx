@@ -1313,6 +1313,28 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if (isTouchActiveRef.current) {
       lastTouchRef.current = { x, y };
     }
+
+    // Glint hover-arm: cursor stays within 40px of anchor for 1.2s to arm a guaranteed crit.
+    // Only a deliberate repositioning (>40px from anchor) resets the timer — tiny jitter is ignored.
+    const s = stateRef.current;
+    if (selectedDot.id === "glint") {
+      if (s.glintHoverPos === null) {
+        s.glintHoverPos = { x, y };
+        s.glintHoverStart = Date.now();
+        s.glintHoverArmed = false;
+      } else {
+        const dx = x - s.glintHoverPos.x;
+        const dy = y - s.glintHoverPos.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 40) {
+          s.glintHoverPos = { x, y };
+          s.glintHoverStart = Date.now();
+          s.glintHoverArmed = false;
+        } else if (!s.glintHoverArmed && Date.now() - s.glintHoverStart >= 1200) {
+          s.glintHoverArmed = true;
+        }
+      }
+    }
   };
 
   const handleMouseUpTouch = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1720,7 +1742,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       if (s.glintHoverArmed && s.glintHoverPos !== null) {
         const hdx = clickX - s.glintHoverPos.x;
         const hdy = clickY - s.glintHoverPos.y;
-        if (Math.sqrt(hdx * hdx + hdy * hdy) <= 25) {
+        if (Math.sqrt(hdx * hdx + hdy * hdy) <= 50) {
           hoveredCrit = true;
         }
       }
@@ -1779,39 +1801,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     };
   };
 
-  const trackMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const s = stateRef.current;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    s.mouse.x = e.clientX - rect.left;
-    s.mouse.y = e.clientY - rect.top;
-
-    // Glint hover-arm tracking: arm a guaranteed crit when the cursor rests in one spot
-    if (selectedDot.id === "glint") {
-      const mx = s.mouse.x;
-      const my = s.mouse.y;
-      if (s.glintHoverPos === null) {
-        s.glintHoverPos = { x: mx, y: my };
-        s.glintHoverStart = Date.now();
-        s.glintHoverArmed = false;
-      } else {
-        const dx = mx - s.glintHoverPos.x;
-        const dy = my - s.glintHoverPos.y;
-        const moved = Math.sqrt(dx * dx + dy * dy);
-        if (moved > 15) {
-          // Reset the hover timer on significant movement
-          s.glintHoverPos = { x: mx, y: my };
-          s.glintHoverStart = Date.now();
-          s.glintHoverArmed = false;
-        } else if (!s.glintHoverArmed && Date.now() - s.glintHoverStart >= 1200) {
-          // Been still long enough — arm the crit
-          s.glintHoverArmed = true;
-        }
-      }
-    }
-  };
+  // trackMouseMove intentionally removed — glint hover logic lives in handleMouseMoveTouch
 
   // Process spawners based on game timer and difficulty criteria
   const handleSpawning = (deltaReal: number, activeSpeedFactor: number) => {
