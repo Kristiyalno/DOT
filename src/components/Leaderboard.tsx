@@ -20,6 +20,12 @@ function getDotColor(dotId: string | undefined): string | undefined {
   return DOTS_DATABASE.find((d) => d.id === dotId)?.color;
 }
 
+function getDotName(dotId: string | undefined): string | undefined {
+  if (!dotId) return undefined;
+  if (dotId === NEO_DROP_ID) return "Neo Drop";
+  return DOTS_DATABASE.find((d) => d.id === dotId)?.name;
+}
+
 interface LeaderboardProps {
   highScores: Record<string, number>;
   totalKills: Record<string, number>;
@@ -289,19 +295,23 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                   }`}
                 >
                   <span className="text-zinc-500 font-black text-xs">{rank}</span>
-                  <span className="flex items-center">
+                  <span className="relative flex items-center group">
                     {dotColor ? (
-                      <span
-                        title={entry.dotId || ""}
-                        style={{
-                          display: "inline-block",
-                          width: "10px",
-                          height: "10px",
-                          backgroundColor: dotColor,
-                          boxShadow: `0 0 6px ${dotColor}`,
-                          flexShrink: 0,
-                        }}
-                      />
+                      <>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: "10px",
+                            height: "10px",
+                            backgroundColor: dotColor,
+                            boxShadow: `0 0 6px ${dotColor}`,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap z-20">
+                          {getDotName(entry.dotId) || entry.dotId}
+                        </span>
+                      </>
                     ) : (
                       <span style={{ display: "inline-block", width: "10px", height: "10px" }} />
                     )}

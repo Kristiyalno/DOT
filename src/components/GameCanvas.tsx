@@ -2655,23 +2655,36 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Glint hover charge indicator — arc fills clockwise as the hover charges, pulses white when armed
     if (selectedDot.id === "glint" && s.glintHoverPos !== null && s.glintCritCooldown <= 0) {
       const elapsed = Date.now() - s.glintHoverStart;
+      const ax = s.glintHoverPos.x;
+      const ay = s.glintHoverPos.y;
       const chargeRingR = s.player.radius + 14;
       if (s.glintHoverArmed) {
-        // Fully charged — pulsing white full ring
+        // Fully charged — pulsing white full ring at anchor
         const pulse = 0.55 + 0.35 * Math.abs(Math.sin(Date.now() / 130));
         ctx.beginPath();
-        ctx.arc(s.mouse.x, s.mouse.y, chargeRingR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2);
+        ctx.arc(ax, ay, chargeRingR, 0, Math.PI * 2);
         ctx.strokeStyle = `rgba(255, 255, 255, ${pulse})`;
         ctx.lineWidth = 2;
         ctx.stroke();
-      } else {
-        // Charging — partial arc proportional to progress
+        // Small filled dot at anchor center
+        ctx.beginPath();
+        ctx.arc(ax, ay, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
+        ctx.fill();
+      } else if (elapsed > 80) {
+        // Charging — partial arc from top, proportional to progress
         const progress = Math.min(1, elapsed / 1200);
         const endAngle = -Math.PI / 2 + progress * Math.PI * 2;
         ctx.beginPath();
-        ctx.arc(s.mouse.x, s.mouse.y, chargeRingR, -Math.PI / 2, endAngle);
-        ctx.strokeStyle = "rgba(248, 250, 252, 0.5)";
+        ctx.arc(ax, ay, chargeRingR, -Math.PI / 2, endAngle);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.25 + progress * 0.35})`;
         ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // Faint background ring so the arc has context
+        ctx.beginPath();
+        ctx.arc(ax, ay, chargeRingR, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+        ctx.lineWidth = 1;
         ctx.stroke();
       }
     }
