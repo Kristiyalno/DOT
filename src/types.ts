@@ -114,7 +114,7 @@ export const DOTS_DATABASE: DotConfig[] = [
     color: "#f8fafc", // Slate-50 (Pale Silver/White)
     borderColor: "#94a3b8",
     description: "A high-critical capability dot.",
-    specialAbility: "On teleport, holds a 5% critical chance to trigger a massive screen-clearing explosion, slow all enemies down for 3 seconds, and grant a 0.5-second invincible shield."
+    specialAbility: "On teleport, holds a 5% critical chance to trigger a massive screen-clearing explosion, slow all enemies down for 3 seconds, and grant a 0.5-second invincible shield. Hold still for 0.6 seconds to charge a guaranteed critical on your next teleport."
   }
 ];
 

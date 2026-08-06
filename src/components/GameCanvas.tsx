@@ -1330,7 +1330,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           s.glintHoverPos = { x, y };
           s.glintHoverStart = Date.now();
           s.glintHoverArmed = false;
-        } else if (!s.glintHoverArmed && Date.now() - s.glintHoverStart >= 1200) {
+        } else if (!s.glintHoverArmed && Date.now() - s.glintHoverStart >= 600) {
           s.glintHoverArmed = true;
         }
       }
@@ -2673,7 +2673,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.fill();
       } else if (elapsed > 80) {
         // Charging — partial arc from top, proportional to progress
-        const progress = Math.min(1, elapsed / 1200);
+        const progress = Math.min(1, elapsed / 600);
         const endAngle = -Math.PI / 2 + progress * Math.PI * 2;
         ctx.beginPath();
         ctx.arc(ax, ay, chargeRingR, -Math.PI / 2, endAngle);

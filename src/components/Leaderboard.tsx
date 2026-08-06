@@ -308,8 +308,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                             flexShrink: 0,
                           }}
                         />
-                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap z-20">
-                          {getDotName(entry.dotId) || entry.dotId}
+                        <span className="absolute left-[5px] bottom-full w-0 flex justify-center mb-1.5 z-20 pointer-events-none">
+                          <span className="hidden group-hover:block bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap">
+                            {getDotName(entry.dotId) || entry.dotId}
+                          </span>
                         </span>
                       </>
                     ) : (
