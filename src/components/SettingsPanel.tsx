@@ -85,7 +85,7 @@ const defaultCustomDiff: CustomDifficulty = {
   sloPerKill: 1.0,
   secondsPerPloint: 10,
   firstPlointCooldown: 5,
-  permanent: false,
+  permanent: true,
 };
 
 export interface AccessibilitySettings {
