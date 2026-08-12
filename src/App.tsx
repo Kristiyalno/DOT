@@ -145,7 +145,10 @@ export default function App() {
   const [customDifficulties, setCustomDifficulties] = useState<CustomDifficulty[]>(() => {
     try {
       const saved = localStorage.getItem(CUSTOM_DIFF_KEY);
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed = JSON.parse(saved) as CustomDifficulty[];
+      // Backfill fields added after some presets were saved (e.g. firstPlointCooldown)
+      return parsed.map((d) => ({ firstPlointCooldown: 5, ...d }));
     } catch { return []; }
   });
 

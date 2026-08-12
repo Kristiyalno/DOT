@@ -247,6 +247,27 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     ? (customDifficulty.secondsPerPloint ?? getPlointIntervalSeconds(difficulty))
     : getPlointIntervalSeconds(difficulty)) * 1000; // in ms
 
+  // First-ploint cooldown — how long before the very first Ploint can be awarded.
+  // Scales down with difficulty so harder levels don't waste a flat 5s doing nothing.
+  const getFirstPlointCooldownSeconds = (d: Difficulty): number => {
+    switch (d) {
+      case Difficulty.Blissful: return 12.0;
+      case Difficulty.Pissful: return 10.0;
+      case Difficulty.Ez: return 8.0;
+      case Difficulty.Medium: return 6.5;
+      case Difficulty.Hard: return 5.0;
+      case Difficulty.HardR: return 3.5;
+      case Difficulty.Impossible: return 2.5;
+      case Difficulty.Hell: return 1.5;
+      case Difficulty.Dot0: return 1.0;
+      default: return 5.0;
+    }
+  };
+
+  const firstPlointCooldown = (customDifficulty != null
+    ? (customDifficulty.firstPlointCooldown ?? getFirstPlointCooldownSeconds(difficulty))
+    : getFirstPlointCooldownSeconds(difficulty)) * 1000; // in ms
+
   useEffect(() => {
     // Laser and audio initialization
     audio.startMusic();
@@ -553,8 +574,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     setHudSlo(Math.round(s.player.slo));
     setHudShields(s.player.shields);
 
-    // Award Ploints based on game-scaled elapsed time (slowed seconds count less) after a 5s game-time cooldown
-    if (s.timeElapsedGame >= 5000) {
+    // Award Ploints based on game-scaled elapsed time (slowed seconds count less) after an initial cooldown that scales with difficulty
+    if (s.timeElapsedGame >= firstPlointCooldown) {
       if (s.lastPlointAwardTime === 0) {
         s.lastPlointAwardTime = s.timeElapsedGame;
       }
@@ -1178,9 +1199,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const isRealKill = source !== "Vertical Disruption Beam";
     if (isRealKill) {
       killCountRef.current += 1;
-      // Smaller enemies reward more slo — slo scales inversely with enemy radius
+      // Smaller enemies reward more slo — slo scales inversely with enemy radius.
+      // Radius is normalized by BIG so this base amount matches Big Mode on; Big Mode off then doubles it below.
       const baseSloPerKill = Math.max(0.4, (20 - enemy.radius / BIG) * 0.18);
-      s.player.slo = Math.max(0, s.player.slo + baseSloPerKill * (customDifficulty != null ? (customDifficulty.sloPerKill ?? 1.0) : 1.0));
+      const bigModeSloMultiplier = bigMode ? 1.0 : 2.0;
+      s.player.slo = Math.max(0, s.player.slo + baseSloPerKill * bigModeSloMultiplier * (customDifficulty != null ? (customDifficulty.sloPerKill ?? 1.0) : 1.0));
 
       // Combo tracking — increment before computing pitch so first kill of a combo already raises it
       s.comboCount += 1;

@@ -28,6 +28,7 @@ export interface CustomDifficulty {
   waveLaserFreq: number;
   sloPerKill: number;
   secondsPerPloint: number;
+  firstPlointCooldown: number;
   permanent: boolean;
 }
 
@@ -83,6 +84,7 @@ const defaultCustomDiff: CustomDifficulty = {
   waveLaserFreq: 0.25,
   sloPerKill: 1.0,
   secondsPerPloint: 10,
+  firstPlointCooldown: 5,
   permanent: false,
 };
 
@@ -847,6 +849,10 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             )}
             <DiffField label="SLO Per Kill Multiplier" value={editingCustomDiff.sloPerKill} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, sloPerKill: +v }))} step={0.1} />
             <DiffField label="Seconds Per Ploint" value={editingCustomDiff.secondsPerPloint} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, secondsPerPloint: +v }))} step={1} />
+            <div className="flex flex-col gap-0.5">
+              <DiffField label="First Ploint Cooldown (seconds)" value={editingCustomDiff.firstPlointCooldown} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, firstPlointCooldown: +v }))} step={0.5} />
+              <p className="text-[9px] text-zinc-600">Delay before the very first Ploint can be earned. Lower this for harder difficulties so it isn't dead time.</p>
+            </div>
             <div className="flex items-center gap-2 mt-1">
               <input
                 type="checkbox"
