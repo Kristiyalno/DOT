@@ -104,7 +104,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   // Gameplay state references for the requestAnimationFrame loop to prevent stale React closures
   // Big mode scale factor — applied to all radii and sizes
-  const BIG = bigMode ? 2.2 : 1.0;
+  const BIG_SCALE = 2.2;
+  const BIG = bigMode ? BIG_SCALE : 1.0;
 
   const killCountRef = useRef(0);
   const comboPitchEnabledRef = useRef(comboPitchEnabled);
@@ -1200,9 +1201,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if (isRealKill) {
       killCountRef.current += 1;
       // Smaller enemies reward more slo — slo scales inversely with enemy radius.
-      // Radius is normalized by BIG so this base amount matches Big Mode on; Big Mode off then doubles it below.
+      // Radius is normalized by BIG so this base amount matches Big Mode on; Big Mode off then multiplies it by BIG_SCALE (the same factor Big Mode grows everything by) below.
       const baseSloPerKill = Math.max(0.4, (20 - enemy.radius / BIG) * 0.18);
-      const bigModeSloMultiplier = bigMode ? 1.0 : 2.0;
+      const bigModeSloMultiplier = bigMode ? 1.0 : BIG_SCALE;
       s.player.slo = Math.max(0, s.player.slo + baseSloPerKill * bigModeSloMultiplier * (customDifficulty != null ? (customDifficulty.sloPerKill ?? 1.0) : 1.0));
 
       // Combo tracking — increment before computing pitch so first kill of a combo already raises it
