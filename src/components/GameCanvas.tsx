@@ -223,6 +223,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     glintHoverPos: null as null | { x: number; y: number },
     glintHoverStart: 0,
     glintHoverArmed: false,
+    glintArmPopAlpha: 0, // one-shot pop flash the instant hover-charge completes, distinct from the crit hit flash
+    glintArmPopPos: null as null | { x: number; y: number },
     ploumResidues: [] as Array<{ x: number; y: number; duration: number; maxDuration: number; radius: number }>,
     ploumPulls: [] as Array<{ x: number; y: number; endTime: number; radius: number }>,
   });
@@ -467,6 +469,23 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     }
     if (s.glintCritCooldown > 0) {
       s.glintCritCooldown = Math.max(0, s.glintCritCooldown - deltaReal);
+    }
+
+    // Glint hover-arm: runs every frame (not just on mouse move) so a cursor that goes
+    // fully still still arms and flashes right at the 600ms mark instead of waiting for
+    // the next mousemove event to notice the timer already elapsed.
+    // Arming is intentionally independent of glintCritCooldown — you can charge up (and
+    // stay charged) while the cooldown ticks down, so it's not stand-still > hover > boom > stand-still again.
+    if (selectedDot.id === "glint" && s.glintHoverPos !== null && !s.glintHoverArmed) {
+      if (Date.now() - s.glintHoverStart >= 600) {
+        s.glintHoverArmed = true;
+        s.glintArmPopAlpha = 1.0;
+        s.glintArmPopPos = { x: s.glintHoverPos.x, y: s.glintHoverPos.y };
+        audio.playGlintArm();
+      }
+    }
+    if (s.glintArmPopAlpha > 0) {
+      s.glintArmPopAlpha = Math.max(0, s.glintArmPopAlpha - 0.05 * (deltaReal / 16.67));
     }
     if (s.prismCritCooldown > 0) {
       s.prismCritCooldown = Math.max(0, s.prismCritCooldown - deltaReal);
@@ -1295,6 +1314,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     s.glintHoverPos = null;
     s.glintHoverStart = 0;
     s.glintHoverArmed = false;
+    s.glintArmPopAlpha = 0;
+    s.glintArmPopPos = null;
     audio.playGameOver();
 
     // Create massive game over firework particles
@@ -1338,8 +1359,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       lastTouchRef.current = { x, y };
     }
 
-    // Glint hover-arm: cursor stays within 40px of anchor for 1.2s to arm a guaranteed crit.
+    // Glint hover-arm: cursor stays within 40px of anchor for 600ms to arm a guaranteed crit.
     // Only a deliberate repositioning (>40px from anchor) resets the timer — tiny jitter is ignored.
+    // Actual arming (once the timer elapses) happens every frame in the main update loop, not here,
+    // so it fires even when the cursor stays perfectly still and never triggers another move event.
     const s = stateRef.current;
     if (selectedDot.id === "glint") {
       if (s.glintHoverPos === null) {
@@ -1354,8 +1377,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           s.glintHoverPos = { x, y };
           s.glintHoverStart = Date.now();
           s.glintHoverArmed = false;
-        } else if (!s.glintHoverArmed && Date.now() - s.glintHoverStart >= 600) {
-          s.glintHoverArmed = true;
         }
       }
     }
@@ -1760,8 +1781,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         _hitEnemies: new Set(),
       } as any);
     } else if (selectedDot.id === "glint") {
-      // Crit triggers when: hover-armed (held still 1.2s then released) OR random 5% fallback
-      // Either path is gated by the 3s cooldown
+      // Crit triggers when: hover-armed (held still 600ms, cursor still within 50px of anchor) OR random 5% fallback.
+      // Hover-arming itself is independent of the cooldown, so you can charge up while glintCritCooldown
+      // is still ticking down — clicking while armed-but-on-cooldown keeps the charge instead of wasting it,
+      // so it's ready to fire the instant the cooldown clears rather than making you re-hover from scratch.
       let hoveredCrit = false;
       if (s.glintHoverArmed && s.glintHoverPos !== null) {
         const hdx = clickX - s.glintHoverPos.x;
@@ -1770,11 +1793,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           hoveredCrit = true;
         }
       }
-      // Reset hover state on every click regardless
-      s.glintHoverPos = null;
-      s.glintHoverStart = 0;
-      s.glintHoverArmed = false;
-      const crit = (hoveredCrit || Math.random() < 0.05) && s.glintCritCooldown <= 0;
+      const onCooldown = s.glintCritCooldown > 0;
+      if (hoveredCrit && onCooldown) {
+        // Charge is preserved — don't reset hover state, just eat this click as a no-op crit attempt.
+      } else {
+        // Reset hover state on every other click (miss, random-roll click, or a successful crit)
+        s.glintHoverPos = null;
+        s.glintHoverStart = 0;
+        s.glintHoverArmed = false;
+      }
+      const crit = (hoveredCrit || Math.random() < 0.05) && !onCooldown;
       if (crit) {
         s.glintCritCooldown = 3000;
         audio.playGlintCrit();
@@ -2676,12 +2704,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Glint hover charge indicator
-    if (selectedDot.id === "glint" && s.glintHoverPos !== null && s.glintCritCooldown <= 0) {
+    // Glint hover charge indicator — visible and chargeable regardless of glintCritCooldown,
+    // so charging up during the cooldown actually does something instead of showing nothing.
+    if (selectedDot.id === "glint" && s.glintHoverPos !== null) {
       const elapsed = Date.now() - s.glintHoverStart;
       const ax = s.glintHoverPos.x;
       const ay = s.glintHoverPos.y;
       const now = Date.now();
+      const onCooldown = s.glintCritCooldown > 0;
       // Parse dot color into r,g,b for use in rgba()
       const dc = selectedDot.color;
       const dr = parseInt(dc.slice(1, 3), 16);
@@ -2690,13 +2720,19 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const progress = Math.min(1, elapsed / 600);
 
       if (s.glintHoverArmed) {
-        // ARMED — intense pulsing energy at anchor, cursor blazes white
+        // ARMED — intense pulsing energy at anchor, cursor blazes white.
+        // While on cooldown this dims to a slower amber pulse so it reads as "charged, waiting" rather than "ready".
+        const armPulse = onCooldown
+          ? 0.35 + 0.25 * Math.abs(Math.sin(now / 260))
+          : 0.5 + 0.5 * Math.abs(Math.sin(now / 120));
+        const ringR = onCooldown ? "255" : `${dr}`;
+        const ringG = onCooldown ? "180" : `${dg}`;
+        const ringB = onCooldown ? "60" : `${db}`;
 
         // Radial glow behind anchor
-        const armPulse = 0.5 + 0.5 * Math.abs(Math.sin(now / 120));
         const grd = ctx.createRadialGradient(ax, ay, 0, ax, ay, 48);
-        grd.addColorStop(0, `rgba(${dr}, ${dg}, ${db}, ${0.18 * armPulse})`);
-        grd.addColorStop(1, `rgba(${dr}, ${dg}, ${db}, 0)`);
+        grd.addColorStop(0, `rgba(${ringR}, ${ringG}, ${ringB}, ${(onCooldown ? 0.12 : 0.18) * armPulse})`);
+        grd.addColorStop(1, `rgba(${ringR}, ${ringG}, ${ringB}, 0)`);
         ctx.beginPath();
         ctx.arc(ax, ay, 48, 0, Math.PI * 2);
         ctx.fillStyle = grd;
@@ -2704,12 +2740,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
         // Three concentric pulsing rings expanding outward from anchor
         for (let i = 0; i < 3; i++) {
-          const phase = ((now / 400) + i * 0.33) % 1;
+          const phase = ((now / (onCooldown ? 700 : 400)) + i * 0.33) % 1;
           const r = 6 + phase * 36;
-          const alpha = (1 - phase) * 0.7 * armPulse;
+          const alpha = (1 - phase) * (onCooldown ? 0.45 : 0.7) * armPulse;
           ctx.beginPath();
           ctx.arc(ax, ay, r, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+          ctx.strokeStyle = onCooldown ? `rgba(255, 200, 120, ${alpha})` : `rgba(255, 255, 255, ${alpha})`;
           ctx.lineWidth = 1.5;
           ctx.stroke();
         }
@@ -2717,15 +2753,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         // Solid bright ring at anchor
         ctx.beginPath();
         ctx.arc(ax, ay, s.player.radius + 14, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 + 0.3 * armPulse})`;
+        ctx.strokeStyle = onCooldown
+          ? `rgba(255, 200, 120, ${0.5 + 0.2 * armPulse})`
+          : `rgba(255, 255, 255, ${0.7 + 0.3 * armPulse})`;
         ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        // Override cursor to blaze white — draw on top of default cursor
+        // Override cursor to blaze white (or amber, while waiting on cooldown) — draw on top of default cursor
         ctx.beginPath();
         ctx.arc(s.mouse.x, s.mouse.y, s.player.radius + 2, 0, Math.PI * 2);
         const cursorGlow = ctx.createRadialGradient(s.mouse.x, s.mouse.y, 0, s.mouse.x, s.mouse.y, s.player.radius + 10);
-        cursorGlow.addColorStop(0, `rgba(255,255,255,${0.6 * armPulse})`);
+        cursorGlow.addColorStop(0, onCooldown ? `rgba(255,200,120,${0.45 * armPulse})` : `rgba(255,255,255,${0.6 * armPulse})`);
         cursorGlow.addColorStop(1, "rgba(255,255,255,0)");
         ctx.fillStyle = cursorGlow;
         ctx.fill();
@@ -2768,6 +2806,37 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
         ctx.lineWidth = 1;
         ctx.stroke();
+      }
+    }
+
+    // Glint arm-pop — one-shot burst the instant hover-charge completes, distinct from the crit hit flash.
+    // Runs independently of glintHoverPos (which may already be null by the time this finishes fading).
+    if (s.glintArmPopAlpha > 0 && s.glintArmPopPos !== null) {
+      const px = s.glintArmPopPos.x;
+      const py = s.glintArmPopPos.y;
+      const popT = 1 - s.glintArmPopAlpha; // 0 -> 1 as the pop plays out
+      const popR = 10 + popT * 70;
+
+      // Expanding bright ring
+      ctx.beginPath();
+      ctx.arc(px, py, popR, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255, 255, 255, ${s.glintArmPopAlpha * 0.9})`;
+      ctx.lineWidth = 3 * (1 - popT * 0.6);
+      ctx.stroke();
+
+      // Bright core flash at the anchor point
+      const coreGrd = ctx.createRadialGradient(px, py, 0, px, py, 30 + popT * 20);
+      coreGrd.addColorStop(0, `rgba(255, 255, 255, ${s.glintArmPopAlpha * 0.6})`);
+      coreGrd.addColorStop(1, "rgba(255, 255, 255, 0)");
+      ctx.beginPath();
+      ctx.arc(px, py, 30 + popT * 20, 0, Math.PI * 2);
+      ctx.fillStyle = coreGrd;
+      ctx.fill();
+
+      // Subtle full-screen tint, skipped entirely when reduce-flashing is on
+      if (!reduceFlashingRef.current) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${s.glintArmPopAlpha * 0.12})`;
+        ctx.fillRect(0, 0, s.width, s.height);
       }
     }
 

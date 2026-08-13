@@ -306,6 +306,32 @@ class AudioEngine {
     osc2.stop(this.ctx.currentTime + 0.5);
   }
 
+  // SFX: Glint hover charge fully armed — short, distinct "lock-in" blip, separate from the crit hit sound
+  public playGlintArm() {
+    this.initCtx();
+    if (!this.ctx || this.isMutedState) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(1400, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(2200, this.ctx.currentTime + 0.1);
+
+    gain.gain.setValueAtTime(0.09, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.14);
+
+    osc.connect(gain);
+    if (this.sfxGainNode) {
+      gain.connect(this.sfxGainNode);
+    } else {
+      gain.connect(this.ctx.destination);
+    }
+
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.16);
+  }
+
   // SFX: Menu click sound (little retro square/triangle sound)
   public playClick(pitchMult = 1.0) {
     this.initCtx();
