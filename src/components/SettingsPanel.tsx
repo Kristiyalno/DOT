@@ -188,6 +188,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
 
   // Debug sub-states
   const [setPlointsVal, setSetPlointsVal] = useState<string>("");
+  const [yawnProbVal, setYawnProbVal] = useState<number>(audio.yawnProbability);
   const [showBestTimePopup, setShowBestTimePopup] = useState(false);
   const [showKillsPopup, setShowKillsPopup] = useState(false);
   const [killEdits, setKillEdits] = useState<Record<string, string>>({});
@@ -538,6 +539,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                   type="number"
                   value={setPlointsVal}
                   onChange={(e) => setSetPlointsVal(e.target.value)}
+                  onWheel={(e) => handleNumberWheel(e, parseInt(setPlointsVal, 10) || 0, 1, (v) => setSetPlointsVal(String(v)))}
                   onKeyDown={(e) => { if (e.key === "Enter") handleSetPloints(); }}
                   placeholder={String(stats.totalPloints)}
                   className="flex-1 bg-[#0a0a0a] border border-[#333] text-white text-xs px-3 py-2 font-mono focus:border-neon-cyan outline-none"
@@ -594,11 +596,13 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                 <input
                   type="number"
                   step={0.001}
-                  defaultValue={audio.yawnProbability}
+                  value={yawnProbVal}
                   onChange={(e) => {
                     const v = parseFloat(e.target.value);
+                    setYawnProbVal(isNaN(v) ? 0 : v);
                     if (!isNaN(v)) audio.setYawnProbability(v);
                   }}
+                  onWheel={(e) => handleNumberWheel(e, yawnProbVal, 0.001, (v) => { const c = Math.max(0, v); setYawnProbVal(c); audio.setYawnProbability(c); }, { min: 0 })}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       audio.playClick();
@@ -724,6 +728,14 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                   min="0"
                   defaultValue={stats.highScores[key] || 0}
                   onChange={(e) => setBestTimeEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+                  onWheel={(e) => {
+                    const current = parseFloat(e.currentTarget.value) || 0;
+                    handleNumberWheel(e, current, 0.1, (v) => {
+                      const clamped = Math.max(0, v);
+                      e.currentTarget.value = String(clamped);
+                      setBestTimeEdits((prev) => ({ ...prev, [key]: String(clamped) }));
+                    }, { min: 0 });
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       audio.playClick();
@@ -776,6 +788,14 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                   min="0"
                   defaultValue={totalKills[key] || 0}
                   onChange={(e) => setKillEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+                  onWheel={(e) => {
+                    const current = parseInt(e.currentTarget.value, 10) || 0;
+                    handleNumberWheel(e, current, 1, (v) => {
+                      const clamped = Math.max(0, v);
+                      e.currentTarget.value = String(clamped);
+                      setKillEdits((prev) => ({ ...prev, [key]: String(clamped) }));
+                    }, { min: 0 });
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       audio.playClick();
@@ -1080,6 +1100,7 @@ const VolumeSlider: React.FC<{
           onChange(v);
           setDraft(String(Math.round(v * 100)));
         }}
+        onWheel={(e) => handleNumberWheel(e, value, 0.01, (v) => { onChange(v); setDraft(String(Math.round(v * 100))); }, { min: 0, max: 1 })}
         className="w-full h-1.5 accent-neon-cyan cursor-pointer"
       />
       <input
@@ -1091,6 +1112,14 @@ const VolumeSlider: React.FC<{
         onChange={(e) => setDraft(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={commit}
+        onWheel={(e) => {
+          const current = parseInt(draft, 10) || 0;
+          handleNumberWheel(e, current, 1, (v) => {
+            const clamped = Math.min(100, Math.max(0, v));
+            setDraft(String(clamped));
+            onChange(clamped / 100);
+          }, { min: 0, max: 100 });
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             audio.playClick();
@@ -1154,6 +1183,7 @@ const SettingsSlider: React.FC<{
           onChange(v);
           setDraft(String(v));
         }}
+        onWheel={(e) => handleNumberWheel(e, value, 0.01, (v) => { onChange(v); setDraft(String(v)); }, { min, max })}
         className="w-full h-1.5 accent-neon-cyan cursor-pointer"
       />
       <input
@@ -1165,6 +1195,16 @@ const SettingsSlider: React.FC<{
         onChange={(e) => setDraft(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={commit}
+        onWheel={(e) => {
+          const current = parseFloat(draft) || 0;
+          handleNumberWheel(e, current, 0.01, (v) => {
+            const clamped = inputMin !== undefined || inputMax !== undefined
+              ? Math.min(inputMax ?? Infinity, Math.max(inputMin ?? -Infinity, v))
+              : v;
+            setDraft(String(clamped));
+            onChange(clamped);
+          }, { min: inputMin, max: inputMax });
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             audio.playClick();
@@ -1365,6 +1405,26 @@ const LeaderboardNameField: React.FC<{
   );
 };
 
+// Shared scroll-wheel handler for any number/range input in Settings: nudges the value by `step`
+// in the scroll direction, clamps to [min, max] if given, and plays a quiet directional tick —
+// scrolling over a number field can silently change it, so every value change here gets audible feedback.
+function handleNumberWheel(
+  e: React.WheelEvent<HTMLInputElement>,
+  current: number,
+  step: number,
+  onChange: (v: number) => void,
+  opts?: { min?: number; max?: number }
+) {
+  e.preventDefault();
+  const increasing = e.deltaY < 0;
+  let next = increasing ? current + step : current - step;
+  if (opts?.min != null) next = Math.max(opts.min, next);
+  if (opts?.max != null) next = Math.min(opts.max, next);
+  const rounded = step < 1 ? parseFloat(next.toFixed(10)) : Math.round(next);
+  onChange(rounded);
+  audio.playScrollTick(increasing);
+}
+
 const DiffField: React.FC<{
   label: string;
   value: string | number;
@@ -1428,6 +1488,18 @@ const DiffField: React.FC<{
     onChange(rounded);
   };
 
+  // Scroll wheel nudges the value up/down by `step` while focused — this is the browser's native
+  // number-input behavior in some browsers (Chrome) but not others (Firefox), so it's handled explicitly
+  // here for consistency, with a quiet tick sound on every change since it's easy to scroll over a field
+  // by accident and not notice the value moved.
+  const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
+    if (!focused) return; // only when the field is actually focused, matching native browser behavior
+    const s = step ?? 1;
+    const parsed = s < 1 ? parseFloat(draft) : parseInt(draft, 10);
+    const base = isNaN(parsed) ? 0 : parsed;
+    handleNumberWheel(e, base, s, (v) => { setDraft(String(v)); onChange(String(v)); });
+  };
+
   return (
     <div className="flex items-center gap-2">
       <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44">{label}</span>
@@ -1438,6 +1510,7 @@ const DiffField: React.FC<{
         onChange={(e) => setDraft(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={commit}
+        onWheel={handleWheel}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             audio.playClick();
@@ -1512,14 +1585,12 @@ function rgbStringToHex(input: string): string | null {
 type ColorFormat = "hex" | "rgb";
 
 // Inline HSV color picker — no native input, no double-click nonsense.
-// Supports typing the color as hex or RGB via a small format dropdown; the picker itself always operates in hex internally.
+// Supports typing the color as hex or RGB via a fixed-width toggle button; the picker itself always operates in hex internally.
 const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void }> = ({ color, onChange }) => {
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<ColorFormat>("hex");
-  const [showFormatMenu, setShowFormatMenu] = useState(false);
   const [textInput, setTextInput] = useState(color.replace(/^#/, ""));
   const pickerRef = React.useRef<HTMLDivElement>(null);
-  const formatMenuRef = React.useRef<HTMLDivElement>(null);
   const svCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const hueCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const textInputRef = React.useRef<HTMLInputElement>(null);
@@ -1580,20 +1651,19 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
     ctx.fillRect(0, 0, W, H);
   }, [open]);
 
-  // Close popups on outside click or Escape
+  // Close the picker popup on outside click or Escape
   useEffect(() => {
-    if (!open && !showFormatMenu) return;
+    if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setOpen(false); setShowFormatMenu(false); }
+      if (e.key === "Escape") setOpen(false);
     };
     const onOutside = (e: MouseEvent) => {
-      if (open && pickerRef.current && !pickerRef.current.contains(e.target as Node)) setOpen(false);
-      if (showFormatMenu && formatMenuRef.current && !formatMenuRef.current.contains(e.target as Node)) setShowFormatMenu(false);
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("mousedown", onOutside);
     return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("mousedown", onOutside); };
-  }, [open, showFormatMenu]);
+  }, [open]);
 
   const commit = (nh: number, ns: number, nv: number) => {
     const hex = hsvToHex(nh, ns, nv);
@@ -1660,18 +1730,20 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
 
   return (
     <div className="relative" ref={pickerRef}>
-      <div className="flex gap-2 items-center">
-        {/* Color swatch */}
+      <div className="flex gap-2 items-stretch">
+        {/* Color swatch — not a tab stop, so Tab moves cleanly between this field's text input and
+            the next field's, instead of stopping on the swatch/toggle in between. Still fully clickable. */}
         <button
+          tabIndex={-1}
           onClick={() => { audio.playClick(); setOpen((p) => !p); }}
           className="w-9 h-9 border border-[#333] hover:border-neon-cyan shrink-0 transition-colors cursor-pointer"
           style={{ background: safeColor }}
           
         />
         {/* Format-aware text field */}
-        <div className="flex flex-1 bg-[#0a0a0a] border border-[#333] focus-within:border-neon-cyan transition-colors min-w-0">
+        <div className="flex flex-1 items-center bg-[#0a0a0a] border border-[#333] focus-within:border-neon-cyan transition-colors min-w-0">
           {format === "hex" && (
-            <span className="text-zinc-500 text-xs font-mono pl-2 py-2 select-none pointer-events-none">#</span>
+            <span className="text-zinc-500 text-xs font-mono pl-2 select-none pointer-events-none">#</span>
           )}
           <input
             ref={textInputRef}
@@ -1696,30 +1768,14 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
             className="flex-1 min-w-0 bg-transparent text-white text-xs px-2 py-2 font-mono outline-none"
           />
         </div>
-        {/* Format dropdown */}
-        <div className="relative shrink-0" ref={formatMenuRef}>
-          <button
-            onClick={() => { audio.playClick(); setShowFormatMenu((p) => !p); }}
-            className="bg-[#0a0a0a] border border-[#333] hover:border-neon-cyan text-zinc-400 hover:text-white text-[10px] font-mono uppercase tracking-wider px-2 py-2.5 transition-colors cursor-pointer"
-          >
-            {format}
-          </button>
-          {showFormatMenu && (
-            <div className="absolute right-0 top-full mt-1 z-50 border border-[#333] bg-[#0a0a0a] shadow-2xl">
-              {(["hex", "rgb"] as ColorFormat[]).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => { audio.playClick(); setFormat(f); setShowFormatMenu(false); }}
-                  className={`block w-full text-left px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors cursor-pointer ${
-                    format === f ? "bg-neon-cyan text-black font-black" : "text-zinc-400 hover:text-white hover:bg-[#1a1a1a]"
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Format toggle — also skipped by Tab for the same reason as the swatch above. */}
+        <button
+          tabIndex={-1}
+          onClick={() => { audio.playClick(); setFormat((f) => (f === "hex" ? "rgb" : "hex")); }}
+          className="w-11 shrink-0 bg-[#0a0a0a] border border-[#333] hover:border-neon-cyan text-zinc-400 hover:text-white text-[10px] font-mono uppercase tracking-wider transition-colors cursor-pointer"
+        >
+          {format}
+        </button>
       </div>
 
       {/* Picker popup */}
@@ -1850,6 +1906,10 @@ const SpamtonRangeField: React.FC<{
           placeholder="0"
           onChange={(e) => setDraftMin(e.target.value)}
           onBlur={(e) => commitMin(e.target.value)}
+          onWheel={(e) => {
+            const current = parseFloat(draftMin) || 0;
+            handleNumberWheel(e, current, 1, (v) => { setDraftMin(String(v)); commitMin(String(v)); });
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               commitMin(draftMin);
@@ -1867,6 +1927,10 @@ const SpamtonRangeField: React.FC<{
           placeholder="0"
           onChange={(e) => setDraftMax(e.target.value)}
           onBlur={(e) => commitMax(e.target.value)}
+          onWheel={(e) => {
+            const current = parseFloat(draftMax) || 0;
+            handleNumberWheel(e, current, 1, (v) => { setDraftMax(String(v)); commitMax(String(v)); });
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               commitMax(draftMax);

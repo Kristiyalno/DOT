@@ -358,6 +358,32 @@ class AudioEngine {
     osc.stop(this.ctx.currentTime + 0.13);
   }
 
+  // SFX: Scroll-wheel tick on number inputs — very short and quiet so it's noticeable without being
+  // annoying during rapid scrolling, and pitched up/down slightly by direction so the value change is audible.
+  public playScrollTick(increasing: boolean) {
+    this.initCtx();
+    if (!this.ctx || this.isMutedState) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(increasing ? 1100 : 700, this.ctx.currentTime);
+
+    gain.gain.setValueAtTime(0.045, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.045);
+
+    osc.connect(gain);
+    if (this.sfxGainNode) {
+      gain.connect(this.sfxGainNode);
+    } else {
+      gain.connect(this.ctx.destination);
+    }
+
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.05);
+  }
+
   // SFX: Yawn — plays dedeniz_yawn_edited.mp3 at a configurable probability
   private yawnProbabilityValue = 0.01;
   private yawnAudio: HTMLAudioElement | null = null;
