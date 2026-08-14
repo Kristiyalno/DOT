@@ -147,8 +147,15 @@ export default function App() {
       const saved = localStorage.getItem(CUSTOM_DIFF_KEY);
       if (!saved) return [];
       const parsed = JSON.parse(saved) as CustomDifficulty[];
-      // Backfill fields added after some presets were saved (e.g. firstPlointCooldown)
-      return parsed.map((d) => ({ firstPlointCooldown: 5, ...d }));
+      // Backfill fields added after some presets were saved (e.g. firstPlointCooldown, appearance colors)
+      return parsed.map((d) => ({
+        firstPlointCooldown: 5,
+        barColor: "#00FFFF",
+        outlineColor: "#00FFFF",
+        textColor: "#00FFFF",
+        bgColor: "#070707",
+        ...d,
+      }));
     } catch { return []; }
   });
 

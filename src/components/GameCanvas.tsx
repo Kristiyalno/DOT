@@ -1796,8 +1796,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const onCooldown = s.glintCritCooldown > 0;
       if (hoveredCrit && onCooldown) {
         // Charge is preserved — don't reset hover state, just eat this click as a no-op crit attempt.
+      } else if (hoveredCrit) {
+        // Successful hover-crit: immediately restart charging at the same spot instead of nulling out
+        // the anchor, so standing still and clicking the same place every 3s just works with no re-hover.
+        s.glintHoverPos = { x: clickX, y: clickY };
+        s.glintHoverStart = Date.now();
+        s.glintHoverArmed = false;
       } else {
-        // Reset hover state on every other click (miss, random-roll click, or a successful crit)
+        // Miss or random-roll click with no active hover — reset hover state entirely
         s.glintHoverPos = null;
         s.glintHoverStart = 0;
         s.glintHoverArmed = false;

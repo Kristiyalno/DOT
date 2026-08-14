@@ -168,3 +168,19 @@ input[type="number"] {
 .color-picker-swatch:hover {
   border-color: #00FFFF;
 }
+
+/* Custom difficulty menu button — border and left-edge bar brighten to their full (non-translucent)
+   color on hover, using colors set inline as CSS custom properties per-button since each custom
+   difficulty can have a different accent color. */
+.custom-diff-button:hover {
+  border-color: var(--custom-outline-hover, #00FFFF);
+}
+.custom-diff-button:hover .custom-diff-bar {
+  background-color: var(--custom-bar-hover, #00FFFF);
+}
+.custom-diff-name {
+  color: var(--custom-text-base, #00FFFF);
+}
+.custom-diff-button:hover .custom-diff-name {
+  color: #ffffff;
+}

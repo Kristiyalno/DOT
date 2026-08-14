@@ -7,6 +7,17 @@ import { Leaderboard } from "./Leaderboard";
 import { Contributors } from "./Contributors";
 import { ShopMenu } from "./ShopMenu";
 
+// Converts a #rrggbb hex color + 0-1 alpha into an "rgba(r, g, b, a)" string, for custom-difficulty accent colors
+// that need the same translucent layering the built-in cyan theme uses (e.g. border-neon-cyan/30, bg-neon-cyan/50).
+function hexToRgba(hex: string, alpha: number): string {
+  const safe = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : "#00FFFF";
+  const r = parseInt(safe.slice(1, 3), 16);
+  const g = parseInt(safe.slice(3, 5), 16);
+  const b = parseInt(safe.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+
 interface MainMenuProps {
   unlockedDots: string[];
   selectedDotId: string;
@@ -283,8 +294,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     if (spamtonAudioRef.current) spamtonAudioRef.current.muted = isMuted;
   }, [isMuted]);
 
-  const getDifficultyStyles = (diff: Difficulty) => {
-    switch (diff) {
+  const getDifficultyStyles = (diff: Difficulty) => {    switch (diff) {
       case Difficulty.Blissful: return { border: "border-[#333] hover:border-neon-green", text: "text-neon-green", color: "#22c55e" };
       case Difficulty.Pissful: return { border: "border-[#333] hover:border-neon-yellow", text: "text-neon-yellow", color: "#eab308" };
       case Difficulty.Ez: return { border: "border-[#333] hover:border-neon-cyan", text: "text-neon-cyan", color: "#22d3ee" };
@@ -587,23 +597,40 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               })}
 
               {/* Custom difficulties */}
-              {customDifficulties.map((cd, i) => (
-                <button
-                  key={`custom-${i}`}
-                  onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); onStartGame(Difficulty.Medium, cd); }}
-                  className="w-full p-3 border border-neon-cyan/30 hover:border-neon-cyan text-left flex justify-between items-center transition-all cursor-pointer bg-[#070707] hover:bg-[#0a0a0a] group relative pl-10"
-                >
-                  <div className="absolute left-0 inset-y-0 w-1.5 bg-neon-cyan/50 group-hover:w-2 group-hover:bg-neon-cyan transition-all" />
-                  <div className="flex items-center gap-4">
-                    <span className="font-mono text-xs font-bold text-zinc-500 bg-[#121212] border border-[#222] px-2 py-1 leading-none">C{i + 1}</span>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-black tracking-widest uppercase text-neon-cyan group-hover:text-white">{cd.name}</span>
-                      <span className="text-[9px] text-zinc-400 uppercase font-mono">CUSTOM • {cd.shields} SHIELD{cd.shields !== 1 ? "S" : ""} • {cd.enemySpeedMult}x SPEED</span>
+              {customDifficulties.map((cd, i) => {
+                const barColor = cd.barColor ?? "#00FFFF";
+                const outlineColor = cd.outlineColor ?? "#00FFFF";
+                const textColor = cd.textColor ?? "#00FFFF";
+                const bgColor = cd.bgColor ?? "#070707";
+                const label = cd.sectorLabel?.trim() ? cd.sectorLabel.trim() : `C${i + 1}`;
+                return (
+                  <button
+                    key={`custom-${i}`}
+                    onClick={() => { audio.playClick(); audio.maybePlayYawn(import.meta.env.BASE_URL); onStartGame(Difficulty.Medium, cd); }}
+                    className="custom-diff-button w-full p-3 border text-left flex justify-between items-center transition-all cursor-pointer group relative pl-10"
+                    style={{
+                      backgroundColor: bgColor,
+                      borderColor: hexToRgba(outlineColor, 0.3),
+                      "--custom-outline-hover": outlineColor,
+                      "--custom-bar-hover": barColor,
+                      "--custom-text-base": textColor,
+                    } as React.CSSProperties}
+                  >
+                    <div
+                      className="custom-diff-bar absolute left-0 inset-y-0 w-1.5 group-hover:w-2 transition-all"
+                      style={{ backgroundColor: hexToRgba(barColor, 0.5) }}
+                    />
+                    <div className="flex items-center gap-4">
+                      <span className="font-mono text-xs font-bold text-zinc-500 bg-[#121212] border border-[#222] px-2 py-1 leading-none">{label}</span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="custom-diff-name text-sm font-black tracking-widest uppercase transition-colors">{cd.name}</span>
+                        <span className="text-[9px] text-zinc-400 uppercase font-mono">CUSTOM • {cd.shields} SHIELD{cd.shields !== 1 ? "S" : ""} • {cd.enemySpeedMult}x SPEED</span>
+                      </div>
                     </div>
-                  </div>
-                  <span className="text-[9px] text-neon-cyan border border-neon-cyan/30 px-2 py-1">CUSTOM</span>
-                </button>
-              ))}
+                    <span className="text-[9px] px-2 py-1 border" style={{ color: textColor, borderColor: hexToRgba(outlineColor, 0.3) }}>CUSTOM</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

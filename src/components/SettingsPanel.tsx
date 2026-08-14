@@ -30,6 +30,11 @@ export interface CustomDifficulty {
   secondsPerPloint: number;
   firstPlointCooldown: number;
   permanent: boolean;
+  sectorLabel?: string;   // shown in the small badge on the menu button — defaults to "C{n}" when blank
+  barColor?: string;      // the thick strip on the left edge of the button
+  outlineColor?: string;  // the button's border
+  textColor?: string;     // the difficulty name text
+  bgColor?: string;       // the button's background fill
 }
 
 interface SettingsProps {
@@ -86,6 +91,11 @@ const defaultCustomDiff: CustomDifficulty = {
   secondsPerPloint: 10,
   firstPlointCooldown: 5,
   permanent: true,
+  // sectorLabel intentionally left unset — falls back to "C{n}" until the user types something
+  barColor: "#00FFFF",
+  outlineColor: "#00FFFF",
+  textColor: "#00FFFF",
+  bgColor: "#070707",
 };
 
 export interface AccessibilitySettings {
@@ -186,6 +196,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
   const [customDiffNameError, setCustomDiffNameError] = useState(false);
   const [editingCustomDiff, setEditingCustomDiff] = useState<CustomDifficulty>({ ...defaultCustomDiff });
   const [editingCustomIndex, setEditingCustomIndex] = useState<number | null>(null);
+  const [saveRequested, setSaveRequested] = useState(false);
   const [showResetPopup, setShowResetPopup] = useState(false);
   const [wipeStage, setWipeStage] = useState<0 | 1 | 2>(0);
 
@@ -304,6 +315,18 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
     setEditingCustomDiff({ ...defaultCustomDiff });
     audio.playClick();
   };
+
+  // Runs the actual save only after a pending draft-field blur (triggered by the Save button
+  // force-blurring the focused input) has had its state update flush into editingCustomDiff.
+  // useEffect fires after render with a fresh closure, so this always sees the committed value —
+  // unlike a setTimeout callback, which would still close over the stale pre-blur state.
+  useEffect(() => {
+    if (saveRequested) {
+      setSaveRequested(false);
+      handleSaveCustomDiff();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveRequested, editingCustomDiff]);
 
   const handleDeleteCustomDiff = (i: number) => {
     const next = customDifficulties.filter((_, idx) => idx !== i);
@@ -806,6 +829,49 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                 Name cannot be blank.
               </p>
             )}
+            <div className="border-t border-[#1a1a1a] pt-2 mt-1">
+              <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black">Menu Button Appearance</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <DiffField
+                label="Sector Label"
+                value={editingCustomDiff.sectorLabel ?? ""}
+                onChange={(v) => setEditingCustomDiff((p) => ({ ...p, sectorLabel: v.toUpperCase().slice(0, 6) }))}
+                type="text"
+              />
+              <p className="text-[9px] text-zinc-600">The small badge on the button. Leave blank to keep the default "C1", "C2"... numbering.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44">Left Edge Bar</span>
+              <ColorPickerField
+                color={editingCustomDiff.barColor ?? "#00FFFF"}
+                onChange={(c) => setEditingCustomDiff((p) => ({ ...p, barColor: c }))}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44">Outline</span>
+              <ColorPickerField
+                color={editingCustomDiff.outlineColor ?? "#00FFFF"}
+                onChange={(c) => setEditingCustomDiff((p) => ({ ...p, outlineColor: c }))}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44">Text</span>
+              <ColorPickerField
+                color={editingCustomDiff.textColor ?? "#00FFFF"}
+                onChange={(c) => setEditingCustomDiff((p) => ({ ...p, textColor: c }))}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44">Background</span>
+              <ColorPickerField
+                color={editingCustomDiff.bgColor ?? "#070707"}
+                onChange={(c) => setEditingCustomDiff((p) => ({ ...p, bgColor: c }))}
+              />
+            </div>
+            <div className="border-t border-[#1a1a1a] pt-2 mt-1">
+              <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black">Gameplay</span>
+            </div>
             <DiffField label="Shields" value={editingCustomDiff.shields} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, shields: +v }))} step={1} />
             <DiffField label="Enemy Speed Multiplier" value={editingCustomDiff.enemySpeedMult} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, enemySpeedMult: +v }))} step={0.1} />
             <DiffField label="Initial Spawn Interval (ms)" value={editingCustomDiff.spawnRateBase} onChange={(v) => setEditingCustomDiff((p) => ({ ...p, spawnRateBase: +v }))} step={100} />
@@ -867,7 +933,22 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             </div>
           </div>
           <button
-            onClick={handleSaveCustomDiff}
+            onClick={() => {
+              // Force-commit whatever field is still mid-edit (draft state) before validating/saving,
+              // so clicking Save without first tabbing/clicking away doesn't save a stale value.
+              // This popup is modal (nothing else on screen can hold focus while it's open), so any
+              // focused <input> at click time belongs to one of this editor's own draft fields.
+              // Blurring queues a React state update (setEditingCustomDiff) which is async, so we defer
+              // the actual save via saveRequested + a useEffect that fires once that update has landed —
+              // a plain setTimeout would still close over the pre-blur (stale) editingCustomDiff.
+              const active = document.activeElement as HTMLElement | null;
+              if (active && active.tagName === "INPUT") {
+                active.blur();
+                setSaveRequested(true);
+              } else {
+                handleSaveCustomDiff();
+              }
+            }}
             className="mt-3 w-full py-2 text-xs font-black uppercase border border-neon-green text-neon-green hover:bg-neon-green/10 cursor-pointer transition-all"
           >
             SAVE DIFFICULTY
@@ -1300,16 +1381,23 @@ const DiffField: React.FC<{
   }, [value, focused]);
 
   if (type === "text") {
+    const commitText = () => {
+      setFocused(false);
+      onChange(draft);
+    };
     return (
       <div className="flex items-center gap-2">
         <span className="text-[10px] text-zinc-400 uppercase tracking-widest shrink-0 w-44">{label}</span>
         <input
           type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={commitText}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               audio.playClick();
+              commitText();
               const inputs = Array.from(
                 (e.target as HTMLElement).closest("[data-difffields]")?.querySelectorAll("input") || []
               );
@@ -1319,6 +1407,10 @@ const DiffField: React.FC<{
               } else {
                 (e.target as HTMLInputElement).blur();
               }
+            } else if (e.key === "Escape") {
+              // Revert to the last committed value instead of keeping whatever was mid-typed
+              setDraft(String(value));
+              (e.target as HTMLInputElement).blur();
             }
           }}
           className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
@@ -1359,6 +1451,10 @@ const DiffField: React.FC<{
             } else {
               (e.target as HTMLInputElement).blur();
             }
+          } else if (e.key === "Escape") {
+            // Revert to the last committed value instead of keeping whatever was mid-typed
+            setDraft(String(value));
+            (e.target as HTMLInputElement).blur();
           }
         }}
         className="flex-1 bg-[#050505] border border-[#333] text-white text-xs px-2 py-1.5 font-mono focus:border-neon-cyan outline-none"
@@ -1394,13 +1490,39 @@ function hsvToHex(h: number, s: number, v: number): string {
   return `#${f(5)}${f(3)}${f(1)}`;
 }
 
-// Inline HSV color picker — no native input, no double-click nonsense
+// Converts a #rrggbb hex string to "r, g, b" (decimal, comma-separated).
+function hexToRgbString(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `${r}, ${g}, ${b}`;
+}
+
+// Parses a loose "r, g, b" / "r g b" / "rgb(r,g,b)" string into a #rrggbb hex string.
+// Returns null if it doesn't resolve to three valid 0-255 numbers.
+function rgbStringToHex(input: string): string | null {
+  const nums = input.match(/-?\d+(\.\d+)?/g);
+  if (!nums || nums.length < 3) return null;
+  const [r, g, b] = nums.slice(0, 3).map((n) => Math.round(parseFloat(n)));
+  if ([r, g, b].some((n) => isNaN(n) || n < 0 || n > 255)) return null;
+  const f = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${f(r)}${f(g)}${f(b)}`;
+}
+
+type ColorFormat = "hex" | "rgb";
+
+// Inline HSV color picker — no native input, no double-click nonsense.
+// Supports typing the color as hex or RGB via a small format dropdown; the picker itself always operates in hex internally.
 const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void }> = ({ color, onChange }) => {
   const [open, setOpen] = useState(false);
-  const [hexInput, setHexInput] = useState(color);
+  const [format, setFormat] = useState<ColorFormat>("hex");
+  const [showFormatMenu, setShowFormatMenu] = useState(false);
+  const [textInput, setTextInput] = useState(color.replace(/^#/, ""));
   const pickerRef = React.useRef<HTMLDivElement>(null);
+  const formatMenuRef = React.useRef<HTMLDivElement>(null);
   const svCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const hueCanvasRef = React.useRef<HTMLCanvasElement>(null);
+  const textInputRef = React.useRef<HTMLInputElement>(null);
 
   const safeColor = /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#ffffff";
   const [h, s, v] = hexToHsv(safeColor);
@@ -1408,14 +1530,21 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
   const [sat, setSat] = useState(s);
   const [val, setVal] = useState(v);
 
-  // Sync local HSV when color prop changes externally
+  // Sync local HSV + text field when color prop changes externally (and not mid-edit)
   useEffect(() => {
     if (/^#[0-9a-fA-F]{6}$/.test(color)) {
       const [nh, ns, nv] = hexToHsv(color);
       setHue(nh); setSat(ns); setVal(nv);
-      setHexInput(color);
+      if (document.activeElement !== textInputRef.current) {
+        setTextInput(format === "hex" ? color.replace(/^#/, "") : hexToRgbString(color));
+      }
     }
   }, [color]);
+
+  // Re-render the text field's displayed value when the format toggle changes (but not while typing)
+  useEffect(() => {
+    setTextInput(format === "hex" ? safeColor.replace(/^#/, "") : hexToRgbString(safeColor));
+  }, [format]);
 
   // Draw SV gradient on canvas
   useEffect(() => {
@@ -1451,22 +1580,25 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
     ctx.fillRect(0, 0, W, H);
   }, [open]);
 
-  // Close on outside click or Escape
+  // Close popups on outside click or Escape
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    if (!open && !showFormatMenu) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setOpen(false); setShowFormatMenu(false); }
+    };
     const onOutside = (e: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setOpen(false);
+      if (open && pickerRef.current && !pickerRef.current.contains(e.target as Node)) setOpen(false);
+      if (showFormatMenu && formatMenuRef.current && !formatMenuRef.current.contains(e.target as Node)) setShowFormatMenu(false);
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("mousedown", onOutside);
     return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("mousedown", onOutside); };
-  }, [open]);
+  }, [open, showFormatMenu]);
 
   const commit = (nh: number, ns: number, nv: number) => {
     const hex = hsvToHex(nh, ns, nv);
     onChange(hex);
-    setHexInput(hex);
+    setTextInput(format === "hex" ? hex.replace(/^#/, "") : hexToRgbString(hex));
   };
 
   const handleSvDrag = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1504,12 +1636,19 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
     window.addEventListener("mouseup", onUp);
   };
 
-  const handleHexChange = (val: string) => {
-    setHexInput(val);
-    if (/^#[0-9a-fA-F]{6}$/.test(val)) {
-      onChange(val);
-      const [nh, ns, nv] = hexToHsv(val);
+  // Commits whatever is currently typed, in whichever format is active. Invalid input reverts the draft to the last valid color.
+  const commitText = () => {
+    const hex = format === "hex"
+      ? (/^#?[0-9a-fA-F]{6}$/.test(textInput) ? ("#" + textInput.replace(/^#/, "")).toLowerCase() : null)
+      : rgbStringToHex(textInput);
+    if (hex) {
+      onChange(hex);
+      const [nh, ns, nv] = hexToHsv(hex);
       setHue(nh); setSat(ns); setVal(nv);
+      setTextInput(format === "hex" ? hex.replace(/^#/, "") : hexToRgbString(hex));
+    } else {
+      // Invalid — revert draft to the last valid committed color rather than leaving garbage in the field
+      setTextInput(format === "hex" ? safeColor.replace(/^#/, "") : hexToRgbString(safeColor));
     }
   };
 
@@ -1529,23 +1668,57 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
           style={{ background: safeColor }}
           
         />
-        {/* Hex field */}
-        <div className="flex flex-1 bg-[#0a0a0a] border border-[#333] focus-within:border-neon-cyan transition-colors">
-          <span className="text-zinc-500 text-xs font-mono px-2 py-2 select-none pointer-events-none">#</span>
+        {/* Format-aware text field */}
+        <div className="flex flex-1 bg-[#0a0a0a] border border-[#333] focus-within:border-neon-cyan transition-colors min-w-0">
+          {format === "hex" && (
+            <span className="text-zinc-500 text-xs font-mono pl-2 py-2 select-none pointer-events-none">#</span>
+          )}
           <input
+            ref={textInputRef}
             type="text"
-            value={hexInput.replace(/^#/, "")}
-            maxLength={6}
-            onChange={(e) => handleHexChange("#" + e.target.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 6))}
+            value={textInput}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setTextInput(format === "hex" ? raw.replace(/[^0-9a-fA-F]/g, "").slice(0, 6) : raw.slice(0, 20));
+            }}
+            onBlur={commitText}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 audio.playClick();
+                commitText();
+                (e.target as HTMLInputElement).blur();
+              } else if (e.key === "Escape") {
+                setTextInput(format === "hex" ? safeColor.replace(/^#/, "") : hexToRgbString(safeColor));
                 (e.target as HTMLInputElement).blur();
               }
             }}
-            placeholder="ffffff"
-            className="flex-1 bg-transparent text-white text-xs px-0 py-2 pr-2 font-mono outline-none"
+            placeholder={format === "hex" ? "ffffff" : "255, 255, 255"}
+            className="flex-1 min-w-0 bg-transparent text-white text-xs px-2 py-2 font-mono outline-none"
           />
+        </div>
+        {/* Format dropdown */}
+        <div className="relative shrink-0" ref={formatMenuRef}>
+          <button
+            onClick={() => { audio.playClick(); setShowFormatMenu((p) => !p); }}
+            className="bg-[#0a0a0a] border border-[#333] hover:border-neon-cyan text-zinc-400 hover:text-white text-[10px] font-mono uppercase tracking-wider px-2 py-2.5 transition-colors cursor-pointer"
+          >
+            {format}
+          </button>
+          {showFormatMenu && (
+            <div className="absolute right-0 top-full mt-1 z-50 border border-[#333] bg-[#0a0a0a] shadow-2xl">
+              {(["hex", "rgb"] as ColorFormat[]).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => { audio.playClick(); setFormat(f); setShowFormatMenu(false); }}
+                  className={`block w-full text-left px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider transition-colors cursor-pointer ${
+                    format === f ? "bg-neon-cyan text-black font-black" : "text-zinc-400 hover:text-white hover:bg-[#1a1a1a]"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1601,7 +1774,7 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
               ].map((swatch) => (
                 <button
                   key={swatch}
-                  onClick={() => { onChange(swatch); setHexInput(swatch); const [nh,ns,nv]=hexToHsv(swatch); setHue(nh); setSat(ns); setVal(nv); }}
+                  onClick={() => { onChange(swatch); setTextInput(format === "hex" ? swatch.replace(/^#/, "") : hexToRgbString(swatch)); const [nh,ns,nv]=hexToHsv(swatch); setHue(nh); setSat(ns); setVal(nv); }}
                   className="w-5 h-5 border border-transparent hover:border-white transition-colors cursor-pointer shrink-0"
                   style={{ background: swatch }}
                   
