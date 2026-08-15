@@ -1100,7 +1100,6 @@ const VolumeSlider: React.FC<{
           onChange(v);
           setDraft(String(Math.round(v * 100)));
         }}
-        onWheel={(e) => handleNumberWheel(e, value, 0.01, (v) => { onChange(v); setDraft(String(Math.round(v * 100))); }, { min: 0, max: 1 })}
         className="w-full h-1.5 accent-neon-cyan cursor-pointer"
       />
       <input
@@ -1183,7 +1182,6 @@ const SettingsSlider: React.FC<{
           onChange(v);
           setDraft(String(v));
         }}
-        onWheel={(e) => handleNumberWheel(e, value, 0.01, (v) => { onChange(v); setDraft(String(v)); }, { min, max })}
         className="w-full h-1.5 accent-neon-cyan cursor-pointer"
       />
       <input
