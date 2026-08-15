@@ -1066,6 +1066,8 @@ const VolumeSlider: React.FC<{
   const pct = Math.round(value * 100);
   const [draft, setDraft] = React.useState(String(pct));
   const [focused, setFocused] = React.useState(false);
+  const lastTickPctRef = React.useRef(pct);
+  const lastTickTimeRef = React.useRef(0);
 
   React.useEffect(() => {
     if (!focused) setDraft(String(Math.round(value * 100)));
@@ -1098,7 +1100,19 @@ const VolumeSlider: React.FC<{
         onChange={(e) => {
           const v = parseFloat(e.target.value);
           onChange(v);
-          setDraft(String(Math.round(v * 100)));
+          const newPct = Math.round(v * 100);
+          setDraft(String(newPct));
+          // Tick once per whole percent crossed while dragging, throttled to a minimum gap between
+          // ticks too — a fast drag can cross many percents in one event burst, and firing on every
+          // single one back-to-back would smear into a buzz instead of sounding like discrete ticks.
+          const now = performance.now();
+          if (newPct !== lastTickPctRef.current && now - lastTickTimeRef.current >= 35) {
+            audio.playScrollTick(newPct > lastTickPctRef.current);
+            lastTickPctRef.current = newPct;
+            lastTickTimeRef.current = now;
+          } else if (newPct !== lastTickPctRef.current) {
+            lastTickPctRef.current = newPct;
+          }
         }}
         className="w-full h-1.5 accent-neon-cyan cursor-pointer"
       />
@@ -1145,6 +1159,8 @@ const SettingsSlider: React.FC<{
 }> = ({ label, value, onChange, min = 0, max = 3, inputMin, inputMax, suffix = "x", prefix = "" }) => {
   const [draft, setDraft] = React.useState(String(parseFloat(value.toFixed(2))));
   const [focused, setFocused] = React.useState(false);
+  const lastTickValRef = React.useRef(Math.round(value * 100));
+  const lastTickTimeRef = React.useRef(0);
 
   React.useEffect(() => {
     if (!focused) setDraft(String(parseFloat(value.toFixed(2))));
@@ -1181,6 +1197,18 @@ const SettingsSlider: React.FC<{
           const v = parseFloat(e.target.value);
           onChange(v);
           setDraft(String(v));
+          // Tick once per 0.01 step crossed (the same precision the label displays), throttled to a
+          // minimum gap between ticks too — a fast drag can cross many steps in one event burst, and
+          // firing on every single one back-to-back would smear into a buzz instead of discrete ticks.
+          const newStep = Math.round(v * 100);
+          const now = performance.now();
+          if (newStep !== lastTickValRef.current && now - lastTickTimeRef.current >= 35) {
+            audio.playScrollTick(newStep > lastTickValRef.current);
+            lastTickValRef.current = newStep;
+            lastTickTimeRef.current = now;
+          } else if (newStep !== lastTickValRef.current) {
+            lastTickValRef.current = newStep;
+          }
         }}
         className="w-full h-1.5 accent-neon-cyan cursor-pointer"
       />
