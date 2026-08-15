@@ -1408,6 +1408,9 @@ const LeaderboardNameField: React.FC<{
 // Shared scroll-wheel handler for any number/range input in Settings: nudges the value by `step`
 // in the scroll direction, clamps to [min, max] if given, and plays a quiet directional tick —
 // scrolling over a number field can silently change it, so every value change here gets audible feedback.
+// Only acts when the input the wheel event fired on is actually focused (checked via the DOM directly,
+// not a per-component `focused` state flag, so this guard can't be forgotten at a call site) — otherwise
+// just scrolling the settings page with the cursor passing over a field would silently edit it.
 function handleNumberWheel(
   e: React.WheelEvent<HTMLInputElement>,
   current: number,
@@ -1415,6 +1418,7 @@ function handleNumberWheel(
   onChange: (v: number) => void,
   opts?: { min?: number; max?: number }
 ) {
+  if (e.currentTarget !== document.activeElement) return;
   e.preventDefault();
   const increasing = e.deltaY < 0;
   let next = increasing ? current + step : current - step;
@@ -1563,12 +1567,12 @@ function hsvToHex(h: number, s: number, v: number): string {
   return `#${f(5)}${f(3)}${f(1)}`;
 }
 
-// Converts a #rrggbb hex string to "r, g, b" (decimal, comma-separated).
+// Converts a #rrggbb hex string to "(r, g, b)" (decimal, comma-separated, parenthesized).
 function hexToRgbString(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  return `${r}, ${g}, ${b}`;
+  return `(${r}, ${g}, ${b})`;
 }
 
 // Parses a loose "r, g, b" / "r g b" / "rgb(r,g,b)" string into a #rrggbb hex string.
@@ -1742,9 +1746,9 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
         />
         {/* Format-aware text field */}
         <div className="flex flex-1 items-center bg-[#0a0a0a] border border-[#333] focus-within:border-neon-cyan transition-colors min-w-0">
-          <span className={`text-zinc-500 text-xs font-mono pl-2 select-none pointer-events-none ${format === "hex" ? "opacity-100" : "opacity-0"}`}>
-            #
-          </span>
+          {format === "hex" && (
+            <span className="text-zinc-500 text-xs font-mono pl-2 select-none pointer-events-none">#</span>
+          )}
           <input
             ref={textInputRef}
             type="text"
@@ -1764,8 +1768,8 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
                 (e.target as HTMLInputElement).blur();
               }
             }}
-            placeholder={format === "hex" ? "ffffff" : "255, 255, 255"}
-            className="flex-1 min-w-0 bg-transparent text-white text-xs px-2 py-2 font-mono outline-none"
+            placeholder={format === "hex" ? "ffffff" : "(255, 255, 255)"}
+            className={`flex-1 min-w-0 bg-transparent text-white text-xs py-2 pr-2 font-mono outline-none ${format === "hex" ? "pl-0" : "pl-2"}`}
           />
         </div>
         {/* Format toggle — also skipped by Tab for the same reason as the swatch above. */}
