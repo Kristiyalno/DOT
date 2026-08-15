@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Difficulty, DotConfig, DOTS_DATABASE, NEO_DROP_ID, PlayerStats, getPlointIntervalSeconds, getFirstPlointCooldownSeconds } from "../types";
+import { PlatformSpoof } from "../utils/deviceType";
 import { audio } from "../utils/audio";
 import { Volume2, VolumeX, Info } from "lucide-react";
 import { SettingsPanel, CustomDifficulty, ExperimentalSettings, AccessibilitySettings } from "./SettingsPanel";
@@ -53,6 +54,8 @@ interface MainMenuProps {
   onTogglePreventRightClick: () => void;
   touchMode: "default" | "on" | "off";
   onSetTouchMode: (v: "default" | "on" | "off") => void;
+  platformSpoof: PlatformSpoof;
+  onSetPlatformSpoof: (v: PlatformSpoof) => void;
   invincible: boolean;
   onToggleInvincible: () => void;
   spamtonRange: [number, number];
@@ -101,7 +104,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   bigMode, onToggleBigMode,
   isMuted, onToggleMute,
   musicVolume, sfxVolume, onMusicVolume, onSfxVolume,
-  preventRightClick, onTogglePreventRightClick, touchMode, onSetTouchMode, invincible, onToggleInvincible,
+  preventRightClick, onTogglePreventRightClick, touchMode, onSetTouchMode, platformSpoof, onSetPlatformSpoof, invincible, onToggleInvincible,
   spamtonRange, onSetSpamtonRange,
   customDifficulties, onSetCustomDifficulties,
   leaderboardName, leaderboardColor,
@@ -415,6 +418,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           onUnlockAll={onUnlockAll}
           preventRightClick={preventRightClick} onTogglePreventRightClick={onTogglePreventRightClick}
           touchMode={touchMode} onSetTouchMode={onSetTouchMode}
+          platformSpoof={platformSpoof} onSetPlatformSpoof={onSetPlatformSpoof}
           invincible={invincible} onToggleInvincible={onToggleInvincible}
           spamtonRange={spamtonRange} onSetSpamtonRange={onSetSpamtonRange}
           spamtonUnit={spamtonUnit} onSetSpamtonUnit={handleSetSpamtonUnit}
@@ -444,6 +448,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           onNeedName={onNeedName}
           highScoreDots={stats.highScoreDots || {}}
           highScoreKillsDots={stats.highScoreKillsDots || {}}
+          platformSpoof={platformSpoof}
         />
       )}
 

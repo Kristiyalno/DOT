@@ -11,6 +11,7 @@ import {
   PAGE_SIZE,
 } from "../utils/firebase";
 import { audio } from "../utils/audio";
+import { DeviceType, PlatformSpoof } from "../utils/deviceType";
 
 const NEO_DOT_COLOR = "#c084fc";
 
@@ -26,6 +27,50 @@ function getDotName(dotId: string | undefined): string | undefined {
   return DOTS_DATABASE.find((d) => d.id === dotId)?.name;
 }
 
+// Small pixel-grid icons for the device-type column. Each is an 8x8 (or similar) block grid
+// drawn with <rect> on a shared viewBox, crispEdges so it reads as blocky/pixelated rather
+// than anti-aliased, matching the game's general aesthetic rather than a smooth icon-font glyph.
+const DEVICE_ICON_PATHS: Record<DeviceType, string> = {
+  // Phone: narrow, tall, portrait — a slim vertical bar with a small home-button notch
+  phone: "M3.5,1 H6.5 V13 H3.5 Z M4.5,11.5 H5.5 V12.5 H4.5 Z",
+  // Tablet: wide, short, landscape — deliberately a very different silhouette from phone
+  // so the two remain distinguishable even at the ~11x14px size they render at in the row.
+  tablet: "M0.5,3 H9.5 V11 H0.5 Z M4.5,9.5 H5.5 V10 H4.5 Z",
+  // Computer: monitor + small stand
+  computer: "M1,2 H9 V8 H1 Z M4,9 H6 V10 H4 Z M2,10.5 H8 V11.5 H2 Z",
+  // Unknown: pixelated question mark
+  unknown: "M3,2 H7 V3 H8 V5 H7 V6 H6 V7 H5 V6 H6 V5 H7 V4 H6 V3 H4 V4 H3 Z M5,8 H6 V9 H5 Z",
+};
+
+const DEVICE_LABELS: Record<DeviceType, string> = {
+  phone: "Phone",
+  tablet: "Tablet",
+  computer: "Computer",
+  unknown: "Unknown device",
+};
+
+const DeviceIcon: React.FC<{ type: DeviceType | undefined }> = ({ type }) => {
+  const resolved: DeviceType = type ?? "unknown";
+  return (
+    <span className="relative flex items-center group/device shrink-0">
+      <svg
+        viewBox="0 0 10 14"
+        width="11"
+        height="14"
+        style={{ shapeRendering: "crispEdges" }}
+        className="text-zinc-500 group-hover/device:text-zinc-300 transition-colors"
+      >
+        <path d={DEVICE_ICON_PATHS[resolved]} fill="currentColor" />
+      </svg>
+      <span className="absolute left-1/2 -translate-x-1/2 bottom-full w-0 flex justify-center mb-1.5 z-20 pointer-events-none">
+        <span className="hidden group-hover/device:block bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap">
+          {DEVICE_LABELS[resolved]}
+        </span>
+      </span>
+    </span>
+  );
+};
+
 interface LeaderboardProps {
   highScores: Record<string, number>;
   totalKills: Record<string, number>;
@@ -35,6 +80,7 @@ interface LeaderboardProps {
   onNeedName: () => void;
   highScoreDots?: Record<string, string>;
   highScoreKillsDots?: Record<string, string>;
+  platformSpoof?: PlatformSpoof;
 }
 
 const DIFFICULTY_NAMES: Record<string, string> = {
@@ -70,7 +116,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   onNeedName,
   highScoreDots = {},
   highScoreKillsDots = {},
+  platformSpoof: platformSpoofProp = "default",
 }) => {
+  const platformSpoof: PlatformSpoof = platformSpoofProp as PlatformSpoof;
   const [category, setCategory] = useState<LeaderboardCategory>("time");
   const [difficulty, setDifficulty] = useState<string>(Difficulty.Medium);
   const [lbBigMode, setLbBigMode] = useState<boolean>(false);
@@ -140,7 +188,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
         difficulty,
         lbBigMode,
         submitDotId,
-        submitDotColor
+        submitDotColor,
+        platformSpoof
       );
       
       setSubmitted(true);
@@ -263,8 +312,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
         {/* Table */}
         <div className="border border-[#222] overflow-hidden">
-          <div className="grid grid-cols-[3rem_2rem_18rem_1fr_18rem_10rem_9rem_9rem] text-[10px] text-zinc-500 uppercase tracking-widest font-black bg-[#0a0a0a] border-b border-[#222] px-5 py-3">
+          <div className="grid grid-cols-[3rem_2rem_1.5rem_18rem_1fr_18rem_10rem_9rem_9rem] text-[10px] text-zinc-500 uppercase tracking-widest font-black bg-[#0a0a0a] border-b border-[#222] px-5 py-3">
             <span>#</span>
+            <span></span>
             <span></span>
             <span>Name</span>
             <span></span>
@@ -290,7 +340,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               return (
                 <div
                   key={entry.id || i}
-                  className={`grid grid-cols-[3rem_2rem_18rem_1fr_18rem_10rem_9rem_9rem] items-center px-5 py-3.5 border-b border-[#111] text-sm font-mono transition-colors ${
+                  className={`grid grid-cols-[3rem_2rem_1.5rem_18rem_1fr_18rem_10rem_9rem_9rem] items-center px-5 py-3.5 border-b border-[#111] text-sm font-mono transition-colors ${
                     isMe ? "bg-white/5" : "hover:bg-[#0a0a0a]"
                   }`}
                 >
@@ -318,6 +368,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                       <span style={{ display: "inline-block", width: "10px", height: "10px" }} />
                     )}
                   </span>
+                  <DeviceIcon type={entry.deviceType} />
                   <span
                     className="font-black truncate min-w-0 overflow-hidden block whitespace-nowrap"
                     style={{ color: entry.color || "#ffffff" }}

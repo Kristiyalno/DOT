@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Difficulty, PlayerStats, DOTS_DATABASE } from "../types";
 import { audio } from "../utils/audio";
 import { getDeviceId, markEntriesDeleted } from "../utils/firebase";
+import { PlatformSpoof } from "../utils/deviceType";
 
 const KONAMI = [
   "ArrowUp","ArrowUp","ArrowDown","ArrowDown",
@@ -54,6 +55,8 @@ interface SettingsProps {
   onTogglePreventRightClick: () => void;
   touchMode: "default" | "on" | "off";
   onSetTouchMode: (v: "default" | "on" | "off") => void;
+  platformSpoof: PlatformSpoof;
+  onSetPlatformSpoof: (v: PlatformSpoof) => void;
   invincible: boolean;
   onToggleInvincible: () => void;
   spamtonRange: [number, number];
@@ -167,7 +170,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
   onMusicVolume, onSfxVolume,
   stats, onSetStats, onSaveStats,
   onUnlockAll,
-  preventRightClick, onTogglePreventRightClick, touchMode, onSetTouchMode, invincible, onToggleInvincible,
+  preventRightClick, onTogglePreventRightClick, touchMode, onSetTouchMode, platformSpoof, onSetPlatformSpoof, invincible, onToggleInvincible,
   spamtonRange, onSetSpamtonRange,
   spamtonUnit, onSetSpamtonUnit,
   customDifficulties, onSetCustomDifficulties,
@@ -524,6 +527,20 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
                     key={opt}
                     onClick={() => { audio.playClick(); onSetTouchMode(opt); }}
                     className={`px-3 py-1 text-[10px] uppercase font-black tracking-widest transition-all cursor-pointer ${touchMode === opt ? "bg-neon-cyan/20 text-neon-cyan border-neon-cyan/40" : "text-zinc-500 hover:text-white"}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-xs text-zinc-300 uppercase tracking-widest font-black">Spoof Platform</span>
+              <div className="flex border border-[#333]">
+                {(["default", "phone", "tablet", "computer"] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => { audio.playClick(); onSetPlatformSpoof(opt); }}
+                    className={`px-3 py-1 text-[10px] uppercase font-black tracking-widest transition-all cursor-pointer ${platformSpoof === opt ? "bg-neon-cyan/20 text-neon-cyan border-neon-cyan/40" : "text-zinc-500 hover:text-white"}`}
                   >
                     {opt}
                   </button>
@@ -1032,6 +1049,10 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             <ResetItem label="Touchscreen Mode Setting" onReset={() => {
               try { localStorage.removeItem("dot_touch_mode"); } catch {}
               if (touchMode !== "default") onSetTouchMode("default");
+            }} />
+            <ResetItem label="Spoof Platform Setting" onReset={() => {
+              try { localStorage.removeItem("dot_platform_spoof"); } catch {}
+              if (platformSpoof !== "default") onSetPlatformSpoof("default");
             }} />
             <ResetItem label="Right Click Prevention Setting" onReset={() => {
               try { localStorage.removeItem("dot_disable_rightclick_prevention"); } catch {}

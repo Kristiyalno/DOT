@@ -6,6 +6,7 @@ import { DeathScreen } from "./components/DeathScreen";
 import { audio } from "./utils/audio";
 import { CustomDifficulty, ExperimentalSettings, defaultExperimentalSettings, AccessibilitySettings, defaultAccessibilitySettings } from "./components/SettingsPanel";
 import { getDeviceId } from "./utils/firebase";
+import { PlatformSpoof } from "./utils/deviceType";
 
 const STORAGE_KEY = "dot_game_stats";
 const STORAGE_KEY_LEGACY = "dot_game_quantum_vessel_config_v2";
@@ -101,6 +102,12 @@ export default function App() {
   });
   const [touchMode, setTouchMode] = useState<"default" | "on" | "off">(() => {
     try { const v = localStorage.getItem("dot_touch_mode"); return (v === "on" || v === "off") ? v : "default"; } catch { return "default"; }
+  });
+  const [platformSpoof, setPlatformSpoof] = useState<PlatformSpoof>(() => {
+    try {
+      const v = localStorage.getItem("dot_platform_spoof");
+      return (v === "phone" || v === "tablet" || v === "computer") ? v : "default";
+    } catch { return "default"; }
   });
   const [musicVolume, setMusicVolumeState] = useState<number>(() => {
     try { return parseFloat(localStorage.getItem("dot_music_vol") || "1"); } catch { return 1; }
@@ -459,6 +466,8 @@ export default function App() {
           onSfxVolume={handleSfxVolume}
           touchMode={touchMode}
           onSetTouchMode={(v) => { setTouchMode(v); try { localStorage.setItem("dot_touch_mode", v); } catch {} }}
+          platformSpoof={platformSpoof}
+          onSetPlatformSpoof={(v) => { setPlatformSpoof(v); try { localStorage.setItem("dot_platform_spoof", v); } catch {} }}
           preventRightClick={preventRightClick}
           onTogglePreventRightClick={() => setPreventRightClick((p) => {
             const next = !p;

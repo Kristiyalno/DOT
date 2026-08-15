@@ -11,6 +11,8 @@ import {
   writeBatch,
 } from "firebase/firestore";
 
+import { detectDeviceType, DeviceType, PlatformSpoof } from "./deviceType";
+
 const firebaseConfig = {
   apiKey: "AIzaSyDeUNGMqkm8tekuK2dYdMYTwg04k3D0YGo",
   authDomain: "dot-game-abb0b.firebaseapp.com",
@@ -43,6 +45,7 @@ export interface LeaderboardEntry {
   deleted?: boolean;
   dotId?: string;
   dotColor?: string;
+  deviceType?: DeviceType;
 }
 
 export function getDeviceId(): string {
@@ -155,7 +158,8 @@ export async function submitScore(
   difficulty: string,
   bigMode: boolean,
   dotId?: string,
-  dotColor?: string
+  dotColor?: string,
+  platformSpoof: PlatformSpoof = "default"
 ): Promise<void> {
   try {
     const deviceId = getDeviceId();
@@ -170,6 +174,8 @@ export async function submitScore(
 
     await deleteExistingScore(deviceId, safeCategory, safeDifficulty, safeBigMode);
 
+    const deviceType = detectDeviceType(platformSpoof);
+
     const col = collection(db, "leaderboard");
     await addDoc(col, {
       name: safeName,
@@ -183,6 +189,7 @@ export async function submitScore(
       deleted: false,
       ...(dotId ? { dotId } : {}),
       ...(dotColor ? { dotColor } : {}),
+      deviceType,
     });
   } catch (error) {
     console.error("Submission failed: ", error);
