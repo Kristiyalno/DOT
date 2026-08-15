@@ -594,12 +594,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     setHudSlo(Math.round(s.player.slo));
     setHudShields(s.player.shields);
 
-    // Award Ploints based on game-scaled elapsed time (slowed seconds count less) after an initial cooldown that scales with difficulty
+    // Award Ploints based on game-scaled elapsed time (slowed seconds count less) after an initial cooldown that scales with difficulty.
+    // Baseline is set to firstPlointCooldown itself (not whatever timeElapsedGame happens to be on the frame
+    // the cooldown clears) so a large single-frame time jump — a lag spike, or a backgrounded/refocused tab —
+    // can't silently swallow the banked time between the cooldown threshold and that frame. The award is also
+    // a while-loop instead of a single if, so a frame that jumps past multiple intervals catches up on all of
+    // them instead of only ever crediting one ploint per frame no matter how much time actually elapsed.
     if (s.timeElapsedGame >= firstPlointCooldown) {
       if (s.lastPlointAwardTime === 0) {
-        s.lastPlointAwardTime = s.timeElapsedGame;
+        s.lastPlointAwardTime = firstPlointCooldown;
       }
-      if (s.timeElapsedGame - s.lastPlointAwardTime >= plointInterval) {
+      while (s.timeElapsedGame - s.lastPlointAwardTime >= plointInterval) {
         s.plointsGained += 1;
         s.lastPlointAwardTime += plointInterval;
         setHudPlointsGained(s.plointsGained);
