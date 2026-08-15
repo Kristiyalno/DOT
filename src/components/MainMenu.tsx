@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Difficulty, DotConfig, DOTS_DATABASE, NEO_DROP_ID, PlayerStats } from "../types";
+import { Difficulty, DotConfig, DOTS_DATABASE, NEO_DROP_ID, PlayerStats, getPlointIntervalSeconds, getFirstPlointCooldownSeconds } from "../types";
 import { audio } from "../utils/audio";
-import { Volume2, VolumeX, Trophy, Info } from "lucide-react";
+import { Volume2, VolumeX, Info } from "lucide-react";
 import { SettingsPanel, CustomDifficulty, ExperimentalSettings, AccessibilitySettings } from "./SettingsPanel";
 import { Leaderboard } from "./Leaderboard";
 import { Contributors } from "./Contributors";
@@ -15,6 +15,20 @@ function hexToRgba(hex: string, alpha: number): string {
   const g = parseInt(safe.slice(3, 5), 16);
   const b = parseInt(safe.slice(5, 7), 16);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// Same dot color/name lookups Leaderboard.tsx uses, so the small glowing dot indicator next to
+// Best Time / Best Kills matches the leaderboard exactly instead of drifting into a separate style.
+const NEO_DOT_COLOR = "#c084fc";
+function getDotColor(dotId: string | undefined): string | undefined {
+  if (!dotId) return undefined;
+  if (dotId === NEO_DROP_ID) return NEO_DOT_COLOR;
+  return DOTS_DATABASE.find((d) => d.id === dotId)?.color;
+}
+function getDotName(dotId: string | undefined): string | undefined {
+  if (!dotId) return undefined;
+  if (dotId === NEO_DROP_ID) return "Neo Drop";
+  return DOTS_DATABASE.find((d) => d.id === dotId)?.name;
 }
 
 
@@ -556,8 +570,46 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       </div>
                     </div>
                   <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2 bg-[#0a0a0a] border border-[#222] px-2.5 py-1 group-hover:border-zinc-500 transition-colors">
+                        <div className="text-[7px] text-zinc-500 uppercase font-black tracking-wider">1ST</div>
+                        <span className="text-[10px] font-black text-white">{getFirstPlointCooldownSeconds(diff)}s</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-[#0a0a0a] border border-[#222] px-2.5 py-1 group-hover:border-zinc-500 transition-colors">
+                        <div className="text-[7px] text-zinc-500 uppercase font-black tracking-wider">PER</div>
+                        <span className="text-[10px] font-black text-white">{getPlointIntervalSeconds(diff)}s</span>
+                      </div>
+                    </div>
                     <div className="flex items-center gap-3 bg-[#0a0a0a] border border-[#222] px-3.5 py-1.5 group-hover:border-zinc-500 transition-colors">
-                      <Trophy className="w-4 h-4 text-zinc-500 group-hover:text-neon-yellow" />
+                      {(() => {
+                        const timeDotId = stats.highScoreDots?.[scoreBig ? `${diff}_big` : diff];
+                        const timeDotColor = getDotColor(timeDotId);
+                        return (
+                          <span className="relative flex items-center group/dot shrink-0">
+                            {timeDotColor ? (
+                              <>
+                                <span
+                                  style={{
+                                    display: "inline-block",
+                                    width: "10px",
+                                    height: "10px",
+                                    backgroundColor: timeDotColor,
+                                    boxShadow: `0 0 6px ${timeDotColor}`,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span className="absolute left-[5px] bottom-full w-0 flex justify-center mb-1.5 z-20 pointer-events-none">
+                                  <span className="hidden group-hover/dot:block bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap">
+                                    {getDotName(timeDotId) || timeDotId}
+                                  </span>
+                                </span>
+                              </>
+                            ) : (
+                              <span style={{ display: "inline-block", width: "10px", height: "10px" }} />
+                            )}
+                          </span>
+                        );
+                      })()}
                       <div>
                         <div className="text-[8px] text-zinc-500 uppercase font-black tracking-wider">BEST TIME</div>
                         <div className="flex items-baseline gap-1 mt-0.5">
@@ -577,8 +629,33 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       const bigKills = totalKills[bigKey] || 0;
                       const bestKills = Math.max(normalKills, bigKills);
                       const killsBig = bigKills > normalKills;
+                      const killsDotId = stats.highScoreKillsDots?.[killsBig ? bigKey : normalKey];
+                      const killsDotColor = getDotColor(killsDotId);
                       return bestKills > 0 ? (
-                        <div className="flex items-center gap-3 bg-[#0a0a0a] border border-[#222] px-3.5 py-1.5 group-hover:border-zinc-500 transition-colors">
+                        <div className="flex items-center gap-3 bg-[#0a0a0a] border border-[#222] pl-3 pr-3.5 py-1.5 group-hover:border-zinc-500 transition-colors">
+                          <span className="relative flex items-center group/dot shrink-0">
+                            {killsDotColor ? (
+                              <>
+                                <span
+                                  style={{
+                                    display: "inline-block",
+                                    width: "10px",
+                                    height: "10px",
+                                    backgroundColor: killsDotColor,
+                                    boxShadow: `0 0 6px ${killsDotColor}`,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span className="absolute left-[5px] bottom-full w-0 flex justify-center mb-1.5 z-20 pointer-events-none">
+                                  <span className="hidden group-hover/dot:block bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap">
+                                    {getDotName(killsDotId) || killsDotId}
+                                  </span>
+                                </span>
+                              </>
+                            ) : (
+                              <span style={{ display: "inline-block", width: "10px", height: "10px" }} />
+                            )}
+                          </span>
                           <div>
                             <div className="text-[8px] text-zinc-500 uppercase font-black tracking-wider">BEST KILLS</div>
                             <div className="flex items-baseline gap-1 mt-0.5">

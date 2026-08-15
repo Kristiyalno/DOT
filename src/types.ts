@@ -15,6 +15,39 @@ export enum Difficulty {
   Dot0 = "Dot-0"
 }
 
+// Interval (in seconds) between Ploint awards, once the first-award cooldown has cleared.
+export function getPlointIntervalSeconds(d: Difficulty): number {
+  switch (d) {
+    case Difficulty.Blissful: return 5.0;
+    case Difficulty.Pissful: return 4.0;
+    case Difficulty.Ez: return 3.0;
+    case Difficulty.Medium: return 2.5;
+    case Difficulty.Hard: return 1.8;
+    case Difficulty.HardR: return 1.2;
+    case Difficulty.Impossible: return 0.8;
+    case Difficulty.Hell: return 0.5;
+    case Difficulty.Dot0: return 0.25;
+    default: return 3.0;
+  }
+}
+
+// First-ploint cooldown (in seconds) — how long before the very first Ploint can be awarded.
+// Scales down with difficulty so harder levels don't waste a flat cooldown doing nothing.
+export function getFirstPlointCooldownSeconds(d: Difficulty): number {
+  switch (d) {
+    case Difficulty.Blissful: return 12.0;
+    case Difficulty.Pissful: return 10.0;
+    case Difficulty.Ez: return 8.0;
+    case Difficulty.Medium: return 6.5;
+    case Difficulty.Hard: return 5.0;
+    case Difficulty.HardR: return 3.5;
+    case Difficulty.Impossible: return 2.5;
+    case Difficulty.Hell: return 1.5;
+    case Difficulty.Dot0: return 1.0;
+    default: return 5.0;
+  }
+}
+
 export interface DotConfig {
   id: string;
   name: string;

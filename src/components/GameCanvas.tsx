@@ -16,7 +16,9 @@ import {
   EchoGhost,
   Shockwave,
   DOTS_DATABASE,
-  NEO_DROP_ID
+  NEO_DROP_ID,
+  getPlointIntervalSeconds,
+  getFirstPlointCooldownSeconds
 } from "../types";
 import { audio } from "../utils/audio";
 
@@ -231,42 +233,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   // Calculate Ploint yield interval
   // "in hard it would give you a Ploint every 20 seconds and in Hell it would give you one every 3 secs"
-  const getPlointIntervalSeconds = (d: Difficulty): number => {
-    switch (d) {
-      case Difficulty.Blissful: return 5.0;
-      case Difficulty.Pissful: return 4.0;
-      case Difficulty.Ez: return 3.0;
-      case Difficulty.Medium: return 2.5;
-      case Difficulty.Hard: return 1.8;
-      case Difficulty.HardR: return 1.2;
-      case Difficulty.Impossible: return 0.8;
-      case Difficulty.Hell: return 0.5;
-      case Difficulty.Dot0: return 0.25;
-      default: return 3.0;
-    }
-  };
-
   const plointInterval = (customDifficulty != null
     ? (customDifficulty.secondsPerPloint ?? getPlointIntervalSeconds(difficulty))
     : getPlointIntervalSeconds(difficulty)) * 1000; // in ms
 
   // First-ploint cooldown — how long before the very first Ploint can be awarded.
   // Scales down with difficulty so harder levels don't waste a flat 5s doing nothing.
-  const getFirstPlointCooldownSeconds = (d: Difficulty): number => {
-    switch (d) {
-      case Difficulty.Blissful: return 12.0;
-      case Difficulty.Pissful: return 10.0;
-      case Difficulty.Ez: return 8.0;
-      case Difficulty.Medium: return 6.5;
-      case Difficulty.Hard: return 5.0;
-      case Difficulty.HardR: return 3.5;
-      case Difficulty.Impossible: return 2.5;
-      case Difficulty.Hell: return 1.5;
-      case Difficulty.Dot0: return 1.0;
-      default: return 5.0;
-    }
-  };
-
   const firstPlointCooldown = (customDifficulty != null
     ? (customDifficulty.firstPlointCooldown ?? getFirstPlointCooldownSeconds(difficulty))
     : getFirstPlointCooldownSeconds(difficulty)) * 1000; // in ms
@@ -595,6 +567,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     setHudShields(s.player.shields);
 
     // Award Ploints based on game-scaled elapsed time (slowed seconds count less) after an initial cooldown that scales with difficulty.
+    // The FIRST Ploint fires the instant the cooldown itself elapses — not one extra full interval later —
+    // so Dot-0's first Ploint lands at 1s (not 1.25s) and Blissful's lands at 12s (not 17s). From there,
+    // subsequent Ploints follow the normal per-difficulty interval.
     // Baseline is set to firstPlointCooldown itself (not whatever timeElapsedGame happens to be on the frame
     // the cooldown clears) so a large single-frame time jump — a lag spike, or a backgrounded/refocused tab —
     // can't silently swallow the banked time between the cooldown threshold and that frame. The award is also
@@ -602,7 +577,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // them instead of only ever crediting one ploint per frame no matter how much time actually elapsed.
     if (s.timeElapsedGame >= firstPlointCooldown) {
       if (s.lastPlointAwardTime === 0) {
+        // First Ploint awarded immediately here, then the interval clock starts from this same moment.
         s.lastPlointAwardTime = firstPlointCooldown;
+        s.plointsGained += 1;
+        setHudPlointsGained(s.plointsGained);
+        audio.playShieldOption(true); // lovely alert ping
       }
       while (s.timeElapsedGame - s.lastPlointAwardTime >= plointInterval) {
         s.plointsGained += 1;
