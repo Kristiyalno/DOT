@@ -1742,9 +1742,9 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
         />
         {/* Format-aware text field */}
         <div className="flex flex-1 items-center bg-[#0a0a0a] border border-[#333] focus-within:border-neon-cyan transition-colors min-w-0">
-          {format === "hex" && (
-            <span className="text-zinc-500 text-xs font-mono pl-2 select-none pointer-events-none">#</span>
-          )}
+          <span className={`text-zinc-500 text-xs font-mono pl-2 select-none pointer-events-none ${format === "hex" ? "opacity-100" : "opacity-0"}`}>
+            #
+          </span>
           <input
             ref={textInputRef}
             type="text"
