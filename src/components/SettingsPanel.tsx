@@ -536,7 +536,7 @@ export const SettingsPanel: React.FC<SettingsProps> = ({
             <div className="flex items-center justify-between gap-4">
               <span className="text-xs text-zinc-300 uppercase tracking-widest font-black">Spoof Platform</span>
               <div className="flex border border-[#333]">
-                {(["default", "phone", "tablet", "computer"] as const).map((opt) => (
+                {(["default", "phone", "tablet", "computer", "other", "unknown"] as const).map((opt) => (
                   <button
                     key={opt}
                     onClick={() => { audio.playClick(); onSetPlatformSpoof(opt); }}
@@ -1791,10 +1791,13 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
           style={{ background: safeColor }}
           
         />
-        {/* Format-aware text field */}
-        <div className="flex flex-1 items-center bg-[#0a0a0a] border border-[#333] focus-within:border-neon-cyan transition-colors min-w-0">
+        {/* Format-aware text field. The input's own box, padding, and usable width are always
+            identical in both formats — only the "#" prefix (hex only) is an absolutely-positioned
+            overlay that sits in front of the text without reserving any layout space, so nothing
+            about the field visibly resizes or shifts when toggling between hex and rgb. */}
+        <div className="relative flex flex-1 items-center bg-[#0a0a0a] border border-[#333] focus-within:border-neon-cyan transition-colors min-w-0">
           {format === "hex" && (
-            <span className="text-zinc-500 text-xs font-mono pl-2 select-none pointer-events-none">#</span>
+            <span className="absolute left-2 text-zinc-500 text-xs font-mono select-none pointer-events-none">#</span>
           )}
           <input
             ref={textInputRef}
@@ -1816,7 +1819,7 @@ const ColorPickerField: React.FC<{ color: string; onChange: (c: string) => void 
               }
             }}
             placeholder={format === "hex" ? "ffffff" : "(255, 255, 255)"}
-            className={`flex-1 min-w-0 bg-transparent text-white text-xs py-2 pr-2 font-mono outline-none ${format === "hex" ? "pl-0" : "pl-2"}`}
+            className="flex-1 min-w-0 bg-transparent text-white text-xs py-2 pr-2 pl-5 font-mono outline-none"
           />
         </div>
         {/* Format toggle — also skipped by Tab for the same reason as the swatch above. */}

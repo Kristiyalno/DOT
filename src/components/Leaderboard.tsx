@@ -27,44 +27,89 @@ function getDotName(dotId: string | undefined): string | undefined {
   return DOTS_DATABASE.find((d) => d.id === dotId)?.name;
 }
 
-// Small pixel-grid icons for the device-type column. Each is an 8x8 (or similar) block grid
-// drawn with <rect> on a shared viewBox, crispEdges so it reads as blocky/pixelated rather
-// than anti-aliased, matching the game's general aesthetic rather than a smooth icon-font glyph.
-const DEVICE_ICON_PATHS: Record<DeviceType, string> = {
-  // Phone: narrow, tall, portrait — a slim vertical bar with a small home-button notch
-  phone: "M3.5,1 H6.5 V13 H3.5 Z M4.5,11.5 H5.5 V12.5 H4.5 Z",
-  // Tablet: wide, short, landscape — deliberately a very different silhouette from phone
-  // so the two remain distinguishable even at the ~11x14px size they render at in the row.
-  tablet: "M0.5,3 H9.5 V11 H0.5 Z M4.5,9.5 H5.5 V10 H4.5 Z",
-  // Computer: monitor + small stand
-  computer: "M1,2 H9 V8 H1 Z M4,9 H6 V10 H4 Z M2,10.5 H8 V11.5 H2 Z",
-  // Unknown: pixelated question mark
-  unknown: "M3,2 H7 V3 H8 V5 H7 V6 H6 V7 H5 V6 H6 V5 H7 V4 H6 V3 H4 V4 H3 Z M5,8 H6 V9 H5 Z",
+// Pixel-grid icons for the device-type column, drawn on a 16x16 grid with filled rects and
+// dark cutouts for screens/details so they read as actual devices rather than plain blobs.
+// crispEdges keeps them blocky/pixelated to match the game's aesthetic instead of smooth
+// anti-aliased icon-font glyphs.
+const DeviceIconSvg: React.FC<{ type: DeviceType }> = ({ type }) => {
+  switch (type) {
+    case "phone":
+      return (
+        <>
+          <rect x="5" y="1" width="6" height="14" fill="currentColor" />
+          <rect x="6" y="2.5" width="4" height="10" fill="#050505" />
+          <rect x="7.25" y="13" width="1.5" height="1" fill="#050505" />
+        </>
+      );
+    case "tablet":
+      return (
+        <>
+          <rect x="1" y="3" width="14" height="10" fill="currentColor" />
+          <rect x="2.5" y="4" width="11" height="7.5" fill="#050505" />
+          <rect x="7.25" y="12" width="1.5" height="0.75" fill="#050505" />
+        </>
+      );
+    case "computer":
+      return (
+        <>
+          <rect x="1" y="2" width="14" height="9" fill="currentColor" />
+          <rect x="2" y="3" width="12" height="7" fill="#050505" />
+          <rect x="6.5" y="11" width="3" height="2" fill="currentColor" />
+          <rect x="3" y="13" width="10" height="1.5" fill="currentColor" />
+        </>
+      );
+    case "other":
+      return (
+        <>
+          {/* Generic gamepad/console silhouette — reads as "some device", not one of the three main types */}
+          <rect x="2" y="5" width="12" height="6" fill="currentColor" />
+          <rect x="0" y="6" width="2" height="4" fill="currentColor" />
+          <rect x="14" y="6" width="2" height="4" fill="currentColor" />
+          <rect x="3.5" y="6.5" width="1" height="3" fill="#050505" />
+          <rect x="2.5" y="7.5" width="3" height="1" fill="#050505" />
+          <rect x="10.5" y="7" width="1" height="1" fill="#050505" />
+          <rect x="12" y="8.5" width="1" height="1" fill="#050505" />
+        </>
+      );
+    case "unknown":
+    default:
+      return (
+        <>
+          <rect x="5" y="2" width="6" height="2" fill="currentColor" />
+          <rect x="10" y="4" width="2" height="3" fill="currentColor" />
+          <rect x="8" y="7" width="2" height="2" fill="currentColor" />
+          <rect x="8" y="9" width="2" height="2" fill="currentColor" />
+          <rect x="4" y="4" width="2" height="2" fill="currentColor" />
+          <rect x="8" y="12" width="2" height="2" fill="currentColor" />
+        </>
+      );
+  }
 };
 
-const DEVICE_LABELS: Record<DeviceType, string> = {
-  phone: "Phone",
-  tablet: "Tablet",
-  computer: "Computer",
-  unknown: "Unknown device",
-};
+function getDeviceLabel(type: DeviceType, otherName: string | undefined): string {
+  if (type === "phone") return "Phone";
+  if (type === "tablet") return "Tablet";
+  if (type === "computer") return "Computer";
+  if (type === "other") return `Other (${otherName || "Unrecognized"})`;
+  return "Unknown Device";
+}
 
-const DeviceIcon: React.FC<{ type: DeviceType | undefined }> = ({ type }) => {
+const DeviceIcon: React.FC<{ type: DeviceType | undefined; otherName?: string }> = ({ type, otherName }) => {
   const resolved: DeviceType = type ?? "unknown";
   return (
-    <span className="relative flex items-center group/device shrink-0">
+    <span className="relative inline-flex items-center justify-center group/device shrink-0" style={{ width: "22px", height: "22px" }}>
       <svg
-        viewBox="0 0 10 14"
-        width="11"
-        height="14"
+        viewBox="0 0 16 16"
+        width="22"
+        height="22"
         style={{ shapeRendering: "crispEdges" }}
         className="text-zinc-500 group-hover/device:text-zinc-300 transition-colors"
       >
-        <path d={DEVICE_ICON_PATHS[resolved]} fill="currentColor" />
+        <DeviceIconSvg type={resolved} />
       </svg>
-      <span className="absolute left-1/2 -translate-x-1/2 bottom-full w-0 flex justify-center mb-1.5 z-20 pointer-events-none">
+      <span className="absolute left-1/2 -translate-x-1/2 bottom-full flex justify-center mb-1.5 z-20 pointer-events-none w-max">
         <span className="hidden group-hover/device:block bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap">
-          {DEVICE_LABELS[resolved]}
+          {getDeviceLabel(resolved, otherName)}
         </span>
       </span>
     </span>
@@ -368,13 +413,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                       <span style={{ display: "inline-block", width: "10px", height: "10px" }} />
                     )}
                   </span>
-                  <DeviceIcon type={entry.deviceType} />
-                  <span
-                    className="font-black truncate min-w-0 overflow-hidden block whitespace-nowrap"
-                    style={{ color: entry.color || "#ffffff" }}
-                  >
-                    {entry.name}
-                    {isMe && <span className="ml-2 text-[10px] text-zinc-500 font-normal">(you)</span>}
+                  <DeviceIcon type={entry.deviceType} otherName={entry.deviceOtherName} />
+                  <span className="min-w-0 overflow-x-auto whitespace-nowrap" style={{ scrollbarWidth: "thin" }}>
+                    <span
+                      className="font-black"
+                      style={{ color: entry.color || "#ffffff" }}
+                    >
+                      {entry.name}
+                      {isMe && <span className="ml-2 text-[10px] text-zinc-500 font-normal">(you)</span>}
+                    </span>
                   </span>
                   <span></span>
                   <span className="text-white font-black text-base text-right whitespace-nowrap">{formatScore(entry)}</span>

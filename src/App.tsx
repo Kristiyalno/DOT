@@ -106,7 +106,7 @@ export default function App() {
   const [platformSpoof, setPlatformSpoof] = useState<PlatformSpoof>(() => {
     try {
       const v = localStorage.getItem("dot_platform_spoof");
-      return (v === "phone" || v === "tablet" || v === "computer") ? v : "default";
+      return (v === "phone" || v === "tablet" || v === "computer" || v === "other" || v === "unknown") ? v : "default";
     } catch { return "default"; }
   });
   const [musicVolume, setMusicVolumeState] = useState<number>(() => {
