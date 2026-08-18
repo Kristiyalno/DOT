@@ -4,7 +4,7 @@ import { PlatformSpoof } from "../utils/deviceType";
 import { audio } from "../utils/audio";
 import { Volume2, VolumeX, Info } from "lucide-react";
 import { SettingsPanel, CustomDifficulty, ExperimentalSettings, AccessibilitySettings } from "./SettingsPanel";
-import { Leaderboard } from "./Leaderboard";
+import { Leaderboard, DotIndicator, DeviceIcon } from "./Leaderboard";
 import { Contributors } from "./Contributors";
 import { ShopMenu } from "./ShopMenu";
 
@@ -122,6 +122,22 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<"menu" | "shop" | "leaderboard" | "settings">("menu");
   const [showContributors, setShowContributors] = useState(false);
+  const [dotTooltipOpenId, setDotTooltipOpenId] = useState<string | null>(null);
+
+  // Tapping anywhere outside the dot-selection grid closes whichever tooltip a touch tap opened.
+  useEffect(() => {
+    if (!dotTooltipOpenId) return;
+    const onOutside = (e: TouchEvent | MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-dot-select-grid]")) setDotTooltipOpenId(null);
+    };
+    window.addEventListener("touchstart", onOutside);
+    window.addEventListener("mousedown", onOutside);
+    return () => {
+      window.removeEventListener("touchstart", onOutside);
+      window.removeEventListener("mousedown", onOutside);
+    };
+  }, [dotTooltipOpenId]);
   const [spamtonUnit, setSpamtonUnit] = useState<"minutes" | "seconds" | "hours">(() => {
     try {
       const stored = localStorage.getItem("dot_spamton_unit");
@@ -476,17 +492,23 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 </span>
               </div>
 
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-5 gap-2" data-dot-select-grid>
                 {visibleDots.map((dot) => {
                   const isUnlocked = unlockedDots.includes(dot.id === NEO_DROP_ID ? "drop" : dot.id) || (dot.id === NEO_DROP_ID && neoDropUnlocked);
                   const isSelected = dot.id === effectiveSelectedId;
                   const isNeo = dot.id === NEO_DROP_ID;
                   const glowAnim = isNeo && neoGlow;
+                  const tapOpen = dotTooltipOpenId === dot.id;
 
                   return (
                     <button
                       key={dot.id}
-                      onClick={() => { if (isUnlocked && !isSelected) { audio.playClick(); onSelectDot(dot.id); } }}
+                      onClick={() => {
+                        // Selecting still works exactly as before; tapping also toggles the name
+                        // tooltip open on touch devices, which have no hover state to reveal it.
+                        setDotTooltipOpenId((p) => (p === dot.id ? null : dot.id));
+                        if (isUnlocked && !isSelected) { audio.playClick(); onSelectDot(dot.id); }
+                      }}
                       className={`w-10 h-10 border-2 flex items-center justify-center relative transition-all group ${
                         !isUnlocked
                           ? "border-[#222] bg-zinc-950/20 cursor-not-allowed opacity-20"
@@ -515,7 +537,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                         }}
                       />
 
-                      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap z-20">
+                      <span className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 ${tapOpen ? "block" : "hidden group-hover:block"} bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap z-20`}>
                         {dot.name}
                       </span>
                     </button>
@@ -589,31 +611,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       {(() => {
                         const timeDotId = stats.highScoreDots?.[scoreBig ? `${diff}_big` : diff];
                         const timeDotColor = getDotColor(timeDotId);
-                        return (
-                          <span className="relative flex items-center group/dot shrink-0">
-                            {timeDotColor ? (
-                              <>
-                                <span
-                                  style={{
-                                    display: "inline-block",
-                                    width: "10px",
-                                    height: "10px",
-                                    backgroundColor: timeDotColor,
-                                    boxShadow: `0 0 6px ${timeDotColor}`,
-                                    flexShrink: 0,
-                                  }}
-                                />
-                                <span className="absolute left-[5px] bottom-full w-0 flex justify-center mb-1.5 z-20 pointer-events-none">
-                                  <span className="hidden group-hover/dot:block bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap">
-                                    {getDotName(timeDotId) || timeDotId}
-                                  </span>
-                                </span>
-                              </>
-                            ) : (
-                              <span style={{ display: "inline-block", width: "10px", height: "10px" }} />
-                            )}
-                          </span>
-                        );
+                        return <DotIndicator dotId={timeDotId} color={timeDotColor} />;
                       })()}
                       <div>
                         <div className="text-[8px] text-zinc-500 uppercase font-black tracking-wider">BEST TIME</div>
@@ -638,29 +636,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       const killsDotColor = getDotColor(killsDotId);
                       return bestKills > 0 ? (
                         <div className="flex items-center gap-3 bg-[#0a0a0a] border border-[#222] pl-3 pr-3.5 py-1.5 group-hover:border-zinc-500 transition-colors">
-                          <span className="relative flex items-center group/dot shrink-0">
-                            {killsDotColor ? (
-                              <>
-                                <span
-                                  style={{
-                                    display: "inline-block",
-                                    width: "10px",
-                                    height: "10px",
-                                    backgroundColor: killsDotColor,
-                                    boxShadow: `0 0 6px ${killsDotColor}`,
-                                    flexShrink: 0,
-                                  }}
-                                />
-                                <span className="absolute left-[5px] bottom-full w-0 flex justify-center mb-1.5 z-20 pointer-events-none">
-                                  <span className="hidden group-hover/dot:block bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap">
-                                    {getDotName(killsDotId) || killsDotId}
-                                  </span>
-                                </span>
-                              </>
-                            ) : (
-                              <span style={{ display: "inline-block", width: "10px", height: "10px" }} />
-                            )}
-                          </span>
+                          <DotIndicator dotId={killsDotId} color={killsDotColor} />
                           <div>
                             <div className="text-[8px] text-zinc-500 uppercase font-black tracking-wider">BEST KILLS</div>
                             <div className="flex items-baseline gap-1 mt-0.5">

@@ -27,6 +27,59 @@ function getDotName(dotId: string | undefined): string | undefined {
   return DOTS_DATABASE.find((d) => d.id === dotId)?.name;
 }
 
+// Small colored square showing which dot a record was set with, plus a name tooltip that
+// works on both mouse (hover) and touch (tap-to-toggle, tap elsewhere to dismiss) devices.
+export const DotIndicator: React.FC<{ dotId: string | undefined; color: string | undefined }> = ({ dotId, color }) => {
+  const [hovered, setHovered] = React.useState(false);
+  const [tapOpen, setTapOpen] = React.useState(false);
+  const ref = React.useRef<HTMLSpanElement>(null);
+
+  React.useEffect(() => {
+    if (!tapOpen) return;
+    const onOutside = (e: TouchEvent | MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setTapOpen(false);
+    };
+    window.addEventListener("touchstart", onOutside);
+    window.addEventListener("mousedown", onOutside);
+    return () => {
+      window.removeEventListener("touchstart", onOutside);
+      window.removeEventListener("mousedown", onOutside);
+    };
+  }, [tapOpen]);
+
+  if (!color) {
+    return <span style={{ display: "inline-block", width: "10px", height: "10px" }} />;
+  }
+
+  const visible = hovered || tapOpen;
+
+  return (
+    <span
+      ref={ref}
+      className="relative flex items-center cursor-pointer"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={(e) => { e.stopPropagation(); setTapOpen((p) => !p); }}
+    >
+      <span
+        style={{
+          display: "inline-block",
+          width: "10px",
+          height: "10px",
+          backgroundColor: color,
+          boxShadow: `0 0 6px ${color}`,
+          flexShrink: 0,
+        }}
+      />
+      <span className="absolute left-[5px] bottom-full w-0 flex justify-center mb-1.5 z-20 pointer-events-none">
+        <span className={`${visible ? "block" : "hidden"} bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap`}>
+          {getDotName(dotId) || dotId}
+        </span>
+      </span>
+    </span>
+  );
+};
+
 // Pixel-grid icons for the device-type column, drawn on a 16x16 grid with filled rects and
 // dark cutouts for screens/details so they read as actual devices rather than plain blobs.
 // crispEdges keeps them blocky/pixelated to match the game's aesthetic instead of smooth
@@ -75,12 +128,12 @@ const DeviceIconSvg: React.FC<{ type: DeviceType }> = ({ type }) => {
     default:
       return (
         <>
-          <rect x="5" y="2" width="6" height="2" fill="currentColor" />
-          <rect x="10" y="4" width="3" height="3" fill="currentColor" />
-          <rect x="8" y="7" width="3" height="2" fill="currentColor" />
-          <rect x="8" y="9" width="2" height="2" fill="currentColor" />
-          <rect x="4" y="4" width="2" height="2" fill="currentColor" />
-          <rect x="8" y="12" width="2" height="2" fill="currentColor" />
+          <rect x="3" y="1" width="10" height="2.5" fill="currentColor" />
+          <rect x="3" y="3.5" width="2.5" height="2.5" fill="currentColor" />
+          <rect x="10.5" y="3.5" width="2.5" height="5" fill="currentColor" />
+          <rect x="7.5" y="6" width="3" height="2.5" fill="currentColor" />
+          <rect x="7.5" y="8.5" width="2.5" height="2" fill="currentColor" />
+          <rect x="7.25" y="12" width="2.5" height="2.5" fill="currentColor" />
         </>
       );
   }
@@ -94,21 +147,51 @@ function getDeviceLabel(type: DeviceType, otherName: string | undefined): string
   return "Unknown Device";
 }
 
-const DeviceIcon: React.FC<{ type: DeviceType | undefined; otherName?: string }> = ({ type, otherName }) => {
+export const DeviceIcon: React.FC<{ type: DeviceType | undefined; otherName?: string }> = ({ type, otherName }) => {
   const resolved: DeviceType = type ?? "unknown";
+  const [hovered, setHovered] = React.useState(false);
+  const [tapOpen, setTapOpen] = React.useState(false);
+  const ref = React.useRef<HTMLSpanElement>(null);
+
+  // Touch devices have no hover state, so tapping the icon toggles the tooltip instead;
+  // tapping anywhere else closes it, mirroring how the hover version dismisses on mouse-out.
+  // Driven by local state rather than CSS :hover/group-hover so this never collides with
+  // an outer "group" scope (e.g. a whole row/button using "group" for its own hover style).
+  React.useEffect(() => {
+    if (!tapOpen) return;
+    const onOutside = (e: TouchEvent | MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setTapOpen(false);
+    };
+    window.addEventListener("touchstart", onOutside);
+    window.addEventListener("mousedown", onOutside);
+    return () => {
+      window.removeEventListener("touchstart", onOutside);
+      window.removeEventListener("mousedown", onOutside);
+    };
+  }, [tapOpen]);
+
+  const visible = hovered || tapOpen;
+
   return (
-    <span className="relative inline-flex items-center justify-center group/device shrink-0" style={{ width: "22px", height: "22px" }}>
+    <span
+      ref={ref}
+      className="relative inline-flex items-center justify-center shrink-0 cursor-pointer"
+      style={{ width: "22px", height: "22px" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={(e) => { e.stopPropagation(); setTapOpen((p) => !p); }}
+    >
       <svg
         viewBox="0 0 16 16"
         width="22"
         height="22"
         style={{ shapeRendering: "crispEdges" }}
-        className="text-zinc-500 group-hover/device:text-zinc-300 transition-colors"
+        className={`transition-colors ${visible ? "text-zinc-300" : "text-zinc-500"}`}
       >
         <DeviceIconSvg type={resolved} />
       </svg>
       <span className="absolute left-1/2 -translate-x-1/2 bottom-full flex justify-center mb-1.5 z-20 pointer-events-none w-max">
-        <span className="hidden group-hover/device:block bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap">
+        <span className={`${visible ? "block" : "hidden"} bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap`}>
           {getDeviceLabel(resolved, otherName)}
         </span>
       </span>
@@ -134,7 +217,7 @@ const DIFFICULTY_NAMES: Record<string, string> = {
   [Difficulty.Ez]: "Ez",
   [Difficulty.Medium]: "Medium",
   [Difficulty.Hard]: "Hard",
-  [Difficulty.HardR]: "Hard+",
+  [Difficulty.HardR]: "Hard R",
   [Difficulty.Impossible]: "Impossible",
   [Difficulty.Hell]: "Hell",
   [Difficulty.Dot0]: "DOT-0",
@@ -357,7 +440,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
         {/* Table */}
         <div className="border border-[#222] overflow-hidden">
-          <div className="grid grid-cols-[3rem_2rem_1.5rem_1fr_18rem_10rem_9rem_9rem] text-[10px] text-zinc-500 uppercase tracking-widest font-black bg-[#0a0a0a] border-b border-[#222] px-5 py-3">
+          <div className="grid grid-cols-[3rem_2rem_2rem_2fr_1.1fr_1fr_1fr_1fr] text-[10px] text-zinc-500 uppercase tracking-widest font-black bg-[#0a0a0a] border-b border-[#222] px-5 py-3">
             <span>#</span>
             <span></span>
             <span></span>
@@ -384,34 +467,12 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               return (
                 <div
                   key={entry.id || i}
-                  className={`grid grid-cols-[3rem_2rem_1.5rem_1fr_18rem_10rem_9rem_9rem] items-center px-5 py-3.5 border-b border-[#111] text-sm font-mono transition-colors ${
+                  className={`grid grid-cols-[3rem_2rem_2rem_2fr_1.1fr_1fr_1fr_1fr] items-center px-5 py-3.5 border-b border-[#111] text-sm font-mono transition-colors ${
                     isMe ? "bg-white/5" : "hover:bg-[#0a0a0a]"
                   }`}
                 >
                   <span className="text-zinc-500 font-black text-xs">{rank}</span>
-                  <span className="relative flex items-center group">
-                    {dotColor ? (
-                      <>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            width: "10px",
-                            height: "10px",
-                            backgroundColor: dotColor,
-                            boxShadow: `0 0 6px ${dotColor}`,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <span className="absolute left-[5px] bottom-full w-0 flex justify-center mb-1.5 z-20 pointer-events-none">
-                          <span className="hidden group-hover:block bg-[#0a0a0a] text-white text-[9px] px-2 py-0.5 border border-[#333] whitespace-nowrap">
-                            {getDotName(entry.dotId) || entry.dotId}
-                          </span>
-                        </span>
-                      </>
-                    ) : (
-                      <span style={{ display: "inline-block", width: "10px", height: "10px" }} />
-                    )}
-                  </span>
+                  <DotIndicator dotId={entry.dotId} color={dotColor} />
                   <DeviceIcon type={entry.deviceType} otherName={entry.deviceOtherName} />
                   <span className="min-w-0 overflow-x-auto whitespace-nowrap no-scrollbar pr-4">
                     <span
@@ -422,7 +483,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                       {isMe && <span className="ml-2 text-[10px] text-zinc-500 font-normal">(you)</span>}
                     </span>
                   </span>
-                  <span className="text-white font-black text-base text-right whitespace-nowrap">{formatScore(entry)}</span>
+                  <span className="min-w-0 overflow-x-auto whitespace-nowrap no-scrollbar text-right">
+                    <span className="text-white font-black text-base">{formatScore(entry)}</span>
+                  </span>
                   <span className={`text-xs font-bold uppercase tracking-wider pl-8 ${entry.bigMode ? "text-neon-cyan" : "text-zinc-600"}`}>
                     {entry.bigMode ? "BIG" : "STANDARD"}
                   </span>

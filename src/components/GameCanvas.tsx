@@ -178,6 +178,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       invincibilityTimer: 0, // frames
     },
     mouse: { x: 300, y: 300 },
+    // Tracks whether `mouse` has ever been set from real input yet — the aim-preview dot is
+    // hidden until this flips true, so it doesn't visibly sit at the hardcoded default position
+    // before the player has moved a mouse or touched the screen at all.
+    hasRealMousePos: false,
     enemies: [] as Enemy[],
     projectiles: [] as Projectile[],
     lasers: [] as Laser[],
@@ -229,6 +233,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     glintArmPopPos: null as null | { x: number; y: number },
     ploumResidues: [] as Array<{ x: number; y: number; duration: number; maxDuration: number; radius: number }>,
     ploumPulls: [] as Array<{ x: number; y: number; endTime: number; radius: number }>,
+    // Ploum's pull-wave and kill-wave need a moment to actually meet/interact before the player
+    // commits to the new spot — otherwise the player can teleport instantly into enemies that are
+    // still mid-pull toward the OLD position and haven't been caught by the kill wave yet. This
+    // holds the real (unscaled) teleport destination while a short delay elapses; the waves
+    // themselves still spawn immediately at the moment of input, only the player's own position
+    // change is what's held back.
+    pendingPloumTeleport: null as null | { x: number; y: number; remainingMs: number },
   });
 
   // Calculate Ploint yield interval
@@ -461,6 +472,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     }
     if (s.prismCritCooldown > 0) {
       s.prismCritCooldown = Math.max(0, s.prismCritCooldown - deltaReal);
+    }
+    // Ploum's held-back teleport: counts down in real (unscaled) time so it feels consistently
+    // snappy regardless of hyper-slo, then commits the player's actual position — see the comment
+    // where pendingPloumTeleport is set for why this delay exists.
+    if (s.pendingPloumTeleport) {
+      s.pendingPloumTeleport.remainingMs -= deltaReal;
+      if (s.pendingPloumTeleport.remainingMs <= 0) {
+        s.player.x = s.pendingPloumTeleport.x;
+        s.player.y = s.pendingPloumTeleport.y;
+        s.pendingPloumTeleport = null;
+      }
     }
     // Update ploum residues — decay in real time, kill enemies inside them each frame
     s.ploumResidues = s.ploumResidues.filter((r) => {
@@ -1300,6 +1322,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     s.glintHoverArmed = false;
     s.glintArmPopAlpha = 0;
     s.glintArmPopPos = null;
+    s.pendingPloumTeleport = null;
     audio.playGameOver();
 
     // Create massive game over firework particles
@@ -1328,6 +1351,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     mouseHoldingRef.current = true;
     stateRef.current.mouse.x = x;
     stateRef.current.mouse.y = y;
+    stateRef.current.hasRealMousePos = true;
   };
 
   const handleMouseMoveTouch = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1339,14 +1363,19 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Always update mouse for preview
     stateRef.current.mouse.x = x;
     stateRef.current.mouse.y = y;
+    stateRef.current.hasRealMousePos = true;
     if (isTouchActiveRef.current) {
       lastTouchRef.current = { x, y };
+      // Touch handles its own glint hover-arm logic in handleTouchStart/handleTouchMove below,
+      // since mousemove is not reliably fired during an active touch-drag on real devices —
+      // relying on it here left the charge anchor frozen at the initial touch position.
+      return;
     }
 
-    // Glint hover-arm: cursor stays within 40px of anchor for 600ms to arm a guaranteed crit.
-    // Only a deliberate repositioning (>40px from anchor) resets the timer — tiny jitter is ignored.
-    // Actual arming (once the timer elapses) happens every frame in the main update loop, not here,
-    // so it fires even when the cursor stays perfectly still and never triggers another move event.
+    // Glint hover-arm (mouse only): cursor stays within 40px of anchor for 600ms to arm a
+    // guaranteed crit. Only a deliberate repositioning (>40px from anchor) resets the timer —
+    // tiny jitter is ignored. Actual arming (once the timer elapses) happens every frame in the
+    // main update loop, not here, so it fires even when the cursor stays perfectly still.
     const s = stateRef.current;
     if (selectedDot.id === "glint") {
       if (s.glintHoverPos === null) {
@@ -1387,6 +1416,20 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Update mouse so preview line draws immediately
     stateRef.current.mouse.x = x;
     stateRef.current.mouse.y = y;
+    stateRef.current.hasRealMousePos = true;
+
+    // Glint hover-arm anchor is fixed at the finger-DOWN point and stays there for the whole
+    // hold, regardless of where the finger drags afterward — per the touch interaction model:
+    // hold at the spot you want to teleport to, charge builds there, and release commits the
+    // teleport wherever the finger actually lifts (handled in handleTouchEnd). This is
+    // deliberately different from mouse hover (which re-anchors if you move >40px away), since
+    // for touch the "holding in place" IS the charge gesture and shouldn't reset on drag.
+    if (selectedDot.id === "glint") {
+      const s = stateRef.current;
+      s.glintHoverPos = { x, y };
+      s.glintHoverStart = Date.now();
+      s.glintHoverArmed = false;
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
@@ -1398,8 +1441,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
     lastTouchRef.current = { x, y };
+    // The live aim/cursor preview follows the finger, but glintHoverPos (the charge anchor) is
+    // intentionally left untouched here — see handleTouchStart for why.
     stateRef.current.mouse.x = x;
     stateRef.current.mouse.y = y;
+    stateRef.current.hasRealMousePos = true;
   };
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
@@ -1415,6 +1461,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Update mouse position to match release point before teleporting
     stateRef.current.mouse.x = x;
     stateRef.current.mouse.y = y;
+    stateRef.current.hasRealMousePos = true;
     lastTouchRef.current = null;
     // Suppress the synthesized mousedown/mouseup the browser fires after touchend
     suppressNextMouseRef.current = true;
@@ -1575,9 +1622,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
     }
 
-    // 4. Teleport Dot Immediately
-    s.player.x = clickX;
-    s.player.y = clickY;
+    // 4. Teleport Dot — for Ploum specifically, this is held for a brief moment (see
+    // pendingPloumTeleport below) so the pull-wave and kill-wave have time to actually meet
+    // before the player's hitbox occupies the new spot; every other dot still teleports
+    // immediately as before.
+    if (selectedDot.id === "ploum") {
+      s.pendingPloumTeleport = { x: clickX, y: clickY, remainingMs: 237 };
+    } else {
+      s.player.x = clickX;
+      s.player.y = clickY;
+    }
 
     // Extra visual: particle trail along teleport line
     if (extraVisualEnabledRef.current && visualTrailRef.current) {
@@ -2679,20 +2733,25 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // DRAW MOUSE POINTER BRIGHT DOT
     // "cursor also shows another one thats brighter and less vague."
-    ctx.beginPath();
-    ctx.arc(s.mouse.x, s.mouse.y, s.player.radius - 1, 0, Math.PI * 2);
-    ctx.fillStyle = "#ffffff";
-    ctx.fill();
-    ctx.strokeStyle = selectedDot.color;
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
+    // Hidden until there's a real input position to show — otherwise this renders at the
+    // hardcoded default (center of the initial canvas size) before the player has moved a
+    // mouse or touched the screen at all, which looks like a stray dot stuck on-screen.
+    if (s.hasRealMousePos) {
+      ctx.beginPath();
+      ctx.arc(s.mouse.x, s.mouse.y, s.player.radius - 1, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+      ctx.strokeStyle = selectedDot.color;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
 
-    // Pulse rings on cursor
-    ctx.beginPath();
-    ctx.arc(s.mouse.x, s.mouse.y, s.player.radius + 6 + Math.sin(Date.now() / 100) * 3, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(${selectedDot.id === "null" ? "244, 63, 94, 0.35" : "34, 211, 238, 0.35"})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
+      // Pulse rings on cursor
+      ctx.beginPath();
+      ctx.arc(s.mouse.x, s.mouse.y, s.player.radius + 6 + Math.sin(Date.now() / 100) * 3, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${selectedDot.id === "null" ? "244, 63, 94, 0.35" : "34, 211, 238, 0.35"})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
 
     // Glint hover charge indicator — visible and chargeable regardless of glintCritCooldown,
     // so charging up during the cooldown actually does something instead of showing nothing.
