@@ -2612,8 +2612,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.globalAlpha = 1.0; // reset transparency
 
     // DRAW TELEPORT PREVIEW LINE (Unless Wraith)
+    // Hidden until there's a real input position (see hasRealMousePos) — otherwise this draws
+    // from the player's spawn point to the stale default mouse position before any input at all.
     const isWraith = selectedDot.id === "wraith";
-    if (!isWraith) {
+    if (!isWraith && s.hasRealMousePos) {
       ctx.beginPath();
       ctx.moveTo(s.player.x, s.player.y);
       ctx.lineTo(s.mouse.x, s.mouse.y);
@@ -2755,10 +2757,15 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // Glint hover charge indicator — visible and chargeable regardless of glintCritCooldown,
     // so charging up during the cooldown actually does something instead of showing nothing.
+    // On touch, the ring is drawn at the LIVE finger position (s.mouse) even though the actual
+    // charge/crit-eligibility anchor (s.glintHoverPos) stays fixed at the original touch-down
+    // point — otherwise dragging while holding leaves the ring visually stranded far from the
+    // dot and the aim line, which reads as broken even though the underlying charge logic is
+    // working as intended (holding still is still what the guaranteed-crit check rewards).
     if (selectedDot.id === "glint" && s.glintHoverPos !== null) {
       const elapsed = Date.now() - s.glintHoverStart;
-      const ax = s.glintHoverPos.x;
-      const ay = s.glintHoverPos.y;
+      const ax = isTouchActiveRef.current ? s.mouse.x : s.glintHoverPos.x;
+      const ay = isTouchActiveRef.current ? s.mouse.y : s.glintHoverPos.y;
       const now = Date.now();
       const onCooldown = s.glintCritCooldown > 0;
       // Parse dot color into r,g,b for use in rgba()
