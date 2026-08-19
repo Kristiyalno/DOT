@@ -524,11 +524,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       if (Math.sqrt(ddx * ddx + ddy * ddy) < (enemy.radius + s.player.radius) / BIG + 40) {
         isDotNearDanger = true;
       }
-      // Cursor proximity — triggers soft slo (wider radius)
-      const cdx = enemy.x - s.mouse.x;
-      const cdy = enemy.y - s.mouse.y;
-      if (Math.sqrt(cdx * cdx + cdy * cdy) < (enemy.radius + s.player.radius) / BIG + 55) {
-        isCursorNearDanger = true;
+      // Cursor proximity — triggers soft slo (wider radius). Skipped until there's a real
+      // input position (see hasRealMousePos) — otherwise this checks against the hardcoded
+      // default mouse position before the player has moved a mouse or touched the screen at
+      // all, which could silently trigger slo near a phantom point the player never chose.
+      if (s.hasRealMousePos) {
+        const cdx = enemy.x - s.mouse.x;
+        const cdy = enemy.y - s.mouse.y;
+        if (Math.sqrt(cdx * cdx + cdy * cdy) < (enemy.radius + s.player.radius) / BIG + 55) {
+          isCursorNearDanger = true;
+        }
       }
     });
 
