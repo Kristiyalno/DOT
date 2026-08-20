@@ -1454,11 +1454,27 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
     lastTouchRef.current = { x, y };
-    // The live aim/cursor preview follows the finger, but glintHoverPos (the charge anchor) is
-    // intentionally left untouched here — see handleTouchStart for why.
     stateRef.current.mouse.x = x;
     stateRef.current.mouse.y = y;
     stateRef.current.hasRealMousePos = true;
+
+    // Glint: re-anchor and restart the charge timer if the finger has moved far enough from
+    // the current anchor. Mirrors the mouse hover behavior (>40px resets the anchor) so
+    // "hold still to charge" is actually achievable and moving deliberately cancels the charge.
+    // Without this, the timer starts at touchstart and never resets on drag, so any slow tap
+    // (>600ms) arms the charge regardless of movement — constant accidental crits.
+    if (selectedDot.id === "glint") {
+      const s = stateRef.current;
+      if (s.glintHoverPos !== null) {
+        const dx = x - s.glintHoverPos.x;
+        const dy = y - s.glintHoverPos.y;
+        if (Math.sqrt(dx * dx + dy * dy) > 40) {
+          s.glintHoverPos = { x, y };
+          s.glintHoverStart = Date.now();
+          s.glintHoverArmed = false;
+        }
+      }
+    }
   };
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
