@@ -1365,17 +1365,25 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    // Always update mouse for preview
-    stateRef.current.mouse.x = x;
-    stateRef.current.mouse.y = y;
-    stateRef.current.hasRealMousePos = true;
     if (isTouchActiveRef.current) {
+      // In touch mode, mousemove is only relevant while a real touch is active (lastTouchRef set).
+      // Browsers synthesize a mousemove at the original touch-down position after touchend, which
+      // would snap the aim dot back to where the finger first landed instead of where it lifted.
+      // Guard against that by ignoring mousemove when no touch is currently in progress.
+      if (!lastTouchRef.current) return;
       lastTouchRef.current = { x, y };
+      stateRef.current.mouse.x = x;
+      stateRef.current.mouse.y = y;
+      stateRef.current.hasRealMousePos = true;
       // Touch handles its own glint hover-arm logic in handleTouchStart/handleTouchMove below,
       // since mousemove is not reliably fired during an active touch-drag on real devices —
       // relying on it here left the charge anchor frozen at the initial touch position.
       return;
     }
+    // Always update mouse for preview (mouse mode)
+    stateRef.current.mouse.x = x;
+    stateRef.current.mouse.y = y;
+    stateRef.current.hasRealMousePos = true;
 
     // Glint hover-arm (mouse only): cursor stays within 40px of anchor for 600ms to arm a
     // guaranteed crit. Only a deliberate repositioning (>40px from anchor) resets the timer —
@@ -1476,6 +1484,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const handleStageClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const s = stateRef.current;
     if (s.gameOverTriggered) return;
+    // Block a new ploum teleport while the previous one is still pending — otherwise rapid
+    // taps keep resetting the 237ms countdown and the player never actually teleports.
+    // Aiming (mouse position) is still updated in handleTouchMove, so the aim dot tracks fine.
+    if (s.pendingPloumTeleport !== null) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -2762,15 +2774,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // Glint hover charge indicator — visible and chargeable regardless of glintCritCooldown,
     // so charging up during the cooldown actually does something instead of showing nothing.
-    // On touch, the ring is drawn at the LIVE finger position (s.mouse) even though the actual
-    // charge/crit-eligibility anchor (s.glintHoverPos) stays fixed at the original touch-down
-    // point — otherwise dragging while holding leaves the ring visually stranded far from the
-    // dot and the aim line, which reads as broken even though the underlying charge logic is
-    // working as intended (holding still is still what the guaranteed-crit check rewards).
+    // The ring always draws at the fixed charge anchor (glintHoverPos), on both mouse and touch.
+    // On touch the anchor is the finger-down position; dragging moves the teleport destination
+    // but the charge stays pinned to the original spot. Drawing the ring there makes it obvious
+    // where the charge is building and that moving the finger doesn't restart it.
     if (selectedDot.id === "glint" && s.glintHoverPos !== null) {
       const elapsed = Date.now() - s.glintHoverStart;
-      const ax = isTouchActiveRef.current ? s.mouse.x : s.glintHoverPos.x;
-      const ay = isTouchActiveRef.current ? s.mouse.y : s.glintHoverPos.y;
+      const ax = s.glintHoverPos.x;
+      const ay = s.glintHoverPos.y;
       const now = Date.now();
       const onCooldown = s.glintCritCooldown > 0;
       // Parse dot color into r,g,b for use in rgba()
