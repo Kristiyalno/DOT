@@ -470,7 +470,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // Glint hover-arm: runs every frame (not just on mouse move) so a cursor that goes
     // fully still still arms and flashes right at the 600ms mark instead of waiting for
-    // the next mousemove event to notice the timer already elapsed.
     // Arming is intentionally independent of glintCritCooldown — you can charge up (and
     // stay charged) while the cooldown ticks down, so it's not stand-still > hover > boom > stand-still again.
     if (selectedDot.id === "glint" && s.glintHoverPos !== null && !s.glintHoverArmed) {
@@ -1888,10 +1887,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         s.glintHoverStart = Date.now();
         s.glintHoverArmed = false;
       } else {
-        // Miss or random-roll click with no active hover — reset hover state entirely
-        s.glintHoverPos = null;
-        s.glintHoverStart = 0;
-        s.glintHoverArmed = false;
+        // Miss or random-roll click with no active hover — reset hover state.
+        // On touch, immediately re-seed at the click position (where the player just landed)
+        // so the ring reappears straight away rather than staying invisible until the next tap.
+        if (isTouchActiveRef.current) {
+          s.glintHoverPos = { x: clickX, y: clickY };
+          s.glintHoverStart = Date.now();
+          s.glintHoverArmed = false;
+        } else {
+          s.glintHoverPos = null;
+          s.glintHoverStart = 0;
+          s.glintHoverArmed = false;
+        }
       }
       const crit = (hoveredCrit || Math.random() < 0.05) && !onCooldown;
       if (crit) {
@@ -2808,6 +2815,25 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // On touch the anchor is the finger-down position; dragging moves the teleport destination
     // but the charge stays pinned to the original spot. Drawing the ring there makes it obvious
     // where the charge is building and that moving the finger doesn't restart it.
+    //
+    // When on touch with no finger down (glintHoverPos is null), draw a dim inert preview ring
+    // at the last known mouse/touch position so the player can see the mechanic exists.
+    // This ring does not start the charge — that only happens on touchstart.
+    if (selectedDot.id === "glint" && isTouchActiveRef.current && s.glintHoverPos === null && s.hasRealMousePos) {
+      const px = s.mouse.x;
+      const py = s.mouse.y;
+      const dc = selectedDot.color;
+      const dr = parseInt(dc.slice(1, 3), 16);
+      const dg = parseInt(dc.slice(3, 5), 16);
+      const db = parseInt(dc.slice(5, 7), 16);
+      ctx.beginPath();
+      ctx.arc(px, py, 22, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${dr}, ${dg}, ${db}, 0.2)`;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     if (selectedDot.id === "glint" && s.glintHoverPos !== null) {
       const elapsed = Date.now() - s.glintHoverStart;
       const ax = s.glintHoverPos.x;
