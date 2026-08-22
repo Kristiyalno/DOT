@@ -472,6 +472,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // fully still still arms and flashes right at the 600ms mark instead of waiting for
     // Arming is intentionally independent of glintCritCooldown — you can charge up (and
     // stay charged) while the cooldown ticks down, so it's not stand-still > hover > boom > stand-still again.
+    // On touch with no finger down: seed glintHoverPos at the last known position so the charge
+    // actually builds during the idle preview ring phase. Without this, glintHoverPos stays null
+    // while idle and the timer never runs, making the preview ring purely decorative.
+    // When the finger goes down in handleTouchStart, the existing anchor is kept if within 40px
+    // (preserving the charge) or replaced if far away (restarting it).
+    if (selectedDot.id === "glint" && isTouchActiveRef.current && !lastTouchRef.current && s.hasRealMousePos) {
+      if (s.glintHoverPos === null) {
+        s.glintHoverPos = { x: s.mouse.x, y: s.mouse.y };
+        s.glintHoverStart = Date.now();
+        s.glintHoverArmed = false;
+      }
+    }
     if (selectedDot.id === "glint" && s.glintHoverPos !== null && !s.glintHoverArmed) {
       if (Date.now() - s.glintHoverStart >= 600) {
         s.glintHoverArmed = true;
@@ -1447,14 +1459,35 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     // Glint hover-arm anchor is fixed at the finger-DOWN point and stays there for the whole
     // hold, regardless of where the finger drags afterward — per the touch interaction model:
     // hold at the spot you want to teleport to, charge builds there, and release commits the
-    // teleport wherever the finger actually lifts (handled in handleTouchEnd). This is
-    // deliberately different from mouse hover (which re-anchors if you move >40px away), since
-    // for touch the "holding in place" IS the charge gesture and shouldn't reset on drag.
+    // teleport wherever the finger actually lifts (handled in handleTouchEnd).
+    //
+    // If there's already a charge building (from the idle preview ring) and the finger lands
+    // within 40px of that anchor, keep the existing timer running — don't reset it. This lets
+    // the idle ring actually be useful: stand still for a bit, then tap in the same area to
+    // commit the crit without losing the charge you already built up.
+    // Only reset if the finger lands somewhere meaningfully different (>40px away).
     if (selectedDot.id === "glint") {
       const s = stateRef.current;
-      s.glintHoverPos = { x, y };
-      s.glintHoverStart = Date.now();
-      s.glintHoverArmed = false;
+      const existing = s.glintHoverPos;
+      if (existing !== null) {
+        const dx = x - existing.x;
+        const dy = y - existing.y;
+        if (Math.sqrt(dx * dx + dy * dy) <= 40) {
+          // Close enough — keep the existing anchor and timer, just disarm if somehow armed
+          // without the player intending it (shouldn't happen but defensive).
+          // Leave glintHoverPos, glintHoverStart, glintHoverArmed all untouched.
+        } else {
+          // Far enough away — new anchor, restart charge.
+          s.glintHoverPos = { x, y };
+          s.glintHoverStart = Date.now();
+          s.glintHoverArmed = false;
+        }
+      } else {
+        // No existing charge — start fresh.
+        s.glintHoverPos = { x, y };
+        s.glintHoverStart = Date.now();
+        s.glintHoverArmed = false;
+      }
     }
   };
 
