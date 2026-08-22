@@ -247,6 +247,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   platformSpoof: platformSpoofProp = "default",
 }) => {
   const platformSpoof: PlatformSpoof = platformSpoofProp as PlatformSpoof;
+  const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  // Hide Mode/Difficulty/Category columns when the window is too narrow to fit them cleanly.
+  // 900px is roughly where the sidebar + table start cramping those columns together.
+  const narrowScreen = windowWidth < 900;
   const [category, setCategory] = useState<LeaderboardCategory>("time");
   const [difficulty, setDifficulty] = useState<string>(Difficulty.Medium);
   const [lbBigMode, setLbBigMode] = useState<boolean>(false);
@@ -440,15 +449,15 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
 
         {/* Table */}
         <div className="border border-[#222] overflow-hidden">
-          <div className="grid grid-cols-[3rem_2rem_2rem_2fr_1.1fr_1fr_1fr_1fr] text-[10px] text-zinc-500 uppercase tracking-widest font-black bg-[#0a0a0a] border-b border-[#222] px-5 py-3">
+          <div className={`grid text-[10px] text-zinc-500 uppercase tracking-widest font-black bg-[#0a0a0a] border-b border-[#222] px-5 py-3 ${narrowScreen ? "grid-cols-[3rem_2rem_2rem_2fr_1.1fr]" : "grid-cols-[3rem_2rem_2rem_2fr_1.1fr_1fr_1fr_1fr]"}`}>
             <span>#</span>
             <span></span>
             <span></span>
             <span>Name</span>
             <span className="text-right">Score</span>
-            <span className="pl-8">Mode</span>
-            <span>Difficulty</span>
-            <span>Category</span>
+            {!narrowScreen && <span className="pl-8">Mode</span>}
+            {!narrowScreen && <span>Difficulty</span>}
+            {!narrowScreen && <span>Category</span>}
           </div>
 
           {loading ? (
@@ -467,7 +476,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
               return (
                 <div
                   key={entry.id || i}
-                  className={`grid grid-cols-[3rem_2rem_2rem_2fr_1.1fr_1fr_1fr_1fr] items-center px-5 py-3.5 border-b border-[#111] text-sm font-mono transition-colors ${
+                  className={`grid items-center px-5 py-3.5 border-b border-[#111] text-sm font-mono transition-colors ${narrowScreen ? "grid-cols-[3rem_2rem_2rem_2fr_1.1fr]" : "grid-cols-[3rem_2rem_2rem_2fr_1.1fr_1fr_1fr_1fr]"} ${
                     isMe ? "bg-white/5" : "hover:bg-[#0a0a0a]"
                   }`}
                 >
@@ -486,15 +495,21 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
                   <span className="min-w-0 overflow-x-auto whitespace-nowrap no-scrollbar text-right">
                     <span className="text-white font-black text-base">{formatScore(entry)}</span>
                   </span>
-                  <span className={`text-xs font-bold uppercase tracking-wider pl-8 ${entry.bigMode ? "text-neon-cyan" : "text-zinc-600"}`}>
-                    {entry.bigMode ? "BIG" : "STANDARD"}
-                  </span>
-                  <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">
-                    {DIFFICULTY_NAMES[entry.difficulty] || entry.difficulty}
-                  </span>
-                  <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">
-                    {entry.category === "time" ? "Survival" : "Kills"}
-                  </span>
+                  {!narrowScreen && (
+                    <span className={`text-xs font-bold uppercase tracking-wider pl-8 ${entry.bigMode ? "text-neon-cyan" : "text-zinc-600"}`}>
+                      {entry.bigMode ? "BIG" : "STANDARD"}
+                    </span>
+                  )}
+                  {!narrowScreen && (
+                    <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">
+                      {DIFFICULTY_NAMES[entry.difficulty] || entry.difficulty}
+                    </span>
+                  )}
+                  {!narrowScreen && (
+                    <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">
+                      {entry.category === "time" ? "Survival" : "Kills"}
+                    </span>
+                  )}
                 </div>
               );
             })

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Difficulty,
   DotConfig,
@@ -112,18 +112,32 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const killCountRef = useRef(0);
   const comboPitchEnabledRef = useRef(comboPitchEnabled);
   const killFlashEnabledRef = useRef(killFlashEnabled);
-  // Touch mode detection — reactive ref so forced mode works on desktop too
   const reduceFlashingRef = useRef(reduceFlashing);
   useEffect(() => { reduceFlashingRef.current = reduceFlashing; }, [reduceFlashing]);
-  const isTouchActiveRef = useRef(false);
-  useEffect(() => {
-    const isRealTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    isTouchActiveRef.current = touchMode === "on" || (touchMode === "default" && isRealTouch);
-  }, [touchMode]);
-  // Also set immediately (not just after effect) so initial render is correct
+  // Touch mode detection — switches dynamically based on the most recent input type rather
+  // than being locked at mount time. On touchscreen laptops and iPads with a mouse attached,
+  // the old static detection ("ontouchstart" in window) would permanently enable touch mode
+  // even when using a mouse, because the hardware supports touch. Now we track the last
+  // pointerType seen: "touch" enables touch mode, "mouse"/"pen" disables it. This way the
+  // game behaves correctly regardless of which input the user actually reached for.
+  // The touchMode prop ("on"/"off"/"default") still overrides this for the debug menu.
   const isRealTouchNow = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
-  const isTouchActive = touchMode === "on" || (touchMode === "default" && isRealTouchNow);
+  const [inputIsTouch, setInputIsTouch] = useState<boolean>(isRealTouchNow);
+  const isTouchActive =
+    touchMode === "on" ? true :
+    touchMode === "off" ? false :
+    inputIsTouch;
+  const isTouchActiveRef = useRef(isTouchActive);
   isTouchActiveRef.current = isTouchActive;
+
+  // Switches input mode when the user actually touches or moves the mouse. Runs on the
+  // canvas's onPointerDown so it fires before touchstart/mousedown handlers, giving the
+  // ref time to update before any handler reads it.
+  const handlePointerDownInputSwitch = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (touchMode !== "default") return; // debug override active, don't interfere
+    if (e.pointerType === "touch") setInputIsTouch(true);
+    else if (e.pointerType === "mouse" || e.pointerType === "pen") setInputIsTouch(false);
+  }, [touchMode]);
   const lastTouchRef = useRef<{ x: number; y: number } | null>(null);
   const mouseHoldingRef = useRef(false);
   const suppressNextMouseRef = useRef(false);
@@ -3057,6 +3071,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           <canvas
             ref={canvasRef}
             id="game-canvas"
+            onPointerDown={handlePointerDownInputSwitch}
             onMouseMove={handleMouseMoveTouch}
             onMouseDown={isTouchActive ? handleMouseDownTouch : handleStageClick}
             onMouseUp={isTouchActive ? handleMouseUpTouch : undefined}
@@ -3129,6 +3144,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       <canvas
         ref={canvasRef}
         id="game-canvas"
+        onPointerDown={handlePointerDownInputSwitch}
         onMouseMove={handleMouseMoveTouch}
         onMouseDown={isTouchActive ? handleMouseDownTouch : handleStageClick}
         onMouseUp={isTouchActive ? handleMouseUpTouch : undefined}
